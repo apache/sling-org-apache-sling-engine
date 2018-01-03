@@ -19,8 +19,11 @@
 package org.apache.sling.engine.impl.parameters;
 
 import java.io.File;
+import java.io.IOException;
 
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.settings.SlingSettingsService;
+import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -30,10 +33,44 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+
 @Component(
-        name = RequestParameterSupportConfigurer.PID)
+        name = RequestParameterSupportConfigurer.PID,
+        property = {
+            Constants.SERVICE_RANKING + ":Integer=" + Integer.MAX_VALUE,
+            "osgi.http.whiteboard.context.select=(osgi.http.whiteboard.context.name=org.apache.sling)",
+            "osgi.http.whiteboard.filter.pattern=/"
+        },
+        service = Filter.class)
 @Designate(ocd=RequestParameterSupportConfigurer.Config.class)
-public class RequestParameterSupportConfigurer {
+public class RequestParameterSupportConfigurer implements Filter {
+
+    @Override
+    public void init(FilterConfig filterConfig) throws ServletException {
+
+    }
+
+    @Override
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        if (request instanceof HttpServletRequest && !(request instanceof ParameterSupportHttpServletRequestWrapper) && !(request instanceof SlingHttpServletRequest)) {
+            chain.doFilter(ParameterSupport.getParameterSupportRequestWrapper((HttpServletRequest) request), response);
+        }
+        else {
+            chain.doFilter(request, response);
+        }
+    }
+
+    @Override
+    public void destroy() {
+
+    }
 
     @ObjectClassDefinition(name = "Apache Sling Request Parameter Handling",
         description = "Configures Sling's request parameter handling.")
