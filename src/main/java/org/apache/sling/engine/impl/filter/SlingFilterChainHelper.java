@@ -42,7 +42,7 @@ public class SlingFilterChainHelper {
     SlingFilterChainHelper() {
     }
 
-    public synchronized Filter addFilter(final Filter filter,  String pattern,
+    public synchronized Filter addFilter(final Filter filter,  FilterPredicate pattern,
             final Long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
         if (filterList == null) {
             filterList = new TreeSet<FilterHandle>();
