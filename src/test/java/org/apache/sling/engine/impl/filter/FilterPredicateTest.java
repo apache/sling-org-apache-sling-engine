@@ -22,9 +22,8 @@ import org.junit.Test;
 
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_EXTENSIONS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_METHODS;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATHS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN_SUFFIX;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SELECTORS;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
@@ -60,7 +59,7 @@ public class FilterPredicateTest extends AbstractFilterTest {
     public void testSuffix() {
         FilterPredicate predicate = predicate(SLING_FILTER_PATTERN,
                 "/content/test/.*",
-                SLING_FILTER_PATTERN_SUFFIX,
+                SLING_FILTER_SUFFIX_PATTERN,
                 "/foo/.*");
         assertTrue("/content/test/foo /foo/bar should be selected", predicate.test(mockRequest("/content/test/foo",null, null, null, "/foo/bar")));
         assertFalse("/content/test/foo /bar/foo should not be selected", predicate.test(mockRequest("/content/test/foo",null, null, null, "/bar/foo")));
@@ -91,13 +90,6 @@ public class FilterPredicateTest extends AbstractFilterTest {
     public void testRootWithNoPath() {
         FilterPredicate predicate = predicate(SLING_FILTER_PATTERN,"/");
         assertTrue("'' path based request should be selected with a slash", predicate.test(mockRequest("",null, null, null, null)));
-    }
-
-    @Test
-    public void testPaths() {
-        FilterPredicate predicate = predicate(SLING_FILTER_PATHS,new String[]{"/content/foo","/content/test"});
-        assertTrue("POST /content/test.json should be selected", predicate.test(mockRequest("/content/test","json", null, "POST", null)));
-        assertFalse("POST /content/bar.json should not be selected", predicate.test(mockRequest("/content/bar","json", null, "POST", null)));
     }
 
     @Test

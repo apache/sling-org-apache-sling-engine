@@ -166,7 +166,7 @@ public class EngineConstants {
      * Regular expression pattern for enabling a filter on a matching request suffix
      *@since Sling Engine 2.7
      */
-    public static final String SLING_FILTER_PATTERN_SUFFIX = SLING_FILTER_PATTERN + ".suffix";
+    public static final String SLING_FILTER_SUFFIX_PATTERN = "sling.filter.suffix.pattern";
 
     /**
      * Set of selectors enabling a filter if contains one or more request selectors
@@ -179,12 +179,6 @@ public class EngineConstants {
      *@since Sling Engine 2.7
      */
     public static final String SLING_FILTER_METHODS = "sling.filter.methods";
-
-    /**
-     * Set of paths enabling a filter if contains request path
-     *@since Sling Engine 2.7
-     */
-    public static final String SLING_FILTER_PATHS = "sling.filter.paths";
 
     /**
      * Set of resource types enabling a filter if contains request resource type
