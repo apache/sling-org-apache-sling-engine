@@ -29,8 +29,11 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.impl.request.RequestData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public abstract class AbstractSlingFilterChain implements FilterChain {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractSlingFilterChain.class);
 
     private FilterHandle[] filters;
 
@@ -64,9 +67,11 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
                 FilterHandle filter = this.filters[this.current];
                 
                 if (filter.select(slingRequest)) {
+                    LOG.debug("{} got selected for this request", filter);
                     trackFilter(slingRequest, filter);
                     filter.getFilter().doFilter(slingRequest, slingResponse, this);
                 } else {
+                    LOG.debug("{} was not selected for this request", filter);
                     if (this.current == this.filters.length-1) {
                         this.render(slingRequest, slingResponse);
                     } else {

@@ -222,7 +222,7 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
             String[] scopes = OsgiUtil.toStringArray(
                     reference.getProperty(EngineConstants.SLING_FILTER_SCOPE), null);
 
-            String pattern = OsgiUtil.toString(reference.getProperty(EngineConstants.SLING_FILTER_PATTERN), "");
+            FilterPredicate predicate = new FilterPredicate(reference);
 
             if ( scopes == null ) {
                 scopes = OsgiUtil.toStringArray(
@@ -235,14 +235,14 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
                     scope = scope.toUpperCase();
                     try {
                         FilterChainType type = FilterChainType.valueOf(scope.toString());
-                        getFilterChain(type).addFilter(filter, pattern, serviceId,
+                        getFilterChain(type).addFilter(filter, predicate, serviceId,
                             order, orderSource, mbean);
 
                         if (type == FilterChainType.COMPONENT) {
                             getFilterChain(FilterChainType.INCLUDE).addFilter(
-                                filter, pattern, serviceId, order, orderSource, mbean);
+                                filter, predicate, serviceId, order, orderSource, mbean);
                             getFilterChain(FilterChainType.FORWARD).addFilter(
-                                filter, pattern, serviceId, order, orderSource, mbean);
+                                filter, predicate, serviceId, order, orderSource, mbean);
                         }
 
                     } catch (IllegalArgumentException iae) {
@@ -253,7 +253,7 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
                 log.warn(String.format(
                     "A Filter (Service ID %s) has been registered without a filter.scope property.",
                     reference.getProperty(Constants.SERVICE_ID)));
-                getFilterChain(FilterChainType.REQUEST).addFilter(filter, pattern,
+                getFilterChain(FilterChainType.REQUEST).addFilter(filter, predicate,
                     serviceId, order, orderSource,mbean);
             }
 
