@@ -32,8 +32,6 @@ import javax.servlet.Filter;
 import java.util.HashMap;
 import java.util.Map;
 
-import static org.junit.Assert.assertNotNull;
-
 @RunWith(JMock.class)
 public abstract class AbstractFilterTest {
     protected final Mockery context = new JUnit4Mockery();
@@ -90,7 +88,7 @@ public abstract class AbstractFilterTest {
             allowing(info).getSuffix();
             will(returnValue(suffix));
             allowing(info).getSelectors();
-            will(returnValue(selectors));
+            will(returnValue(selectors == null ? new String[0] : selectors));
             allowing(info).getResourcePath();
             will(returnValue(path));
         }});
