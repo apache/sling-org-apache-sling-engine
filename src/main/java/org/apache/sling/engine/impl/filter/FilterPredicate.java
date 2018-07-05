@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl.filter;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
+import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -66,24 +67,65 @@ public class FilterPredicate {
         suffixRegex = asPattern(reference, SLING_FILTER_SUFFIX_PATTERN);
     }
 
-    private static Collection<String> asCollection(final ServiceReference<Filter> reference, final String propertyName) {
-        String[] value = getTypedProperty(reference, propertyName, String[].class);
-        return value == null ? null : asList(value);
-    }
-
-    private static Pattern asPattern(final ServiceReference<Filter> reference, String propertyName) {
-        String pattern = getTypedProperty(reference, propertyName, String.class);
-        return pattern == null ? null : Pattern.compile(pattern);
-    }
-
-    private static <T> T getTypedProperty(final ServiceReference<Filter> reference, final String propertyName, final Class<T> type) {
-        Object property = reference.getProperty(propertyName);
-        return type.cast(property);
+    /**
+     * @param reference osgi service reference
+     * @param propertyName configuration property name
+     * @return value of the given property, as a collection, or null if it does not exist
+     */
+    private Collection<String> asCollection(final ServiceReference<Filter> reference, final String propertyName) {
+        String[] value = PropertiesUtil.toStringArray(reference.getProperty(propertyName));
+        return value != null && value.length > 0 ? asList(value) : null;
     }
 
     /**
-     * @param req request that is tested upon
-     * @return true if this instance's configuration match the request
+     * @param reference osgi service reference
+     * @param propertyName configuration property name
+     * @return value of the given property, as a compiled pattern, or null if it does not exist
+     */
+    private Pattern asPattern(final ServiceReference<Filter> reference, String propertyName) {
+        String pattern = PropertiesUtil.toString(reference.getProperty(propertyName), null);
+        return pattern != null && pattern.length() > 0 ? Pattern.compile(pattern) : null;
+    }
+
+    /**
+     * @param allowed configured element
+     * @param actual elements of the given request
+     * @return true if any elements matches the configured ones, or if not or misconfigured
+     */
+    private boolean anyElementMatches(final Collection<String> allowed, final String... actual) {
+        return allowed == null || !Collections.disjoint(allowed, asList(actual));
+    }
+
+    /**
+     * @param resourceTypes configured resourceTypes
+     * @param request request that is being tested
+     * @return true if the request's resource is of one of the types, or if not or miscongfigured
+     */
+    private boolean anyResourceTypeMatches(final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
+        if (resourceTypes == null) {
+            return true;
+        }
+        Resource resource = request.getResource();
+        for (final String resourceType : resourceTypes) {
+            if (resource.isResourceType(resourceType)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param pattern configured compiled pattern
+     * @param candidate tested string
+     * @return true if candidate is matching the given pattern, or if not or misconfigured
+     */
+    private boolean patternMatches(final Pattern pattern, final String candidate) {
+        return pattern == null || candidate == null || pattern.matcher(candidate).matches();
+    }
+
+    /**
+     * @param req request that is tested upon this predicate
+     * @return true if this predicate's configuration match the request
      */
     boolean test(SlingHttpServletRequest req) {
         LOG.debug("starting filter test against {} request", req);
@@ -97,27 +139,6 @@ public class FilterPredicate {
                 && patternMatches(suffixRegex, requestPathInfo.getSuffix());
         LOG.debug("selection of {} returned {}", this, select);
         return select;
-    }
-
-    private static boolean anyElementMatches(final Collection<String> allowed, final String... actual) {
-        return allowed == null || !Collections.disjoint(allowed, asList(actual));
-    }
-
-    private static boolean anyResourceTypeMatches(final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
-        if (resourceTypes == null) {
-            return true;
-        }
-        Resource resource = request.getResource();
-        for (final String resourceType : resourceTypes) {
-            if (resource.isResourceType(resourceType)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    private static boolean patternMatches(final Pattern pattern, final String path) {
-        return pattern == null || path == null || pattern.matcher(path).matches();
     }
 
     @Override
