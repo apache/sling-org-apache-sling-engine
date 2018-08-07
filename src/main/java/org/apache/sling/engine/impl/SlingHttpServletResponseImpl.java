@@ -22,17 +22,27 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Locale;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.WriteListener;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.request.RequestData;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
+
+    private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
 
     public static class WriterAlreadyClosedException extends IllegalStateException {
         // just a marker class.
     }
+
+    private static final Exception FLUSHER_STACK_DUMMY = new Exception();
+
+    private Exception flusherStacktrace;
 
     private final RequestData requestData;
 
@@ -105,6 +115,49 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         return encodeRedirectURL(url);
     }
 
+    @Override
+    public void flushBuffer() throws IOException {
+        initFlusherStacktrace();
+        super.flushBuffer();
+    }
+
+    private void initFlusherStacktrace() {
+        if (flusherStacktrace == null) {
+            if (LOG.isDebugEnabled()) {
+                flusherStacktrace = new Exception("stacktrace where response was flushed");
+            } else {
+                // avoid creating exceptions if debug logging is not enabled
+                flusherStacktrace = FLUSHER_STACK_DUMMY;
+            }
+        }
+    }
+
+    @Override
+    public void setStatus(final int sc) {
+        setStatus(sc, null);
+    }
+
+    @Override
+    public void setStatus(final int sc, final String msg) {
+        if (isCommitted()) {
+            if (flusherStacktrace != null && flusherStacktrace != FLUSHER_STACK_DUMMY) {
+                LOG.warn("Response already committed. Failed to set status code from {} to {}.",
+                        getStatus(), sc, flusherStacktrace);
+            } else {
+                String explanation = flusherStacktrace != null
+                        ? "Enable debug logging to find out where the response was committed."
+                        : "The response was auto-committed due to the number of bytes written.";
+                LOG.warn("Response already committed. Failed to set status code from {} to {}. {}",
+                        getStatus(), sc, explanation);
+            }
+        }
+        if (msg == null) {
+            super.setStatus(sc);
+        } else {
+            super.setStatus(sc, msg);
+        }
+    }
+
     // ---------- Error handling through Sling Error Resolver -----------------
 
     @Override
@@ -172,6 +225,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 @Override
                 public void flush() {
                     this.checkClosed();
+                    initFlusherStacktrace();
                     delegatee.flush();
                 }
 
@@ -350,6 +404,21 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         return result;
     }
 
+    @Override
+    public ServletOutputStream getOutputStream() throws IOException {
+        final ServletOutputStream outputStream = super.getOutputStream();
+        if (firstSlingResponse) {
+            return new DelegatingServletOutputStream(outputStream) {
+                @Override
+                public void flush() throws IOException {
+                    initFlusherStacktrace();
+                    super.flush();
+                }
+            };
+        }
+        return outputStream;
+    }
+
     private void checkCommitted() {
         if (isCommitted()) {
             throw new IllegalStateException(
@@ -383,5 +452,129 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             return path.substring(contextPath.length() - 1);
         }
         return path;
+    }
+
+    /**
+     * A simple implementation of ServletOutputStream, that delegates all methods
+     * to a delegate instance. It separates the "boring" delegation logic from any
+     * added logic in order to (hopefully) make the code more readable.
+     */
+    private abstract class DelegatingServletOutputStream extends ServletOutputStream {
+
+        final ServletOutputStream delegate;
+
+        DelegatingServletOutputStream(final ServletOutputStream delegate) {
+            this.delegate = delegate;
+        }
+
+        @Override
+        public void print(final String s) throws IOException {
+            delegate.print(s);
+        }
+
+        @Override
+        public void print(final boolean b) throws IOException {
+            delegate.print(b);
+        }
+
+        @Override
+        public void print(final char c) throws IOException {
+            delegate.print(c);
+        }
+
+        @Override
+        public void print(final int i) throws IOException {
+            delegate.print(i);
+        }
+
+        @Override
+        public void print(final long l) throws IOException {
+            delegate.print(l);
+        }
+
+        @Override
+        public void print(final float f) throws IOException {
+            delegate.print(f);
+        }
+
+        @Override
+        public void print(final double d) throws IOException {
+            delegate.print(d);
+        }
+
+        @Override
+        public void println() throws IOException {
+            delegate.println();
+        }
+
+        @Override
+        public void println(final String s) throws IOException {
+            delegate.println(s);
+        }
+
+        @Override
+        public void println(final boolean b) throws IOException {
+            delegate.println(b);
+        }
+
+        @Override
+        public void println(final char c) throws IOException {
+            delegate.println(c);
+        }
+
+        @Override
+        public void println(final int i) throws IOException {
+            delegate.println(i);
+        }
+
+        @Override
+        public void println(final long l) throws IOException {
+            delegate.println(l);
+        }
+
+        @Override
+        public void println(final float f) throws IOException {
+            delegate.println(f);
+        }
+
+        @Override
+        public void println(final double d) throws IOException {
+            delegate.println(d);
+        }
+
+        @Override
+        public boolean isReady() {
+            return delegate.isReady();
+        }
+
+        @Override
+        public void setWriteListener(final WriteListener writeListener) {
+            delegate.setWriteListener(writeListener);
+        }
+
+        @Override
+        public void write(final int b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void write(final byte[] b) throws IOException {
+            delegate.write(b);
+        }
+
+        @Override
+        public void write(final byte[] b, final int off, final int len) throws IOException {
+            delegate.write(b, off, len);
+        }
+
+        @Override
+        public void flush() throws IOException {
+            delegate.flush();
+        }
+
+        @Override
+        public void close() throws IOException {
+            delegate.close();
+        }
     }
 }
