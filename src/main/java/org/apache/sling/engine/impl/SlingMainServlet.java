@@ -47,6 +47,7 @@ import org.apache.sling.engine.impl.helper.RequestListenerManager;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.RequestHistoryConsolePlugin;
+import org.apache.sling.engine.impl.request.permissions.ResourceTypePermissionEvaluator;
 import org.apache.sling.engine.jmx.RequestProcessorMBean;
 import org.apache.sling.engine.servlets.ErrorHandler;
 import org.osgi.framework.BundleContext;
@@ -133,6 +134,9 @@ public class SlingMainServlet extends GenericServlet {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
 
+    @Reference
+    private ResourceTypePermissionEvaluator resourceTypePermissionEvaluator;
+
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingMainServlet.class);
 
@@ -187,7 +191,7 @@ public class SlingMainServlet extends GenericServlet {
 
     private ServletFilterManager filterManager;
 
-    private final SlingRequestProcessorImpl requestProcessor = new SlingRequestProcessorImpl();
+    private SlingRequestProcessorImpl requestProcessor;
 
     private ServiceRegistration<SlingRequestProcessor> requestProcessorRegistration;
 
@@ -355,7 +359,7 @@ public class SlingMainServlet extends GenericServlet {
     protected void activate(final BundleContext bundleContext,
             final Map<String, Object> componentConfig,
             final Config config) {
-
+        requestProcessor = new SlingRequestProcessorImpl(resourceTypePermissionEvaluator);
         final String[] props = config.sling_additional_response_headers();
         if ( props != null ) {
             final ArrayList<StaticResponseHeader> mappings = new ArrayList<>(props.length);

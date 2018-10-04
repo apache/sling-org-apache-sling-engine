@@ -57,11 +57,14 @@ import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.RequestHistoryConsolePlugin;
+import org.apache.sling.engine.impl.request.permissions.ResourceTypePermissionEvaluator;
 import org.apache.sling.engine.servlets.ErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
+
+    private final ResourceTypePermissionEvaluator resourceTypePermissionEvaluator;
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingRequestProcessorImpl.class);
@@ -75,6 +78,10 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private ServletFilterManager filterManager;
 
     private RequestProcessorMBeanImpl mbean;
+
+    SlingRequestProcessorImpl(ResourceTypePermissionEvaluator resourceTypePermissionEvaluator) {
+        this.resourceTypePermissionEvaluator = resourceTypePermissionEvaluator;
+    }
 
     // ---------- helper setters
 
@@ -122,7 +129,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             servletResponse);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
-
         // record the request for the web console display
         RequestHistoryConsolePlugin.recordRequest(request);
 
@@ -139,7 +145,10 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // initialize the request data - resolve resource and servlet
             Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
-
+            if (!resourceTypePermissionEvaluator.canExecute(request)) {
+                response.sendError(HttpServletResponse.SC_NOT_FOUND);
+                return;
+            }
             FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
             if (filters != null) {
                 FilterChain processor = new RequestSlingFilterChain(this,
