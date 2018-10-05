@@ -18,6 +18,8 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.engine.impl.request.permissions;
 
+import java.util.Set;
+
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
@@ -55,32 +57,56 @@ public class ResourceTypePermissionEvaluator implements SlingRequestListener {
             final String userId = request.getResourceResolver().getUserID();
             if (userId != null) {
                 String permissionPath = resourceType.startsWith("/") ? RESOURCE_TYPE_PERMISSIONS + resourceType :
-                        RESOURCE_TYPE_PERMISSIONS + "/" + resourceType + "/http." + request.getMethod();
-                while (!RESOURCE_TYPE_PERMISSIONS.equals(permissionPath)) {
-                    String cacheKey = userId + ":" + permissionPath;
-                    Boolean cached = resourceTypeExecutionCache.getCachedPermission(cacheKey);
-                    if (cached != null) {
-                        return cached;
-                    }
-                    Resource permission = accessedResource.getResourceResolver().getResource(permissionPath);
-                    if (permission != null) {
-                        resourceTypeExecutionCache.setCachedPermission(cacheKey, true);
+                        RESOURCE_TYPE_PERMISSIONS + "/" + resourceType;
+                String permissionPathWithHttpMethod = permissionPath + "/http." + request.getMethod();
+                while (permissionPath != null && !RESOURCE_TYPE_PERMISSIONS.equals(permissionPath)) {
+
+                    Set<String> allowedUsers = resourceTypeExecutionCache.getAllowedUsers(permissionPathWithHttpMethod);
+                    if (allowedUsers.contains(userId)) {
                         return true;
-                    } else {
-                        ResourceResolver elevatedResourceResolver = threadLocalResourceResolver.get();
-                        if (elevatedResourceResolver != null) {
-                            permission = elevatedResourceResolver.getResource(permissionPath);
-                            if (permission != null) {
-                                resourceTypeExecutionCache.setCachedPermission(cacheKey, false);
-                                return false;
-                            }
+                    }
+                    allowedUsers = resourceTypeExecutionCache.getAllowedUsers(permissionPath);
+                    if (allowedUsers.contains(userId)) {
+                        return true;
+                    }
+
+                    Set<String> disallowedUsers = resourceTypeExecutionCache.getDisallowedUsers(permissionPathWithHttpMethod);
+                    if (disallowedUsers.contains(userId)) {
+                        return false;
+                    }
+                    disallowedUsers = resourceTypeExecutionCache.getDisallowedUsers(permissionPath);
+                    if (disallowedUsers.contains(userId)) {
+                        return false;
+                    }
+
+                    Resource permission = accessedResource.getResourceResolver().getResource(permissionPathWithHttpMethod);
+                    if (permission != null) {
+                        resourceTypeExecutionCache.updateResourceType(permissionPathWithHttpMethod, userId, true);
+                        return true;
+                    }
+
+                    permission = accessedResource.getResourceResolver().getResource(permissionPath);
+                    if (permission != null) {
+                        resourceTypeExecutionCache.updateResourceType(permissionPath, userId, true);
+                        return true;
+                    }
+
+                    ResourceResolver elevatedResourceResolver = threadLocalResourceResolver.get();
+                    if (elevatedResourceResolver != null) {
+                        permission = elevatedResourceResolver.getResource(permissionPathWithHttpMethod);
+                        if (permission != null) {
+                            resourceTypeExecutionCache.updateResourceType(permissionPathWithHttpMethod, userId, false);
+                            return false;
+                        }
+                        permission = elevatedResourceResolver.getResource(permissionPath);
+                        if (permission != null) {
+                            resourceTypeExecutionCache.updateResourceType(permissionPath, userId, false);
+                            return false;
                         }
                     }
                     permissionPath = ResourceUtil.getParent(permissionPath);
                 }
-                resourceTypeExecutionCache.setCachedPermission(userId + ":" + (resourceType.startsWith("/") ?
-                        RESOURCE_TYPE_PERMISSIONS + resourceType :
-                        RESOURCE_TYPE_PERMISSIONS + "/" + resourceType + "/http." + request.getMethod()), true);
+                resourceTypeExecutionCache.updateResourceType(permissionPathWithHttpMethod, userId, true);
                 return true;
             }
         }
