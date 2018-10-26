@@ -133,6 +133,8 @@ public class SlingMainServlet extends GenericServlet {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
 
+    private BundleContext bundleContext;
+
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingMainServlet.class);
 
@@ -356,6 +358,8 @@ public class SlingMainServlet extends GenericServlet {
             final Map<String, Object> componentConfig,
             final Config config) {
 
+        this.bundleContext = bundleContext;
+
         final String[] props = config.sling_additional_response_headers();
         if ( props != null ) {
             final ArrayList<StaticResponseHeader> mappings = new ArrayList<>(props.length);
@@ -420,26 +424,6 @@ public class SlingMainServlet extends GenericServlet {
         servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
         this.servletRegistration = bundleContext.registerService(Servlet.class, this, servletConfig);
 
-        log.info("{} ready to serve requests", this.getServerInfo());
-
-        // now that the sling main servlet is registered with the HttpService
-        // and initialized we can register the servlet context
-        slingServletContext = new SlingServletContext(bundleContext, this);
-
-        // register render filters already registered after registration with
-        // the HttpService as filter initialization may cause the servlet
-        // context to be required (see SLING-42)
-        filterManager = new ServletFilterManager(bundleContext,
-            slingServletContext);
-        filterManager.open();
-        requestProcessor.setFilterManager(filterManager);
-
-        // initialize requestListenerManager
-        requestListenerManager = new RequestListenerManager( bundleContext, slingServletContext );
-
-        // Setup configuration printer
-        this.printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
-
         // setup the request info recorder
         try {
             int maxRequests = config.sling_max_record_requests();
@@ -476,9 +460,31 @@ public class SlingMainServlet extends GenericServlet {
             SlingRequestProcessor.class, requestProcessor, srpProps);
     }
 
+    private void registerOnInit(BundleContext bundleContext) {
+        // now that the sling main servlet is registered with the HttpService
+        // and initialized we can register the servlet context
+        slingServletContext = new SlingServletContext(bundleContext, this);
+
+        // register render filters already registered after registration with
+        // the HttpService as filter initialization may cause the servlet
+        // context to be required (see SLING-42)
+        filterManager = new ServletFilterManager(bundleContext,
+            slingServletContext);
+        filterManager.open();
+        requestProcessor.setFilterManager(filterManager);
+
+        // initialize requestListenerManager
+        requestListenerManager = new RequestListenerManager( bundleContext, slingServletContext );
+
+        // Setup configuration printer
+        this.printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
+    }
+
     @Override
     public void init() {
         setServerInfo();
+        log.info("{} ready to serve requests", this.getServerInfo());
+        registerOnInit(bundleContext);
     }
 
     @Deactivate
@@ -541,6 +547,8 @@ public class SlingMainServlet extends GenericServlet {
 
         // reset the sling main servlet reference (help GC and be nice)
         RequestData.setSlingMainServlet(null);
+
+        this.bundleContext = null;
 
         log.info(this.getServerInfo() + " shut down");
     }
