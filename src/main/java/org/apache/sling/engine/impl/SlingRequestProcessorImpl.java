@@ -157,6 +157,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
             }
 
+            response.flushBuffer();
+
         } catch ( final SlingHttpServletResponseImpl.WriterAlreadyClosedException wace ) {
             log.error("Writer has already been closed.", wace);
         } catch (ResourceNotFoundException rnfe) {
