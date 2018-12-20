@@ -24,6 +24,8 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import javax.servlet.GenericServlet;
@@ -162,14 +164,14 @@ public class SlingMainServlet extends GenericServlet {
      * <code>ServletContext.getServerInfo()</code> method. This field defaults
      * to {@link #PRODUCT_NAME} and is amended with the major and minor version
      * of the Sling Engine bundle while this component is being
-     * {@link #activate(BundleContext, Map)} activated}.
+     * {@link #activate(BundleContext, Map, Config)} activated}.
      */
     private String productInfo = PRODUCT_NAME;
 
     /**
      * The server information to report in the {@link #getServerInfo()} method.
      * By default this is just the {@link #PRODUCT_NAME} (same as
-     * {@link #productInfo}. During {@link #activate(BundleContext, Map)}
+     * {@link #productInfo}. During {@link #activate(BundleContext, Map, Config)}
      * activation} the field is updated with the full {@link #productInfo} value
      * as well as the operating system and java version it is running on.
      * Finally during servlet initialization the product information from the
@@ -201,11 +203,17 @@ public class SlingMainServlet extends GenericServlet {
 
     private String configuredServerInfo;
 
+    private CountDownLatch asyncActivation = new CountDownLatch(1);
+
     // ---------- Servlet API -------------------------------------------------
 
     @Override
     public void service(ServletRequest req, ServletResponse res)
             throws ServletException {
+
+        if (!awaitQuietly(asyncActivation, 30)) {
+            throw new ServletException("Servlet not initialized after 30 seconds");
+        }
 
         if (req instanceof HttpServletRequest
             && res instanceof HttpServletResponse) {
@@ -272,6 +280,15 @@ public class SlingMainServlet extends GenericServlet {
     }
 
     // ---------- Internal helper ----------------------------------------------
+
+    private static boolean awaitQuietly(CountDownLatch latch, int seconds) {
+        try {
+            return latch.await(seconds, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        return false;
+    }
 
     /**
      * Sets the {@link #productInfo} field from the providing bundle's version
@@ -438,57 +455,108 @@ public class SlingMainServlet extends GenericServlet {
             RequestHistoryConsolePlugin.initPlugin(bundleContext, maxRequests, compiledPatterns);
         } catch (Throwable t) {
             log.debug(
-                "Unable to register web console request recorder plugin.", t);
+                    "Unable to register web console request recorder plugin.", t);
         }
-
-        try {
-            Dictionary<String, String> mbeanProps = new Hashtable<>();
-            mbeanProps.put("jmx.objectname", "org.apache.sling:type=engine,service=RequestProcessor");
-
-            RequestProcessorMBeanImpl mbean = new RequestProcessorMBeanImpl();
-            requestProcessorMBeanRegistration = bundleContext.registerService(RequestProcessorMBean.class, mbean, mbeanProps);
-            requestProcessor.setMBean(mbean);
-        } catch (Throwable t) {
-            log.debug("Unable to register mbean");
-        }
-
-        // provide the SlingRequestProcessor service
-        Hashtable<String, String> srpProps = new Hashtable<>();
-        srpProps.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
-        srpProps.put(Constants.SERVICE_DESCRIPTION, "Sling Request Processor");
-        requestProcessorRegistration = bundleContext.registerService(
-            SlingRequestProcessor.class, requestProcessor, srpProps);
-    }
-
-    private void registerOnInit(BundleContext bundleContext) {
-        // now that the sling main servlet is registered with the HttpService
-        // and initialized we can register the servlet context
-        slingServletContext = new SlingServletContext(bundleContext, this);
-
-        // register render filters already registered after registration with
-        // the HttpService as filter initialization may cause the servlet
-        // context to be required (see SLING-42)
-        filterManager = new ServletFilterManager(bundleContext,
-            slingServletContext);
-        filterManager.open();
-        requestProcessor.setFilterManager(filterManager);
-
-        // initialize requestListenerManager
-        requestListenerManager = new RequestListenerManager( bundleContext, slingServletContext );
-
-        // Setup configuration printer
-        this.printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
     }
 
     @Override
     public void init() {
         setServerInfo();
         log.info("{} ready to serve requests", this.getServerInfo());
-        registerOnInit(bundleContext);
+        asyncSlingServletContextRegistration();
+    }
+
+    // registration needs to be async. if it is done synchronously
+    // there is potential for a deadlock involving Felix global lock
+    // and a lock held by HTTP Whiteboard while calling Servlet#init()
+    private void asyncSlingServletContextRegistration() {
+        Thread thread = new Thread("SlingServletContext registration") {
+            @Override
+            public void run() {
+                try {
+                    // note: registration of SlingServletContext as a service is delayed to the #init() method
+                    slingServletContext = new SlingServletContext(bundleContext, SlingMainServlet.this);
+                    slingServletContext.register(bundleContext);
+
+                    // register render filters already registered after registration with
+                    // the HttpService as filter initialization may cause the servlet
+                    // context to be required (see SLING-42)
+                    filterManager = new ServletFilterManager(bundleContext,
+                                                                    slingServletContext);
+                    filterManager.open();
+                    requestProcessor.setFilterManager(filterManager);
+
+                    // initialize requestListenerManager
+                    requestListenerManager = new RequestListenerManager(bundleContext, slingServletContext);
+
+                    // Setup configuration printer
+                    printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
+
+                    try {
+                        Dictionary<String, String> mbeanProps = new Hashtable<>();
+                        mbeanProps.put("jmx.objectname", "org.apache.sling:type=engine,service=RequestProcessor");
+
+                        RequestProcessorMBeanImpl mbean = new RequestProcessorMBeanImpl();
+                        requestProcessorMBeanRegistration = bundleContext.registerService(RequestProcessorMBean.class, mbean, mbeanProps);
+                        requestProcessor.setMBean(mbean);
+                    } catch (Throwable t) {
+                        log.debug("Unable to register mbean");
+                    }
+
+                    // provide the SlingRequestProcessor service
+                    Hashtable<String, String> srpProps = new Hashtable<>();
+                    srpProps.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
+                    srpProps.put(Constants.SERVICE_DESCRIPTION, "Sling Request Processor");
+                    requestProcessorRegistration = bundleContext.registerService(
+                            SlingRequestProcessor.class, requestProcessor, srpProps);
+                } finally {
+                    asyncActivation.countDown();
+                }
+            }
+        };
+        thread.setDaemon(true);
+        thread.start();
     }
 
     @Deactivate
     protected void deactivate() {
+        if (!awaitQuietly(asyncActivation, 30)) {
+            log.warn("Async activation did not complete within 30 seconds of 'deactivate' " +
+                     "being called. There is a risk that objects are not properly destroyed.");
+        }
+        unregisterSlingServletContext();
+
+        // unregister request recorder plugin
+        try {
+            RequestHistoryConsolePlugin.destroyPlugin();
+        } catch (Throwable t) {
+            log.debug(
+                    "Problem unregistering web console request recorder plugin.", t);
+        }
+
+        // third unregister and destroy the sling main servlet
+        // unregister servlet
+        if ( this.servletRegistration != null ) {
+            this.servletRegistration.unregister();
+            this.servletRegistration = null;
+        }
+
+        // dispose of request listener manager after unregistering the servlet
+        // to prevent a potential NPE in the service method
+        if ( this.requestListenerManager != null ) {
+            this.requestListenerManager.dispose();
+            this.requestListenerManager = null;
+        }
+
+        // reset the sling main servlet reference (help GC and be nice)
+        RequestData.setSlingMainServlet(null);
+
+        this.bundleContext = null;
+
+        log.info(this.getServerInfo() + " shut down");
+    }
+
+    private void unregisterSlingServletContext() {
         // unregister the sling request processor
         if (requestProcessorRegistration != null) {
             requestProcessorRegistration.unregister();
@@ -498,14 +566,6 @@ public class SlingMainServlet extends GenericServlet {
         if (requestProcessorMBeanRegistration != null) {
             requestProcessorMBeanRegistration.unregister();
             requestProcessorMBeanRegistration = null;
-        }
-
-        // unregister request recorder plugin
-        try {
-            RequestHistoryConsolePlugin.destroyPlugin();
-        } catch (Throwable t) {
-            log.debug(
-                "Problem unregistering web console request recorder plugin.", t);
         }
 
         // this reverses the activation setup
@@ -530,27 +590,6 @@ public class SlingMainServlet extends GenericServlet {
             slingServletContext.dispose();
             slingServletContext = null;
         }
-
-        // third unregister and destroy the sling main servlet
-        // unregister servlet
-        if ( this.servletRegistration != null ) {
-            this.servletRegistration.unregister();
-            this.servletRegistration = null;
-        }
-
-        // dispose of request listener manager after unregistering the servlet
-        // to prevent a potential NPE in the service method
-        if ( this.requestListenerManager != null ) {
-            this.requestListenerManager.dispose();
-            this.requestListenerManager = null;
-        }
-
-        // reset the sling main servlet reference (help GC and be nice)
-        RequestData.setSlingMainServlet(null);
-
-        this.bundleContext = null;
-
-        log.info(this.getServerInfo() + " shut down");
     }
 
     @Reference(name = "ErrorHandler", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetErrorHandler")
