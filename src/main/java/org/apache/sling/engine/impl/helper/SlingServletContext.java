@@ -28,6 +28,7 @@ import java.util.EventListener;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterRegistration;
@@ -87,10 +88,10 @@ public class SlingServletContext implements ServletContext {
 
     /**
      * The service registration of this service as ServletContext
-     * @see #SlingServletContext(SlingMainServlet)
+     * @see #SlingServletContext(BundleContext, SlingMainServlet)
      * @see #dispose()
      */
-    private final ServiceRegistration<ServletContext> registration;
+    private AtomicReference<ServiceRegistration<ServletContext>> registration = new AtomicReference<>();
 
     /**
      * Creates an instance of this class delegating some methods to the given
@@ -105,13 +106,15 @@ public class SlingServletContext implements ServletContext {
     public SlingServletContext(final BundleContext bundleContext,
             final SlingMainServlet slingMainServlet) {
         this.slingMainServlet = slingMainServlet;
+    }
 
+    public void register(BundleContext bundleContext) {
         Dictionary<String, Object> props = new Hashtable<String, Object>();
         props.put(Constants.SERVICE_DESCRIPTION, "Apache Sling ServletContext");
         props.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
         props.put("name", SlingMainServlet.SERVLET_CONTEXT_NAME); // property to identify this context
-        registration = bundleContext.registerService(
-            ServletContext.class, this, props);
+        registration.set(bundleContext.registerService(
+                ServletContext.class, this, props));
     }
 
     /**
@@ -120,11 +123,12 @@ public class SlingServletContext implements ServletContext {
      * This method must be called <b>before</b> the sling main servlet
      * is destroyed. Otherwise the {@link #getServletContext()} method may
      * cause a {@link NullPointerException} !
-     * @see #SlingServletContext(SlingMainServlet)
+     * @see #SlingServletContext(BundleContext, SlingMainServlet)
      */
     public void dispose() {
-        if (registration != null) {
-            registration.unregister();
+        ServiceRegistration<ServletContext> localRegistration = registration.getAndSet(null);
+        if (localRegistration != null) {
+            localRegistration.unregister();
         }
     }
 

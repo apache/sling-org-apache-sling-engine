@@ -162,14 +162,14 @@ public class SlingMainServlet extends GenericServlet {
      * <code>ServletContext.getServerInfo()</code> method. This field defaults
      * to {@link #PRODUCT_NAME} and is amended with the major and minor version
      * of the Sling Engine bundle while this component is being
-     * {@link #activate(BundleContext, Map)} activated}.
+     * {@link #activate(BundleContext, Map, Config)} activated}.
      */
     private String productInfo = PRODUCT_NAME;
 
     /**
      * The server information to report in the {@link #getServerInfo()} method.
      * By default this is just the {@link #PRODUCT_NAME} (same as
-     * {@link #productInfo}. During {@link #activate(BundleContext, Map)}
+     * {@link #productInfo}. During {@link #activate(BundleContext, Map, Config)}
      * activation} the field is updated with the full {@link #productInfo} value
      * as well as the operating system and java version it is running on.
      * Finally during servlet initialization the product information from the
@@ -200,6 +200,8 @@ public class SlingMainServlet extends GenericServlet {
     private ServiceRegistration<Servlet> servletRegistration;
 
     private String configuredServerInfo;
+
+    private volatile boolean deactivating;
 
     // ---------- Servlet API -------------------------------------------------
 
@@ -424,6 +426,23 @@ public class SlingMainServlet extends GenericServlet {
         servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
         this.servletRegistration = bundleContext.registerService(Servlet.class, this, servletConfig);
 
+        // note: registration of SlingServletContext as a service is delayed to the #init() method
+        slingServletContext = new SlingServletContext(bundleContext, this);
+
+        // register render filters already registered after registration with
+        // the HttpService as filter initialization may cause the servlet
+        // context to be required (see SLING-42)
+        filterManager = new ServletFilterManager(bundleContext,
+                                                        slingServletContext);
+        filterManager.open();
+        requestProcessor.setFilterManager(filterManager);
+
+        // initialize requestListenerManager
+        requestListenerManager = new RequestListenerManager( bundleContext, slingServletContext );
+
+        // Setup configuration printer
+        this.printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
+
         // setup the request info recorder
         try {
             int maxRequests = config.sling_max_record_requests();
@@ -460,35 +479,40 @@ public class SlingMainServlet extends GenericServlet {
             SlingRequestProcessor.class, requestProcessor, srpProps);
     }
 
-    private void registerOnInit(BundleContext bundleContext) {
-        // now that the sling main servlet is registered with the HttpService
-        // and initialized we can register the servlet context
-        slingServletContext = new SlingServletContext(bundleContext, this);
-
-        // register render filters already registered after registration with
-        // the HttpService as filter initialization may cause the servlet
-        // context to be required (see SLING-42)
-        filterManager = new ServletFilterManager(bundleContext,
-            slingServletContext);
-        filterManager.open();
-        requestProcessor.setFilterManager(filterManager);
-
-        // initialize requestListenerManager
-        requestListenerManager = new RequestListenerManager( bundleContext, slingServletContext );
-
-        // Setup configuration printer
-        this.printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
-    }
-
     @Override
     public void init() {
         setServerInfo();
         log.info("{} ready to serve requests", this.getServerInfo());
-        registerOnInit(bundleContext);
+        asyncSlingServletContextRegistration();
+    }
+
+    // registration needs to be async. if it is done synchronously
+    // there is potential for a deadlock involving Felix global lock
+    // and a lock held by HTTP Whiteboard while calling Servlet#init()
+    private void asyncSlingServletContextRegistration() {
+        Thread thread = new Thread("SlingServletContext registration") {
+            @Override
+            public void run() {
+                if (!deactivating) {
+                    slingServletContext.register(bundleContext);
+
+                    // attempt cleanup if SlingMainServlet is already being
+                    // deactivated
+                    if (deactivating) {
+                        slingServletContext.dispose();
+                    }
+                }
+            }
+        };
+        thread.setDaemon(true);
+        thread.start();
     }
 
     @Deactivate
     protected void deactivate() {
+
+        deactivating = true;
+
         // unregister the sling request processor
         if (requestProcessorRegistration != null) {
             requestProcessorRegistration.unregister();
