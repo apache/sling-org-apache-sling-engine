@@ -130,7 +130,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         // reset the response, will throw an IllegalStateException
         // if already committed, which will not be the case because
         // we already tested for this condition
-        response.reset();
+        response.resetBuffer();
 
         // ensure inclusion information attributes are not set
         request.removeAttribute(SlingConstants.ATTR_REQUEST_CONTENT);
