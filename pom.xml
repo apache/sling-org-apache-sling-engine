@@ -23,7 +23,7 @@
     <parent>
         <groupId>org.apache.sling</groupId>
         <artifactId>sling</artifactId>
-        <version>32</version>
+        <version>34</version>
         <relativePath />
     </parent>
 
@@ -53,6 +53,7 @@
             <plugin>
                 <groupId>org.apache.felix</groupId>
                 <artifactId>maven-bundle-plugin</artifactId>
+                <version>4.1.0</version>
                 <extensions>true</extensions>
                 <configuration>
                     <instructions>
@@ -62,9 +63,6 @@
                             org.osgi.service.useradmin;resolution:=optional,
                             *
                         </Import-Package>
-                        <Require-Capability>
-                            osgi.implementation;filter:="(&amp;(osgi.implementation=osgi.http)(version&gt;=1.0)(!(version&gt;=2.0)))"
-                        </Require-Capability>
                     </instructions>
                 </configuration>
             </plugin>
@@ -81,13 +79,25 @@
     </build>
     <dependencies>
         <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.annotation.versioning</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.component.annotations</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.osgi</groupId>
+            <artifactId>org.osgi.service.metatype.annotations</artifactId>
+        </dependency>
+        <dependency>
             <groupId>javax.servlet</groupId>
             <artifactId>javax.servlet-api</artifactId>
         </dependency>
         <dependency>
             <groupId>org.osgi</groupId>
             <artifactId>org.osgi.service.http.whiteboard</artifactId>
-            <version>1.0.0</version>
+            <version>1.1.0</version>
             <scope>provided</scope>
         </dependency>
         <dependency>

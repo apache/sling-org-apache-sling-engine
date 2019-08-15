@@ -25,11 +25,13 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.request.RequestProgressTracker;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.SlingRequestProgressTracker;
 import org.osgi.service.http.context.ServletContextHelper;
+import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -37,6 +39,7 @@ import org.slf4j.LoggerFactory;
  * The <code>SlingHttpContext</code> implements the OSGi HttpContext used to
  * register the {@link SlingMainServlet} with the OSGi HttpService.
  */
+@RequireHttpWhiteboard
 class SlingHttpContext extends ServletContextHelper {
 
     /** Logger */
@@ -143,5 +146,19 @@ class SlingHttpContext extends ServletContextHelper {
 
         // terminate this request now
         return false;
+    }
+
+    @Override
+    public void finishSecurity(HttpServletRequest request, HttpServletResponse response) {
+        super.finishSecurity(request, response);
+        // get ResourceResolver (set by AuthenticationSupport)
+        final Object resolverObject = request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
+        final ResourceResolver resolver = (resolverObject instanceof ResourceResolver)
+                ? (ResourceResolver) resolverObject
+                : null;
+        if (resolver != null) {
+            // it's safe to call close() several times - checking isLive() can be expensive
+            resolver.close();
+        }
     }
 }
