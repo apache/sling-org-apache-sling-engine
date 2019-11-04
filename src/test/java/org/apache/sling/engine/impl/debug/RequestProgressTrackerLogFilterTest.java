@@ -90,11 +90,11 @@ public class RequestProgressTrackerLogFilterTest {
         Thread.sleep(delta * 2);
         rpt.done();
         final long durationNanos = rpt.getDuration();
-        final long durationMsec = durationNanos; // TODO SLING-8826: should be duration / 1000;
+        final long durationMsec = durationNanos / 1_000_000;
         final int minMsec = (int)(durationMsec - delta);
         final int maxMsec = (int)(durationMsec + delta);
         setupMinMaxDuration(filter, minMsec, maxMsec);
-        assertTrue("Expecting duration " + durationNanos + " to allowed for min=" + minMsec + " max=" + maxMsec,
+        assertTrue("Expecting duration " + durationNanos + "/" + durationMsec + " to allowed for min=" + minMsec + " max=" + maxMsec,
             (boolean)allowDuration.invoke(filter, rpt));
     }
 }

@@ -95,7 +95,7 @@ public class RequestProgressTrackerLogFilter implements Filter {
 
     private String[] extensions;
 
-    static final int NANOSEC_TO_MSEC = 1000000;
+    static final int NANOSEC_TO_MSEC = 1_000_000;
 
     @Override
     public void init(final FilterConfig filterConfig) throws ServletException {
@@ -167,7 +167,7 @@ public class RequestProgressTrackerLogFilter implements Filter {
 
     private boolean allowDuration(final RequestProgressTracker rpt) {
         if (rpt instanceof SlingRequestProgressTracker) {
-            long duration = ((SlingRequestProgressTracker) rpt).getDuration();
+            final long duration = ((SlingRequestProgressTracker) rpt).getDuration() / NANOSEC_TO_MSEC;
             return configuration.minDurationMs() <= duration && duration <= configuration.maxDurationMs();
         } else {
             log.debug("Logged requests can only be filtered by duration if the SlingRequestProgressTracker is used.");
