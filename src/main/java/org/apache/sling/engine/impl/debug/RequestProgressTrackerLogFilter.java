@@ -95,6 +95,8 @@ public class RequestProgressTrackerLogFilter implements Filter {
 
     private String[] extensions;
 
+    static final int NANOSEC_TO_MSEC = 1000000;
+
     @Override
     public void init(final FilterConfig filterConfig) throws ServletException {
         // nothing to do
