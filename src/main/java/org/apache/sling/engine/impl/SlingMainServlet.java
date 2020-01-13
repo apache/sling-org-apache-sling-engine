@@ -134,8 +134,6 @@ public class SlingMainServlet extends GenericServlet {
         String servlet_name();
     }
 
-    private static final String DEPRECATED_ENCODING_PROPERTY = "sling.default.parameter.encoding";
-
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
 
@@ -375,11 +373,10 @@ public class SlingMainServlet extends GenericServlet {
     // ---------- Property Setter for SCR --------------------------------------
 
     @Modified
-    protected void modified(final Map<String, Object> componentConfig,
-            final Config config) {
+    protected void modified(final Config config) {
         this.isModification.set(true);
 
-        setup(componentConfig, config);
+        setup(config);
     }
 
     private Dictionary<String, Object> getServletContextRegistrationProps(final String servletName) {
@@ -394,7 +391,7 @@ public class SlingMainServlet extends GenericServlet {
         return servletConfig;
     }
 
-    protected void setup(final Map<String, Object> componentConfig, final Config config) {
+    protected void setup(final Config config) {
         final String[] props = config.sling_additional_response_headers();
         if ( props != null ) {
             final ArrayList<StaticResponseHeader> mappings = new ArrayList<>(props.length);
@@ -427,15 +424,6 @@ public class SlingMainServlet extends GenericServlet {
         RequestData.setMaxIncludeCounter(config.sling_max_inclusions());
         RequestData.setMaxCallCounter(config.sling_max_calls());
         RequestData.setSlingMainServlet(this);
-
-        // Warn about the obsolete parameter encoding configuration (SLING-5370)
-        if (componentConfig.get(DEPRECATED_ENCODING_PROPERTY) != null) {
-            log.warn("Please configure the default request parameter encoding using "
-                + "the 'org.apache.sling.engine.parameters' configuration PID; the property "
-                + DEPRECATED_ENCODING_PROPERTY + "="
-                + componentConfig.get(DEPRECATED_ENCODING_PROPERTY)
-                + " is obsolete and ignored");
-        }
 
         if (this.contextRegistration == null) {
             // register the servlet context
@@ -483,12 +471,11 @@ public class SlingMainServlet extends GenericServlet {
     }
 
     @Activate
-    protected void activate(final BundleContext bundleContext, final Map<String, Object> componentConfig,
-            final Config config) {
+    protected void activate(final BundleContext bundleContext, final Config config) {
 
         this.bundleContext = bundleContext;
         this.isModification.set(false);
-        this.setup(componentConfig, config);
+        this.setup(config);
     }
 
     @Override
