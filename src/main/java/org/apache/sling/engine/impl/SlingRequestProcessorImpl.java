@@ -70,11 +70,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     private final DefaultErrorHandler errorHandler = new DefaultErrorHandler();
 
-    private ServletResolver servletResolver;
+    private volatile ServletResolver servletResolver;
 
-    private ServletFilterManager filterManager;
+    private volatile ServletFilterManager filterManager;
 
-    private RequestProcessorMBeanImpl mbean;
+    private volatile RequestProcessorMBeanImpl mbean;
 
     // ---------- helper setters
 
@@ -237,6 +237,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     /**
      * @see org.apache.sling.engine.SlingRequestProcessor#processRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, org.apache.sling.api.resource.ResourceResolver)
      */
+    @Override
     public void processRequest(final HttpServletRequest servletRequest,
             final HttpServletResponse servletResponse,
             final ResourceResolver resourceResolver) throws IOException {

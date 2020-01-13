@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
+import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
@@ -58,7 +59,7 @@ public class RequestHistoryConsolePlugin {
 
     private static Plugin instance;
 
-    private static ServiceRegistration serviceRegistration;
+    private static ServiceRegistration<Servlet> serviceRegistration;
 
     public static final int STORED_REQUESTS_COUNT = 20;
 
@@ -73,7 +74,8 @@ public class RequestHistoryConsolePlugin {
 
     public static void initPlugin(BundleContext context, int maxRequests, List<Pattern> storePatterns) {
         if (instance == null) {
-            Plugin tmp = new Plugin(maxRequests, storePatterns);
+            final Plugin tmp = new Plugin();
+            instance.update(maxRequests, storePatterns);
             final Dictionary<String, Object> props = new Hashtable<String, Object>();
             props.put(Constants.SERVICE_DESCRIPTION,
                 "Web Console Plugin to display information about recent Sling requests");
@@ -84,9 +86,10 @@ public class RequestHistoryConsolePlugin {
             props.put("felix.webconsole.title", "Recent requests");
             props.put("felix.webconsole.category", "Sling");
 
-            serviceRegistration = context.registerService(
-                "javax.servlet.Servlet", tmp, props);
+            serviceRegistration = context.registerService(Servlet.class, tmp, props);
             instance = tmp;
+        } else {
+            instance.update(maxRequests, storePatterns);
         }
     }
 
@@ -105,11 +108,11 @@ public class RequestHistoryConsolePlugin {
 
     public static final class Plugin extends HttpServlet {
 
-        private final RequestInfoMap requests;
+        private volatile RequestInfoMap requests;
 
-        private final List<Pattern> storePatterns;
+        private volatile List<Pattern> storePatterns;
 
-        Plugin(int maxRequests, List<Pattern> storePatterns) {
+        public void update(int maxRequests, List<Pattern> storePatterns) {
             this.requests = (maxRequests > 0)
                     ? new RequestInfoMap(maxRequests)
                     : null;

@@ -102,7 +102,7 @@ public class RequestData {
      * number of entries in the {@link #contentDataStack} when the
      * {@link #pushContent(Resource, RequestPathInfo)} method is called.
      */
-    private static int maxInclusionCounter = DEFAULT_MAX_INCLUSION_COUNTER;
+    private static volatile int maxInclusionCounter = DEFAULT_MAX_INCLUSION_COUNTER;
 
     /**
      * The maximum number of scripts which may be included through the
@@ -110,18 +110,18 @@ public class RequestData {
      * method (default {@link #DEFAULT_MAX_CALL_COUNTER}). This number should
      * not be too small to prevent request aborts.
      */
-    private static int maxCallCounter = DEFAULT_MAX_CALL_COUNTER;
+    private static volatile int maxCallCounter = DEFAULT_MAX_CALL_COUNTER;
 
     /**
      * The name of the request attribute to override the max call number (-1 for infinite or integer value).
      */
     private static String REQUEST_MAX_CALL_OVERRIDE = "sling.max.calls";
 
-    private static SlingMainServlet SLING_MAIN_SERVLET;
+    private static volatile SlingMainServlet SLING_MAIN_SERVLET;
 
-    private static SlingHttpServletRequestFactory REQUEST_FACTORY;
+    private static volatile SlingHttpServletRequestFactory REQUEST_FACTORY;
 
-    private static ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
+    private static volatile ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
 
     /** The SlingMainServlet used for request dispatching and other stuff */
     private final SlingRequestProcessorImpl slingRequestProcessor;

@@ -45,8 +45,8 @@ public class DefaultErrorHandler implements ErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private String serverInfo = SlingMainServlet.PRODUCT_NAME;
-    
+    private volatile String serverInfo = SlingMainServlet.PRODUCT_NAME;
+
     /** Use this if not null, and if that fails output a report about that failure */
     private ErrorHandler delegate;
 
@@ -55,15 +55,15 @@ public class DefaultErrorHandler implements ErrorHandler {
                 ? serverInfo
                 : SlingMainServlet.PRODUCT_NAME;
     }
-    
+
     public void setDelegate(ErrorHandler eh) {
         delegate = eh;
     }
-    
+
     public ErrorHandler getDelegate() {
         return delegate;
     }
-    
+
     private void delegateFailed(int originalStatus, String originalMessage, Throwable t, HttpServletRequest request, HttpServletResponse response) throws IOException {
         // don't include Throwable in the response, gives too much information
         final String m = "Error handler failed:" + t.getClass().getName();
@@ -84,13 +84,14 @@ public class DefaultErrorHandler implements ErrorHandler {
      * This method logs error and does not write back and response data if the
      * response has already been committed.
      */
+    @Override
     public void handleError(final int status,
             String message,
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
-        
-        // If we have a delegate let it handle the error 
+
+        // If we have a delegate let it handle the error
         if(delegate != null) {
             try {
                 delegate.handleError(status, message, request, response);
@@ -101,7 +102,7 @@ public class DefaultErrorHandler implements ErrorHandler {
             }
             return;
         }
-        
+
         if (message == null) {
             message = "HTTP ERROR:" + String.valueOf(status);
         } else {
@@ -122,12 +123,13 @@ public class DefaultErrorHandler implements ErrorHandler {
      * This method logs error and does not write back and response data if the
      * response has already been committed.
      */
+    @Override
     public void handleError(final Throwable throwable,
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
-        // If we have a delegate let it handle the error 
+        // If we have a delegate let it handle the error
         if(delegate != null) {
             try {
                 delegate.handleError(throwable, request, response);
@@ -138,7 +140,7 @@ public class DefaultErrorHandler implements ErrorHandler {
             }
             return;
         }
-        
+
         sendError(status,
             throwable.getMessage(), throwable, request, response);
     }

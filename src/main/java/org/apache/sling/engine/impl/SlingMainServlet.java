@@ -20,12 +20,12 @@ package org.apache.sling.engine.impl;
 
 import java.util.ArrayList;
 import java.util.Dictionary;
-import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.regex.Pattern;
 
 import javax.servlet.GenericServlet;
@@ -58,6 +58,7 @@ import org.osgi.framework.Version;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -128,6 +129,9 @@ public class SlingMainServlet extends GenericServlet {
                 description = "Provides mappings for additional response headers "
                     + "Each entry is of the form 'bundleId [ \":\" responseHeaderName ] \"=\" responseHeaderValue'")
         String[] sling_additional_response_headers() default {"X-Content-Type-Options=nosniff", "X-Frame-Options=SAMEORIGIN"};
+
+        @AttributeDefinition(name = "Servlet Name", description = "Optional name for the Sling main servlet registered by this component")
+        String servlet_name();
     }
 
     private static final String DEPRECATED_ENCODING_PROPERTY = "sling.default.parameter.encoding";
@@ -157,7 +161,7 @@ public class SlingMainServlet extends GenericServlet {
      */
     static String PRODUCT_NAME = "ApacheSling";
 
-    private SlingServletContext slingServletContext;
+    private volatile SlingServletContext slingServletContext;
 
     /**
      * The product information part of the {@link #serverInfo} returns from the
@@ -166,7 +170,7 @@ public class SlingMainServlet extends GenericServlet {
      * of the Sling Engine bundle while this component is being
      * {@link #activate(BundleContext, Map, Config)} activated}.
      */
-    private String productInfo = PRODUCT_NAME;
+    private volatile String productInfo = PRODUCT_NAME;
 
     /**
      * The server information to report in the {@link #getServerInfo()} method.
@@ -177,33 +181,35 @@ public class SlingMainServlet extends GenericServlet {
      * Finally during servlet initialization the product information from the
      * servlet container's server info is added to the comment section.
      */
-    private String serverInfo = PRODUCT_NAME;
+    private volatile String serverInfo = PRODUCT_NAME;
 
-    private RequestListenerManager requestListenerManager;
+    private volatile RequestListenerManager requestListenerManager;
 
-    private boolean allowTrace;
+    private volatile boolean allowTrace;
 
-    private Object printerRegistration;
+    private volatile Object printerRegistration;
 
     // new properties
 
-    private SlingHttpContext slingHttpContext = new SlingHttpContext();
+    private final SlingHttpContext slingHttpContext = new SlingHttpContext();
 
-    private ServletFilterManager filterManager;
+    private volatile ServletFilterManager filterManager;
 
     private final SlingRequestProcessorImpl requestProcessor = new SlingRequestProcessorImpl();
 
-    private ServiceRegistration<SlingRequestProcessor> requestProcessorRegistration;
+    private volatile ServiceRegistration<SlingRequestProcessor> requestProcessorRegistration;
 
-    private ServiceRegistration<RequestProcessorMBean> requestProcessorMBeanRegistration;
+    private volatile ServiceRegistration<RequestProcessorMBean> requestProcessorMBeanRegistration;
 
-    private ServiceRegistration<ServletContextHelper> contextRegistration;
+    private volatile ServiceRegistration<ServletContextHelper> contextRegistration;
 
-    private ServiceRegistration<Servlet> servletRegistration;
+    private volatile ServiceRegistration<Servlet> servletRegistration;
 
-    private String configuredServerInfo;
+    private volatile String configuredServerInfo;
 
-    private CountDownLatch asyncActivation = new CountDownLatch(1);
+    private final CountDownLatch asyncActivation = new CountDownLatch(1);
+
+    private final AtomicBoolean isModification = new AtomicBoolean();
 
     // ---------- Servlet API -------------------------------------------------
 
@@ -300,7 +306,7 @@ public class SlingMainServlet extends GenericServlet {
      * @param bundleContext Provides access to the "Bundle-Version" manifest
      *            header of the containing bundle.
      */
-    private void setProductInfo(final BundleContext bundleContext) {
+    private void setProductInfo() {
         final Dictionary<?, ?> props = bundleContext.getBundle().getHeaders();
         final Version bundleVersion = Version.parseVersion((String) props.get(Constants.BUNDLE_VERSION));
         final String productVersion = bundleVersion.getMajor() + "."
@@ -363,20 +369,32 @@ public class SlingMainServlet extends GenericServlet {
                 System.getProperty("java.version"), System.getProperty("os.name"),
                 System.getProperty("os.version"), System.getProperty("os.arch"));
         }
-        if (this.requestProcessor != null) {
-            this.requestProcessor.setServerInfo(serverInfo);
-        }
+        this.requestProcessor.setServerInfo(serverInfo);
     }
 
     // ---------- Property Setter for SCR --------------------------------------
 
-    @Activate
-    protected void activate(final BundleContext bundleContext,
-            final Map<String, Object> componentConfig,
+    @Modified
+    protected void modified(final Map<String, Object> componentConfig,
             final Config config) {
+        this.isModification.set(true);
 
-        this.bundleContext = bundleContext;
+        setup(componentConfig, config);
+    }
 
+    private Dictionary<String, Object> getServletContextRegistrationProps(final String servletName) {
+        final Dictionary<String, Object> servletConfig = new Hashtable<>();
+        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT,
+                "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SERVLET_CONTEXT_NAME + ")");
+        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_PATTERN, SLING_ROOT);
+        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME, servletName);
+        servletConfig.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Main Servlet");
+        servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
+
+        return servletConfig;
+    }
+
+    protected void setup(final Map<String, Object> componentConfig, final Config config) {
         final String[] props = config.sling_additional_response_headers();
         if ( props != null ) {
             final ArrayList<StaticResponseHeader> mappings = new ArrayList<>(props.length);
@@ -392,29 +410,25 @@ public class SlingMainServlet extends GenericServlet {
             }
             RequestData.setAdditionalResponseHeaders(mappings);
         }
-        configuredServerInfo = config.sling_serverinfo();
 
-        // setup server info
-        setProductInfo(bundleContext);
-
-        // prepare the servlet configuration from the component config
-        final Hashtable<String, Object> configuration = new Hashtable<>(
-            componentConfig);
-
-        // ensure the servlet name
-        if (!(configuration.get("servlet-name") instanceof String)) {
-            configuration.put("servlet-name", this.productInfo);
+        if (config.sling_serverinfo() != null && !config.sling_serverinfo().isEmpty()) {
+            this.configuredServerInfo = config.sling_serverinfo();
+        } else {
+            this.configuredServerInfo = null;
         }
 
+        // setup server info
+        setProductInfo();
+
         // configure method filter
-        allowTrace = config.sling_trace_allow();
+        this.allowTrace = config.sling_trace_allow();
 
         // configure the request limits
         RequestData.setMaxIncludeCounter(config.sling_max_inclusions());
         RequestData.setMaxCallCounter(config.sling_max_calls());
         RequestData.setSlingMainServlet(this);
 
-        // Warn about the obsolete parameter encoding configuration
+        // Warn about the obsolete parameter encoding configuration (SLING-5370)
         if (componentConfig.get(DEPRECATED_ENCODING_PROPERTY) != null) {
             log.warn("Please configure the default request parameter encoding using "
                 + "the 'org.apache.sling.engine.parameters' configuration PID; the property "
@@ -423,23 +437,32 @@ public class SlingMainServlet extends GenericServlet {
                 + " is obsolete and ignored");
         }
 
-        // register the servlet context
-        final Dictionary<String, String> contextProperties = new Hashtable<>();
-        contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME, SERVLET_CONTEXT_NAME);
-        contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_PATH, SLING_ROOT);
-        contextProperties.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Servlet Context Helper");
-        contextProperties.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
+        if (this.contextRegistration == null) {
+            // register the servlet context
+            final Dictionary<String, String> contextProperties = new Hashtable<>();
+            contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME, SERVLET_CONTEXT_NAME);
+            contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_PATH, SLING_ROOT);
+            contextProperties.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Servlet Context Helper");
+            contextProperties.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
 
-        this.contextRegistration = bundleContext.registerService(ServletContextHelper.class, this.slingHttpContext, contextProperties);
+            this.contextRegistration = bundleContext.registerService(ServletContextHelper.class, this.slingHttpContext,
+                    contextProperties);
+        }
 
-        // register the servlet
-        final Dictionary<String, String> servletConfig = toStringConfig(configuration);
-        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT,
-                "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SERVLET_CONTEXT_NAME + ")");
-        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_PATTERN, SLING_ROOT);
-        servletConfig.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Main Servlet");
-        servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
-        this.servletRegistration = bundleContext.registerService(Servlet.class, this, servletConfig);
+        String servletName = config.servlet_name();
+        if (servletName == null || servletName.isEmpty()) {
+            servletName = this.productInfo;
+        }
+        if (this.servletRegistration == null) {
+            this.servletRegistration = bundleContext.registerService(Servlet.class, this,
+                    getServletContextRegistrationProps(servletName));
+        } else {
+            // check if the servlet name has changed and update properties
+            if (!servletName.equals(this.servletRegistration.getReference()
+                    .getProperty(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME))) {
+                this.servletRegistration.setProperties(getServletContextRegistrationProps(servletName));
+            }
+        }
 
         // setup the request info recorder
         try {
@@ -459,11 +482,29 @@ public class SlingMainServlet extends GenericServlet {
         }
     }
 
+    @Activate
+    protected void activate(final BundleContext bundleContext, final Map<String, Object> componentConfig,
+            final Config config) {
+
+        this.bundleContext = bundleContext;
+        this.isModification.set(false);
+        this.setup(componentConfig, config);
+    }
+
     @Override
-    public void init() {
+    public void init() throws ServletException {
         setServerInfo();
         log.info("{} ready to serve requests", this.getServerInfo());
-        asyncSlingServletContextRegistration();
+        if (slingServletContext == null) {
+            asyncSlingServletContextRegistration();
+        }
+    }
+
+    @Override
+    public void destroy() {
+        if (!this.isModification.compareAndSet(true, false)) {
+            unregisterSlingServletContext();
+        }
     }
 
     // registration needs to be async. if it is done synchronously
@@ -524,7 +565,6 @@ public class SlingMainServlet extends GenericServlet {
             log.warn("Async activation did not complete within 30 seconds of 'deactivate' " +
                      "being called. There is a risk that objects are not properly destroyed.");
         }
-        unregisterSlingServletContext();
 
         // unregister request recorder plugin
         try {
@@ -532,6 +572,13 @@ public class SlingMainServlet extends GenericServlet {
         } catch (Throwable t) {
             log.debug(
                     "Problem unregistering web console request recorder plugin.", t);
+        }
+
+        // second unregister the servlet context *before* unregistering
+        // and destroying the the sling main servlet
+        if (this.contextRegistration != null) {
+            this.contextRegistration.unregister();
+            this.contextRegistration = null;
         }
 
         // third unregister and destroy the sling main servlet
@@ -578,14 +625,9 @@ public class SlingMainServlet extends GenericServlet {
         if (filterManager != null) {
             requestProcessor.setFilterManager(null);
             filterManager.close();
+            filterManager = null;
         }
 
-        // second unregister the servlet context *before* unregistering
-        // and destroying the the sling main servlet
-        if ( this.contextRegistration != null ) {
-            this.contextRegistration.unregister();
-            this.contextRegistration = null;
-        }
         if (slingServletContext != null) {
             slingServletContext.dispose();
             slingServletContext = null;
@@ -628,15 +670,6 @@ public class SlingMainServlet extends GenericServlet {
     public void unsetAuthenticationSupport(
             final AuthenticationSupport authenticationSupport) {
         slingHttpContext.unsetAuthenticationSupport(authenticationSupport);
-    }
-
-    private Dictionary<String, String> toStringConfig(Dictionary<?, ?> config) {
-        Dictionary<String, String> stringConfig = new Hashtable<>();
-        for (Enumeration<?> ke = config.keys(); ke.hasMoreElements();) {
-            Object key = ke.nextElement();
-            stringConfig.put(key.toString(), String.valueOf(config.get(key)));
-        }
-        return stringConfig;
     }
 
     // ---------- HttpContext interface ----------------------------------------
