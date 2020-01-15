@@ -27,6 +27,7 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 
@@ -42,7 +43,7 @@ public class SlingFilterConfig implements FilterConfig {
     private ServletContext servletContext;
 
     /** The <code>ServiceReference</code> providing the properties */
-    private ServiceReference reference;
+    private ServiceReference<Filter> reference;
 
     /** The name of this configuration object */
     private String name;
@@ -58,7 +59,7 @@ public class SlingFilterConfig implements FilterConfig {
      * @param filterName The name of this configuration.
      */
     public SlingFilterConfig(final ServletContext servletContext,
-                             final ServiceReference reference,
+            final ServiceReference<Filter> reference,
                              final String filterName) {
         this.servletContext = servletContext;
         this.reference = reference;
@@ -68,6 +69,7 @@ public class SlingFilterConfig implements FilterConfig {
     /**
      * @see javax.servlet.FilterConfig#getInitParameter(java.lang.String)
      */
+    @Override
     public String getInitParameter(String name) {
         Object prop = reference.getProperty(name);
         return (prop == null) ? null : String.valueOf(prop);
@@ -76,6 +78,7 @@ public class SlingFilterConfig implements FilterConfig {
     /**
      * @see javax.servlet.FilterConfig#getInitParameterNames()
      */
+    @Override
     public Enumeration<String> getInitParameterNames() {
         List<String> keys = Arrays.asList(reference.getPropertyKeys());
         return Collections.enumeration(keys);
@@ -84,16 +87,18 @@ public class SlingFilterConfig implements FilterConfig {
     /**
      * @see javax.servlet.FilterConfig#getServletContext()
      */
+    @Override
     public ServletContext getServletContext() {
         return servletContext;
     }
 
     /**
-     * Looks for a name value in the service reference properties. See the
-     * class comment at the top for the list of properties checked by this
-     * method.
+     * Looks for a name value in the service reference properties. See the class
+     * comment at the top for the list of properties checked by this method. As the
+     * service id is part of the checked property list this method always returns a
+     * name.
      */
-    public static String getName(ServiceReference reference) {
+    public static String getName(ServiceReference<Filter> reference) {
         String servletName = null;
         for (int i = 0; i < NAME_PROPERTIES.length
             && (servletName == null || servletName.length() == 0); i++) {
@@ -108,6 +113,7 @@ public class SlingFilterConfig implements FilterConfig {
     /**
      * @see javax.servlet.FilterConfig#getFilterName()
      */
+    @Override
     public String getFilterName() {
         return name;
     }

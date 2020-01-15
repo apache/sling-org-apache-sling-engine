@@ -28,7 +28,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     private final Filter filter;
 
-    private final Long filterId;
+    private final long filterId;
 
     private final int order;
 
@@ -39,10 +39,11 @@ public class FilterHandle implements Comparable<FilterHandle> {
     private AtomicLong time;
 
     private FilterPredicate predicate;
-    
+
     FilterProcessorMBeanImpl mbean;
 
-    FilterHandle(Filter filter, FilterPredicate predicate, Long filterId, int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
+    FilterHandle(Filter filter, FilterPredicate predicate, long filterId, int order, final String orderSource,
+            FilterProcessorMBeanImpl mbean) {
         this.filter = filter;
         this.predicate = predicate;
         this.filterId = filterId;
@@ -57,7 +58,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
         return filter;
     }
 
-    public Long getFilterId() {
+    public long getFilterId() {
         return filterId;
     }
 
@@ -103,6 +104,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
      * Note: this class has a natural ordering that is inconsistent with
      * equals.
      */
+    @Override
     public int compareTo(FilterHandle other) {
         if (this == other || equals(other)) {
             return 0;
@@ -113,17 +115,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
         } else if (order < other.order) {
             return 1;
         }
-
-        // if the filterId is comparable and the other is of the same class
-        if (filterId != null && other.filterId != null) {
-            int comp = filterId.compareTo(other.filterId);
-            if (comp != 0) {
-                return comp;
-            }
-        }
-
-        // consider equal ranking
-        return 0;
+        return (this.filterId < other.filterId) ? -1 : ((this.filterId == other.filterId) ? 0 : 1);
     }
 
     @Override
@@ -134,6 +126,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
         return filter.hashCode();
     }
 
+    @Override
     public boolean equals(Object obj) {
         if (this == obj) {
             return true;

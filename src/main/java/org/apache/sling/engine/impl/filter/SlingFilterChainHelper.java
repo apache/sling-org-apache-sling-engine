@@ -43,7 +43,7 @@ public class SlingFilterChainHelper {
     }
 
     public synchronized Filter addFilter(final Filter filter,  FilterPredicate pattern,
-            final Long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
+            final long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
         if (filterList == null) {
             filterList = new TreeSet<FilterHandle>();
         }
@@ -52,13 +52,11 @@ public class SlingFilterChainHelper {
         return filter;
     }
 
-    public synchronized boolean removeFilterById(final Object filterId) {
+    public synchronized boolean removeFilterById(final long filterId) {
         if (filterList != null) {
             for (Iterator<FilterHandle> fi = filterList.iterator(); fi.hasNext();) {
                 FilterHandle test = fi.next();
-                if (test.getFilterId() == filterId
-                    || (test.getFilterId() != null && test.getFilterId().equals(
-                        filterId))) {
+                if (test.getFilterId() == filterId) {
                     fi.remove();
                     filters = getFiltersInternal();
                     return true;
