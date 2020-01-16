@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl.console;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -75,7 +76,7 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
 
     private volatile RequestInfoMap requests;
 
-    private volatile List<Pattern> storePatterns;
+    private volatile List<Pattern> storePatterns = Collections.emptyList();
 
     @Activate
     public RequestHistoryConsolePlugin(final SlingMainServlet.Config config) {
@@ -115,12 +116,14 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
     }
 
     private void addRequest(SlingHttpServletRequest r) {
-        if (requests != null) {
+        final RequestInfoMap local = requests;
+        if (local != null) {
             String requestPath = r.getPathInfo();
             boolean accept = true;
-            if (storePatterns != null && storePatterns.size() > 0) {
+            final List<Pattern> patterns = storePatterns;
+            if (!patterns.isEmpty()) {
                 accept = false;
-                for (Pattern pattern : storePatterns) {
+                for (Pattern pattern : patterns) {
                     if (pattern.matcher(requestPath).matches()) {
                         accept = true;
                         break;
@@ -129,45 +132,41 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
             }
 
             if (accept) {
-                synchronized (requests) {
-                    RequestInfo info = new RequestInfo(r);
-                    requests.put(info.getKey(), info);
+                RequestInfo info = new RequestInfo(r);
+                synchronized (local) {
+                    local.put(info.getKey(), info);
                 }
             }
         }
     }
 
     private void clear() {
-        if (requests != null) {
-            synchronized (requests) {
-                requests.clear();
-            }
+        final RequestInfoMap local = requests;
+        if (local != null) {
+            local.clear();
         }
     }
 
-    private String getLinksTable(String currentRequestIndex) {
+    private void printLinksTable(PrintWriter pw, List<RequestInfo> values, String currentRequestIndex) {
         final List<String> links = new ArrayList<String>();
-        if (requests != null) {
-            synchronized (requests) {
-                for (RequestInfo info : requests.values()) {
-                    final String key = ResponseUtil.escapeXml(info.getKey());
-                    final boolean isCurrent = info.getKey().equals(
-                        currentRequestIndex);
-                    final StringBuilder sb = new StringBuilder();
-                    sb.append("<span style='white-space: pre; text-align:right; font-size:80%'>");
-                    sb.append(String.format("%1$8s", key));
-                    sb.append("</span> ");
-                    sb.append("<a href='" + LABEL + "?index=" + key + "'>");
-                    if (isCurrent) {
-                        sb.append("<b>");
-                    }
-                    sb.append(ResponseUtil.escapeXml(info.getLabel()));
-                    if (isCurrent) {
-                        sb.append("</b>");
-                    }
-                    sb.append("</a> ");
-                    links.add(sb.toString());
+        if (values != null) {
+            for (RequestInfo info : values) {
+                final String key = ResponseUtil.escapeXml(info.getKey());
+                final boolean isCurrent = info.getKey().equals(currentRequestIndex);
+                final StringBuilder sb = new StringBuilder();
+                sb.append("<span style='white-space: pre; text-align:right; font-size:80%'>");
+                sb.append(String.format("%1$8s", key));
+                sb.append("</span> ");
+                sb.append("<a href='" + LABEL + "?index=" + key + "'>");
+                if (isCurrent) {
+                    sb.append("<b>");
                 }
+                sb.append(ResponseUtil.escapeXml(info.getLabel()));
+                if (isCurrent) {
+                    sb.append("</b>");
+                }
+                sb.append("</a> ");
+                links.add(sb.toString());
             }
         }
 
@@ -176,47 +175,52 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
             links.add("&nbsp;");
         }
 
-        final StringBuilder tbl = new StringBuilder();
-
-        tbl.append("<table class='nicetable ui-widget'>\n<tr>\n");
-        if (links.isEmpty()) {
-            tbl.append("No Requests recorded");
+        pw.println("<table class='nicetable ui-widget'>");
+        pw.println("<tr>\n");
+        if (values.isEmpty()) {
+            pw.print("No Requests recorded");
         } else {
             int i = 0;
             for (String str : links) {
                 if ((i++ % nCols) == 0) {
-                    tbl.append("</tr>\n<tr>\n");
+                    pw.println("</tr>");
+                    pw.println("<tr>");
                 }
-                tbl.append("<td>");
-                tbl.append(str);
-                tbl.append("</td>\n");
+                pw.print("<td>");
+                pw.print(str);
+                pw.println("</td>");
             }
         }
-        tbl.append("</tr>\n");
+        pw.println("</tr>");
 
-        tbl.append("</table>\n");
-        return tbl.toString();
+        pw.println("</table>");
     }
 
     @Override
     protected void doGet(HttpServletRequest req, HttpServletResponse resp)
             throws ServletException, IOException {
+        final RequestInfoMap local = requests;
 
-        // Select request to display
+        // get all requests and select request to display
+        final String key = req.getParameter(INDEX);
+        final List<RequestInfo> values;
         RequestInfo info = null;
-        String key = req.getParameter(INDEX);
-        if (key != null && requests != null) {
-            synchronized (requests) {
-                info = requests.get(key);
+        if (local != null) {
+            synchronized (local) {
+                values = new ArrayList<>(local.values());
+                if (key != null) {
+                    info = local.get(key);
+                }
             }
+        } else {
+            values = null;
         }
 
         final PrintWriter pw = resp.getWriter();
 
-        if (requests != null) {
+        if (local != null) {
             pw.println("<p class='statline ui-state-highlight'>Recorded "
-                + requests.size() + " requests (max: "
-                + requests.getMaxSize() + ")</p>");
+                    + values.size() + " requests (max: " + local.getMaxSize() + ")</p>");
         } else {
             pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
         }
@@ -226,7 +230,7 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
         pw.println("<form method='POST'><input type='hidden' name='clear' value='clear'><input type='submit' value='Clear' class='ui-state-default ui-corner-all'></form>");
         pw.println("</div>");
 
-        pw.println(getLinksTable(key));
+        printLinksTable(pw, values, key);
         pw.println("<br/>");
 
         if (info != null) {
@@ -328,6 +332,7 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
     private static class RequestInfoMap extends LinkedHashMap<String, RequestInfo> {
 
         private static final long serialVersionUID = 4120391774146501524L;
+
         private int maxSize;
 
         RequestInfoMap(int maxSize) {
