@@ -61,6 +61,7 @@ import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.http.context.ServletContextHelper;
@@ -139,6 +140,9 @@ public class SlingMainServlet extends GenericServlet {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
 
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+    private volatile RequestListenerManager requestListenerManager;
+
     private BundleContext bundleContext;
 
     /** default log */
@@ -183,8 +187,6 @@ public class SlingMainServlet extends GenericServlet {
      */
     private volatile String serverInfo = PRODUCT_NAME;
 
-    private volatile RequestListenerManager requestListenerManager;
-
     private volatile boolean allowTrace;
 
     // new properties
@@ -227,7 +229,10 @@ public class SlingMainServlet extends GenericServlet {
             // set the thread name according to the request
             String threadName = setThreadName(request);
 
-            requestListenerManager.sendEvent( request, SlingRequestEvent.EventType.EVENT_INIT );
+            final RequestListenerManager localRLM = requestListenerManager;
+            if (localRLM != null) {
+                localRLM.sendEvent(request, SlingRequestEvent.EventType.EVENT_INIT);
+            }
 
             ResourceResolver resolver = null;
             try {
@@ -269,7 +274,9 @@ public class SlingMainServlet extends GenericServlet {
                     resolver.close();
                 }
 
-                requestListenerManager.sendEvent( request, SlingRequestEvent.EventType.EVENT_DESTROY );
+                if (localRLM != null) {
+                    localRLM.sendEvent(request, SlingRequestEvent.EventType.EVENT_DESTROY);
+                }
 
                 // reset the thread name
                 if (threadName != null) {
@@ -497,9 +504,6 @@ public class SlingMainServlet extends GenericServlet {
                     filterManager.open();
                     requestProcessor.setFilterManager(filterManager);
 
-                    // initialize requestListenerManager
-                    requestListenerManager = new RequestListenerManager(bundleContext, slingServletContext);
-
                     try {
                         Dictionary<String, String> mbeanProps = new Hashtable<>();
                         mbeanProps.put("jmx.objectname", "org.apache.sling:type=engine,service=RequestProcessor");
@@ -545,13 +549,6 @@ public class SlingMainServlet extends GenericServlet {
         if ( this.servletRegistration != null ) {
             this.servletRegistration.unregister();
             this.servletRegistration = null;
-        }
-
-        // dispose of request listener manager after unregistering the servlet
-        // to prevent a potential NPE in the service method
-        if ( this.requestListenerManager != null ) {
-            this.requestListenerManager.dispose();
-            this.requestListenerManager = null;
         }
 
         // reset the sling main servlet reference (help GC and be nice)

@@ -18,38 +18,55 @@
  */
 package org.apache.sling.engine.impl.helper;
 
+import java.util.List;
+
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
-import org.osgi.framework.BundleContext;
-import org.osgi.util.tracker.ServiceTracker;
+import org.apache.sling.engine.impl.SlingMainServlet;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.FieldOption;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceVendor;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+@Component(service = RequestListenerManager.class)
+@ServiceDescription("Request listener manager")
+@ServiceVendor("The Apache Software Foundation")
 public class RequestListenerManager  {
-
-    private final ServiceTracker serviceTracker;
 
     private final ServletContext servletContext;
 
-	public RequestListenerManager( final BundleContext context, final ServletContext servletContext ) {
-		serviceTracker = new ServiceTracker( context, SlingRequestListener.SERVICE_NAME, null );
-		serviceTracker.open();
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC, fieldOption = FieldOption.REPLACE)
+    private volatile List<SlingRequestListener> listeners;
+
+    @Activate
+    public RequestListenerManager(@Reference(target = "(name=" + SlingMainServlet.SERVLET_CONTEXT_NAME
+            + ")") final ServletContext servletContext) {
 		this.servletContext = servletContext;
 	}
 
 	public void sendEvent ( final HttpServletRequest request,
 	        final SlingRequestEvent.EventType type) {
-		final Object[] services = serviceTracker.getServices();
-		if ( services != null && services.length > 0 ) {
+        final List<SlingRequestListener> local = listeners;
+        if (local != null && !local.isEmpty()) {
 		    final SlingRequestEvent event = new SlingRequestEvent(this.servletContext, request, type);
-			for ( final Object service : services ) {
-				( (SlingRequestListener) service ).onEvent( event );
+            for (final SlingRequestListener service : local) {
+                try {
+                    service.onEvent(event);
+                } catch (final Throwable t) {
+                    logger.error("Error invoking sling request listener " + service + " : " + t.getMessage(), t);
+                }
 			}
 		}
-	}
-
-	public void dispose() {
-	    this.serviceTracker.close();
 	}
 }
