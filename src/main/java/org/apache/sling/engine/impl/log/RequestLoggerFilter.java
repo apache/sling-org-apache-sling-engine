@@ -30,24 +30,27 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.engine.impl.SlingMainServlet;
-import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceRanking;
+import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelect;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardFilterPattern;
 import org.slf4j.LoggerFactory;
 
 @Component(configurationPolicy = ConfigurationPolicy.IGNORE,
-           service = Filter.class,
-           property = {
-                   HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT+ "=(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingMainServlet.SERVLET_CONTEXT_NAME + ")",
-                   HttpWhiteboardConstants.HTTP_WHITEBOARD_FILTER_PATTERN + "=/",
-                   Constants.SERVICE_RANKING + ":Integer=32768",
-                   Constants.SERVICE_DESCRIPTION + "=Request Logger Filter",
-                   Constants.SERVICE_VENDOR + "=The Apache Software Foundation"
-           })
+        service = Filter.class)
+@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
+        + SlingMainServlet.SERVLET_CONTEXT_NAME + ")")
+@HttpWhiteboardFilterPattern("/")
+@ServiceRanking(32768)
+@ServiceDescription("Request Logger Filter")
+@ServiceVendor("The Apache Software Foundation")
 public final class RequestLoggerFilter implements Filter {
 
     private static final RequestLoggerService[] NONE = new RequestLoggerService[0];

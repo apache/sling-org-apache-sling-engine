@@ -29,6 +29,7 @@ import javax.servlet.ServletException;
 
 import org.apache.sling.commons.osgi.OsgiUtil;
 import org.apache.sling.engine.EngineConstants;
+import org.apache.sling.engine.impl.console.WebConsoleConfigPrinter;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.jmx.FilterProcessorMBean;
@@ -103,6 +104,8 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
 
     private final Map<Long, MBeanReg> mbeanMap = new ConcurrentHashMap<>();
 
+    private volatile ServiceRegistration printerRegistration;
+
     private static final org.osgi.framework.Filter SERVICE_FILTER;
     static {
         org.osgi.framework.Filter f = null;
@@ -123,6 +126,23 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
         for (final FilterChainType type : FilterChainType.values()) {
             this.filterChains[type.ordinal()] = new SlingFilterChainHelper();
         }
+    }
+
+    @Override
+    public void open() {
+        super.open();
+        // Setup configuration printer
+        printerRegistration = WebConsoleConfigPrinter.register(context, this);
+
+    }
+
+    @Override
+    public void close() {
+        if (this.printerRegistration != null) {
+            WebConsoleConfigPrinter.unregister(this.printerRegistration);
+            this.printerRegistration = null;
+        }
+        super.close();
     }
 
     public SlingFilterChainHelper getFilterChain(final FilterChainType chain) {

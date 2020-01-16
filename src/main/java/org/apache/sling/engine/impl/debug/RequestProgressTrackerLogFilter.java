@@ -34,9 +34,10 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.request.SlingRequestProgressTracker;
-import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -51,10 +52,10 @@ import org.slf4j.LoggerFactory;
 @Designate(ocd=RequestProgressTrackerLogFilter.Config.class)
 @Component(service=Filter.class,
            property={
-                   Constants.SERVICE_DESCRIPTION + "=RequestProgressTracker dump filter",
-                   Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
                    EngineConstants.SLING_FILTER_SCOPE + "=" + EngineConstants.FILTER_SCOPE_REQUEST
            })
+@ServiceDescription("RequestProgressTracker dump filte")
+@ServiceVendor("The Apache Software Foundation")
 public class RequestProgressTrackerLogFilter implements Filter {
 
     @ObjectClassDefinition(name="Apache Sling Request Progress Tracker Log Filter",

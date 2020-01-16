@@ -37,10 +37,7 @@ import org.osgi.service.metatype.annotations.Option;
  * The <code>RequestLogger</code> just registers {@link RequestLoggerService}
  * instance on behalf of the provided configuration.
  */
-@Component(property = {
-        "service.description=Request Logger",
-        "service.vendor=The Apache Software Foundation"
-})
+@Component
 @Designate(ocd = RequestLogger.Config.class)
 public class RequestLogger {
 

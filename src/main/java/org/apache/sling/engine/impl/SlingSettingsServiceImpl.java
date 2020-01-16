@@ -21,6 +21,8 @@ package org.apache.sling.engine.impl;
 import org.apache.sling.engine.SlingSettingsService;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceVendor;
 
 /**
  * The implementation of the settings service has moved to the
@@ -29,6 +31,8 @@ import org.osgi.service.component.annotations.Reference;
  * @deprecated
  */
 @Component(service = SlingSettingsService.class)
+@ServiceDescription("deprecated")
+@ServiceVendor("The Apache Software Foundation")
 @Deprecated
 public class SlingSettingsServiceImpl
     implements SlingSettingsService {

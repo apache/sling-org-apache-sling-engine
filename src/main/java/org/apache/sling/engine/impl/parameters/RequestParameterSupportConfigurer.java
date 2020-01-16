@@ -21,18 +21,6 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.settings.SlingSettingsService;
-import org.osgi.framework.Constants;
-import org.osgi.service.component.annotations.Activate;
-import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
-import org.osgi.service.metatype.annotations.Designate;
-import org.osgi.service.metatype.annotations.ObjectClassDefinition;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -41,14 +29,30 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.settings.SlingSettingsService;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceRanking;
+import org.osgi.service.component.propertytypes.ServiceVendor;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelect;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardFilterPattern;
+import org.osgi.service.metatype.annotations.AttributeDefinition;
+import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 @Component(
         name = RequestParameterSupportConfigurer.PID,
-        property = {
-            Constants.SERVICE_RANKING + ":Integer=" + Integer.MAX_VALUE,
-            "osgi.http.whiteboard.context.select=(osgi.http.whiteboard.context.name=org.apache.sling)",
-            "osgi.http.whiteboard.filter.pattern=/"
-        },
         service = Filter.class)
+@HttpWhiteboardContextSelect("(osgi.http.whiteboard.context.name=org.apache.sling)")
+@HttpWhiteboardFilterPattern("/")
+@ServiceDescription("Filter for request parameter support")
+@ServiceVendor("The Apache Software Foundation")
+@ServiceRanking(Integer.MAX_VALUE)
 @Designate(ocd=RequestParameterSupportConfigurer.Config.class)
 public class RequestParameterSupportConfigurer implements Filter {
 

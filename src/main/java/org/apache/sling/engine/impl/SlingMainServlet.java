@@ -21,13 +21,12 @@ package org.apache.sling.engine.impl;
 import java.util.ArrayList;
 import java.util.Dictionary;
 import java.util.Hashtable;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.regex.Pattern;
 
+import javax.management.NotCompliantMBeanException;
 import javax.servlet.GenericServlet;
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -43,12 +42,12 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
+import org.apache.sling.engine.impl.console.RequestHistoryConsolePlugin;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 import org.apache.sling.engine.impl.helper.RequestListenerManager;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.apache.sling.engine.impl.request.RequestHistoryConsolePlugin;
 import org.apache.sling.engine.jmx.RequestProcessorMBean;
 import org.apache.sling.engine.servlets.ErrorHandler;
 import org.osgi.framework.BundleContext;
@@ -62,6 +61,8 @@ import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
@@ -74,12 +75,13 @@ import org.slf4j.LoggerFactory;
  * The <code>SlingMainServlet</code>
  */
 @SuppressWarnings("serial")
-@Component(property = {
-        Constants.SERVICE_VENDOR + "=The Apache Software Foundation",
-        Constants.SERVICE_DESCRIPTION + "=Sling Servlet"
-})
+@Component(configurationPid = SlingMainServlet.PID, service = {})
+@ServiceDescription("Sling Servlet")
+@ServiceVendor("The Apache Software Foundation")
 @Designate(ocd=SlingMainServlet.Config.class)
 public class SlingMainServlet extends GenericServlet {
+
+    public static final String PID = "org.apache.sling.engine.impl.SlingMainServlet";
 
     @ObjectClassDefinition(name ="Apache Sling Main Servlet",
             description="Main processor of the Sling framework controlling all " +
@@ -184,8 +186,6 @@ public class SlingMainServlet extends GenericServlet {
     private volatile RequestListenerManager requestListenerManager;
 
     private volatile boolean allowTrace;
-
-    private volatile Object printerRegistration;
 
     // new properties
 
@@ -451,23 +451,6 @@ public class SlingMainServlet extends GenericServlet {
                 this.servletRegistration.setProperties(getServletContextRegistrationProps(servletName));
             }
         }
-
-        // setup the request info recorder
-        try {
-            int maxRequests = config.sling_max_record_requests();
-            String[] patterns = config.sling_store_pattern_requests();
-            if ( patterns == null ) patterns = new String[0];
-            List<Pattern> compiledPatterns = new ArrayList<>(patterns.length);
-            for (String pattern : patterns) {
-                if(pattern != null && pattern.trim().length() > 0) {
-                    compiledPatterns.add(Pattern.compile(pattern));
-                }
-            }
-            RequestHistoryConsolePlugin.initPlugin(bundleContext, maxRequests, compiledPatterns);
-        } catch (Throwable t) {
-            log.debug(
-                    "Unable to register web console request recorder plugin.", t);
-        }
     }
 
     @Activate
@@ -517,9 +500,6 @@ public class SlingMainServlet extends GenericServlet {
                     // initialize requestListenerManager
                     requestListenerManager = new RequestListenerManager(bundleContext, slingServletContext);
 
-                    // Setup configuration printer
-                    printerRegistration = WebConsoleConfigPrinter.register(bundleContext, filterManager);
-
                     try {
                         Dictionary<String, String> mbeanProps = new Hashtable<>();
                         mbeanProps.put("jmx.objectname", "org.apache.sling:type=engine,service=RequestProcessor");
@@ -527,7 +507,7 @@ public class SlingMainServlet extends GenericServlet {
                         RequestProcessorMBeanImpl mbean = new RequestProcessorMBeanImpl();
                         requestProcessorMBeanRegistration = bundleContext.registerService(RequestProcessorMBean.class, mbean, mbeanProps);
                         requestProcessor.setMBean(mbean);
-                    } catch (Throwable t) {
+                    } catch (NotCompliantMBeanException t) {
                         log.debug("Unable to register mbean");
                     }
 
@@ -551,14 +531,6 @@ public class SlingMainServlet extends GenericServlet {
         if (!awaitQuietly(asyncActivation, 30)) {
             log.warn("Async activation did not complete within 30 seconds of 'deactivate' " +
                      "being called. There is a risk that objects are not properly destroyed.");
-        }
-
-        // unregister request recorder plugin
-        try {
-            RequestHistoryConsolePlugin.destroyPlugin();
-        } catch (Throwable t) {
-            log.debug(
-                    "Problem unregistering web console request recorder plugin.", t);
         }
 
         // second unregister the servlet context *before* unregistering
@@ -602,11 +574,6 @@ public class SlingMainServlet extends GenericServlet {
             requestProcessorMBeanRegistration = null;
         }
 
-        // this reverses the activation setup
-        if ( this.printerRegistration != null ) {
-            WebConsoleConfigPrinter.unregister(this.printerRegistration);
-            this.printerRegistration = null;
-        }
         // destroy servlet filters before destroying the sling servlet
         // context because the filters depend on that context
         if (filterManager != null) {

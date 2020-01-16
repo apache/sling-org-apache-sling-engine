@@ -27,6 +27,8 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.propertytypes.ServiceDescription;
+import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
@@ -36,11 +38,9 @@ import org.osgi.service.metatype.annotations.Option;
  * The <code>RequestLoggerService</code> is a factory component which gets
  * configuration to register loggers for the {@link RequestLogger}.
  */
-@Component(service = RequestLoggerService.class, configurationPolicy = ConfigurationPolicy.REQUIRE,
-     property = {
-             "service.description=Factory for configuration based request/access loggers",
-             "service.vendor=The Apache Software Foundation"
-     })
+@Component(service = RequestLoggerService.class, configurationPolicy = ConfigurationPolicy.REQUIRE)
+@ServiceDescription("Factory for configuration based request/access loggers")
+@ServiceVendor("The Apache Software Foundation")
 @Designate(ocd = RequestLoggerService.Config.class, factory = true)
 public class RequestLoggerService {
 

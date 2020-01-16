@@ -16,7 +16,7 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.sling.engine.impl;
+package org.apache.sling.engine.impl.console;
 
 import java.io.PrintWriter;
 import java.util.Dictionary;
@@ -42,14 +42,8 @@ public class WebConsoleConfigPrinter {
         this.filterManager = filterManager;
     }
 
-    private static final class Registration {
-        public ServiceRegistration filterPlugin;
-    }
-
-    public static Object register(final BundleContext bundleContext,
+    public static ServiceRegistration register(final BundleContext bundleContext,
             final ServletFilterManager filterManager) {
-        final Registration reg = new Registration();
-
         // first we register the plugin for the filters
         final WebConsoleConfigPrinter filterPrinter = new WebConsoleConfigPrinter(filterManager);
         final Dictionary<String, String> serviceProps = new Hashtable<String, String>();
@@ -60,19 +54,14 @@ public class WebConsoleConfigPrinter {
         serviceProps.put("felix.webconsole.title", "Sling Servlet Filter");
         serviceProps.put("felix.webconsole.configprinter.modes", "always");
 
-        reg.filterPlugin = bundleContext.registerService(WebConsoleConfigPrinter.class.getName(),
+        return bundleContext.registerService(WebConsoleConfigPrinter.class.getName(),
                 filterPrinter,
                 serviceProps);
-        return reg;
     }
 
-    public static void unregister(final Object reg) {
-        if ( reg instanceof Registration ) {
-            final Registration registration = (Registration)reg;
-            if ( registration.filterPlugin != null) {
-                registration.filterPlugin.unregister();
-                registration.filterPlugin = null;
-            }
+    public static void unregister(final ServiceRegistration reg) {
+        if (reg != null) {
+            reg.unregister();
         }
     }
 
