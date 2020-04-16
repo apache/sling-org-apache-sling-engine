@@ -131,11 +131,13 @@ public class FilterPredicate {
         LOG.debug("starting filter test against {} request", req);
         RequestPathInfo requestPathInfo = req.getRequestPathInfo();
         String path = requestPathInfo.getResourcePath();
+        String uri = req.getPathInfo();
         boolean select = anyElementMatches(methods, req.getMethod())
                 && anyElementMatches(selectors, requestPathInfo.getSelectors())
                 && anyElementMatches(extensions, requestPathInfo.getExtension())
                 && anyResourceTypeMatches(resourceTypes, req)
-                && patternMatches(pathRegex, path == null || path.isEmpty() ? "/" : path)
+                && (patternMatches(pathRegex, path == null || path.isEmpty() ? "/" : path)
+                || patternMatches(pathRegex, uri == null || uri.isEmpty() ? "/" : uri))
                 && patternMatches(suffixRegex, requestPathInfo.getSuffix());
         LOG.debug("selection of {} returned {}", this, select);
         return select;
