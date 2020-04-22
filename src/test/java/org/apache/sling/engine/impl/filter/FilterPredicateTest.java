@@ -18,15 +18,17 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import org.junit.Test;
-
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_EXTENSIONS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_METHODS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_REQUEST_PATTERN;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCE_PATTERN;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SELECTORS;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class FilterPredicateTest extends AbstractFilterTest {
 
@@ -43,6 +45,20 @@ public class FilterPredicateTest extends AbstractFilterTest {
         FilterPredicate predicate = predicate(SLING_FILTER_PATTERN,"/content/test/.*");
         assertTrue("/content/test/foo should be selected", predicate.test(mockRequest("/content/test/foo","json", null, null, null)));
         assertFalse("/content/bar/foo should not be selected", predicate.test(mockRequest("/content/bar/foo","json", null, null, null)));
+    }
+
+    @Test
+    public void testRequestPathPattern() {
+        FilterPredicate predicate = predicate(SLING_FILTER_REQUEST_PATTERN,"/content/test/.*");
+        assertTrue("/content/test/foo should be selected", predicate.test(mockRequest("/content/bar/foo", "/content/test/foo", "json")));
+        assertFalse("/content/bar/foo should not be selected", predicate.test(mockRequest("/content/bar/foo","/content/bar/foo", "json")));
+    }
+
+    @Test
+    public void testResourcePathPattern() {
+        FilterPredicate predicate = predicate(SLING_FILTER_RESOURCE_PATTERN,"/content/test/.*");
+        assertTrue("/content/test/foo should be selected", predicate.test(mockRequest("/content/test/foo", "/content/bar/foo", "json")));
+        assertFalse("/content/bar/foo should not be selected", predicate.test(mockRequest("/content/bar/foo","/content/bar/foo", "json")));
     }
 
     @Test

@@ -154,12 +154,29 @@ public class EngineConstants {
      * @since 2.1, Sling Engine 2.2
      */
     public static final String SLING_FILTER_SCOPE = "sling.filter.scope";
-    
+
     /**
-     * Regular expression pattern for enabling a filter on a matching request path
-     *@since 2.2, Sling Engine 2.4
+     * Regular expression pattern for enabling a filter on a matching path
+     * This refers to both, the request path and the resolved resource path excluding selectors,
+     * extension and suffix.
      */
     public static final String SLING_FILTER_PATTERN = "sling.filter.pattern";
+
+    /**
+     * Regular expression pattern for enabling a filter on a matching request path
+     * This refers to the resolved resource path excluding selectors,
+     * extension and suffix.
+     * @since 2.4.0, Sling Engine 2.7.0
+     */
+    public static final String SLING_FILTER_RESOURCE_PATTERN = "sling.filter.resource.pattern";
+
+    /**
+     * Regular expression pattern for enabling a filter on a matching request path
+     * This refers to the request path excluding selectors,
+     * extension and suffix.
+     * @since 2.4.0, Sling Engine 2.7.0
+     */
+    public static final String SLING_FILTER_REQUEST_PATTERN = "sling.filter.request.pattern";
 
 
     /**

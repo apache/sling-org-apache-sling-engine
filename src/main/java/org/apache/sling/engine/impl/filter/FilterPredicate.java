@@ -18,6 +18,22 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import static java.util.Arrays.asList;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_EXTENSIONS;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_METHODS;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_REQUEST_PATTERN;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCETYPES;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCE_PATTERN;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SELECTORS;
+import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.regex.Pattern;
+
+import javax.servlet.Filter;
+
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
@@ -25,19 +41,6 @@ import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import javax.servlet.Filter;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.regex.Pattern;
-
-import static java.util.Arrays.asList;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_EXTENSIONS;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_METHODS;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCETYPES;
-import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SELECTORS;
 
 /**
  * Contains a set of predicates that helps testing whether to enable a filter for a request or not
@@ -53,6 +56,8 @@ public class FilterPredicate {
     Collection<String> extensions;
     Collection<String> resourceTypes;
     Pattern pathRegex;
+    Pattern resourcePathRegex;
+    Pattern requestPathRegex;
     Pattern suffixRegex;
 
     /*
@@ -64,6 +69,8 @@ public class FilterPredicate {
         resourceTypes = asCollection(reference, SLING_FILTER_RESOURCETYPES);
         methods = asCollection(reference, SLING_FILTER_METHODS);
         pathRegex = asPattern(reference, SLING_FILTER_PATTERN);
+        resourcePathRegex = asPattern(reference, SLING_FILTER_RESOURCE_PATTERN);
+        requestPathRegex = asPattern(reference, SLING_FILTER_REQUEST_PATTERN);
         suffixRegex = asPattern(reference, SLING_FILTER_SUFFIX_PATTERN);
     }
 
@@ -99,7 +106,7 @@ public class FilterPredicate {
     /**
      * @param resourceTypes configured resourceTypes
      * @param request request that is being tested
-     * @return true if the request's resource is of one of the types, or if not or miscongfigured
+     * @return true if the request's resource is of one of the types, or if not or misconfigured
      */
     private boolean anyResourceTypeMatches(final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
         if (resourceTypes == null) {
@@ -138,6 +145,8 @@ public class FilterPredicate {
                 && anyResourceTypeMatches(resourceTypes, req)
                 && (patternMatches(pathRegex, path == null || path.isEmpty() ? "/" : path)
                 || patternMatches(pathRegex, uri == null || uri.isEmpty() ? "/" : uri))
+                && (patternMatches(requestPathRegex,  uri == null || uri.isEmpty() ? "/" : uri))
+                && (patternMatches(resourcePathRegex,  path == null || path.isEmpty() ? "/" : path))
                 && patternMatches(suffixRegex, requestPathInfo.getSuffix());
         LOG.debug("selection of {} returned {}", this, select);
         return select;
@@ -148,6 +157,8 @@ public class FilterPredicate {
         return "FilterPredicate{" +
                 "methods='" + methods + '\'' +
                 ", pathRegex=" + pathRegex +
+                ", requestPathRegex=" + requestPathRegex +
+                ", resourcePathRegex=" + resourcePathRegex +
                 ", suffixRegex=" + suffixRegex +
                 ", selectors='" + selectors + '\'' +
                 ", extensions='" + extensions + '\'' +

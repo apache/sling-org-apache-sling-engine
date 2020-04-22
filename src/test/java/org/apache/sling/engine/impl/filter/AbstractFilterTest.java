@@ -18,6 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.servlet.Filter;
+
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.jmock.Expectations;
@@ -27,10 +32,6 @@ import org.jmock.integration.junit4.JUnit4Mockery;
 import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
-
-import javax.servlet.Filter;
-import java.util.HashMap;
-import java.util.Map;
 
 @RunWith(JMock.class)
 public abstract class AbstractFilterTest {
@@ -75,6 +76,7 @@ public abstract class AbstractFilterTest {
         };
         return ref;
     }
+
     protected SlingHttpServletRequest mockRequest(final String path,
                                                   final String extension,
                                                   final String[] selectors,
@@ -104,6 +106,34 @@ public abstract class AbstractFilterTest {
         }});
         return req;
     }
+
+    protected SlingHttpServletRequest mockRequest(final String resourcePath,
+            final String requestPath,
+            final String extension) {
+        final RequestPathInfo info = context.mock(RequestPathInfo.class, "info " + resourcePath + requestPath + extension);
+        context.checking(new Expectations() {{
+            allowing(info).getExtension();
+            will(returnValue(extension));
+            allowing(info).getSuffix();
+            will(returnValue(null));
+            allowing(info).getSelectors();
+            will(returnValue(new String[0]));
+            allowing(info).getResourcePath();
+            will(returnValue(resourcePath   ));
+        }});
+
+        final SlingHttpServletRequest req = context.mock(SlingHttpServletRequest.class, "req " + resourcePath + requestPath + extension);
+        context.checking(new Expectations() {{
+            allowing(req).getRequestPathInfo();
+            will(returnValue(info));
+            allowing(req).getMethod();
+            will(returnValue(null));
+            allowing(req).getPathInfo();
+            will(returnValue(requestPath));
+        }});
+        return req;
+    }
+
     protected FilterPredicate predicate(Object... args){
         FilterPredicate predicate = new FilterPredicate(mockService(args));
         return predicate;
