@@ -99,6 +99,8 @@ public abstract class AbstractFilterTest {
             will(returnValue(info));
             allowing(req).getMethod();
             will(returnValue(method));
+            allowing(req).getPathInfo();
+            will(returnValue(path));
         }});
         return req;
     }
