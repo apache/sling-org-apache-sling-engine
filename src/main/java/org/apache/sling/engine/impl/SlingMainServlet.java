@@ -24,7 +24,6 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import javax.management.NotCompliantMBeanException;
 import javax.servlet.GenericServlet;
@@ -209,8 +208,6 @@ public class SlingMainServlet extends GenericServlet {
 
     private final CountDownLatch asyncActivation = new CountDownLatch(1);
 
-    private final AtomicBoolean isModification = new AtomicBoolean();
-
     // ---------- Servlet API -------------------------------------------------
 
     @Override
@@ -381,8 +378,6 @@ public class SlingMainServlet extends GenericServlet {
 
     @Modified
     protected void modified(final Config config) {
-        this.isModification.set(true);
-
         setup(config);
     }
 
@@ -464,7 +459,6 @@ public class SlingMainServlet extends GenericServlet {
     protected void activate(final BundleContext bundleContext, final Config config) {
 
         this.bundleContext = bundleContext;
-        this.isModification.set(false);
         this.setup(config);
     }
 
@@ -474,13 +468,6 @@ public class SlingMainServlet extends GenericServlet {
         log.info("{} ready to serve requests", this.getServerInfo());
         if (slingServletContext == null) {
             asyncSlingServletContextRegistration();
-        }
-    }
-
-    @Override
-    public void destroy() {
-        if (!this.isModification.compareAndSet(true, false)) {
-            unregisterSlingServletContext();
         }
     }
 
@@ -536,6 +523,9 @@ public class SlingMainServlet extends GenericServlet {
             log.warn("Async activation did not complete within 30 seconds of 'deactivate' " +
                      "being called. There is a risk that objects are not properly destroyed.");
         }
+
+        // first unregister servlet context
+        unregisterSlingServletContext();
 
         // second unregister the servlet context *before* unregistering
         // and destroying the the sling main servlet
