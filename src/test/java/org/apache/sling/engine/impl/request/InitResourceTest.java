@@ -24,6 +24,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.mapping.PathToUriMappingService;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Before;
@@ -39,7 +41,7 @@ public class InitResourceTest {
     private RequestData requestData;
     private HttpServletRequest req;
     private HttpServletResponse resp;
-    private ResourceResolver resourceResolver;
+    private SlingRequestProcessorImpl slingRequestProcessorImpl;
 
     private final String requestURL;
     private final String pathInfo;
@@ -70,7 +72,9 @@ public class InitResourceTest {
 
         req = context.mock(HttpServletRequest.class);
         resp = context.mock(HttpServletResponse.class);
-        resourceResolver = context.mock(ResourceResolver.class);
+        slingRequestProcessorImpl = new SlingRequestProcessorImpl();
+        PathToUriMappingService pathToUriMappingService = context.mock(PathToUriMappingService.class);
+        slingRequestProcessorImpl.setPathToUriMappingService(pathToUriMappingService);
 
         context.checking(new Expectations() {{
             allowing(req).getRequestURL();
@@ -94,15 +98,15 @@ public class InitResourceTest {
             allowing(req).getAttribute(RequestProgressTracker.class.getName());
             will(returnValue(null));
 
-            // Verify that the ResourceResolver is called with the expected path
-            allowing(resourceResolver).resolve(with(any(HttpServletRequest.class)),with(equal(expectedResolvePath)));
+                allowing(pathToUriMappingService).resolve(with(any(HttpServletRequest.class)), with(equal(expectedResolvePath)));
+
         }});
 
-        requestData = new RequestData(null, req, resp);
+        requestData = new RequestData(slingRequestProcessorImpl, req, resp);
     }
 
     @Test
     public void resolverPathMatches() {
-        requestData.initResource(resourceResolver);
+        requestData.initResourceUri();
     }
 }

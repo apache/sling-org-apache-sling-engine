@@ -44,6 +44,8 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceNotFoundException;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.mapping.PathToUriMappingService;
+import org.apache.sling.api.resource.uri.ResourceUriBuilder;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.engine.SlingRequestProcessor;
@@ -76,6 +78,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     private volatile RequestProcessorMBeanImpl mbean;
 
+    private PathToUriMappingService pathToUriMappingService;
+
     // ---------- helper setters
 
     void setServerInfo(final String serverInfo) {
@@ -102,6 +106,17 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         }
     }
 
+    public void setPathToUriMappingService(PathToUriMappingService pathToUriMappingService) {
+        this.pathToUriMappingService = pathToUriMappingService;
+
+    }
+
+    public void unsetPathToUriMappingService(PathToUriMappingService pathToUriMappingService) {
+        if (this.pathToUriMappingService == pathToUriMappingService) {
+            this.pathToUriMappingService = null;
+        }
+    }
+
     void setFilterManager(final ServletFilterManager filterManager) {
         this.filterManager = filterManager;
     }
@@ -110,16 +125,18 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.mbean = mbean;
     }
 
+    public PathToUriMappingService getPathToUriMappingService() {
+        return this.pathToUriMappingService;
+    }
+
     /**
      * This method is directly called by the Sling main servlet.
      */
-    public void doProcessRequest(final HttpServletRequest servletRequest,
+    void doProcessRequest(final HttpServletRequest servletRequest,
             final HttpServletResponse servletResponse,
-            final ResourceResolver resourceResolver) throws IOException {
+            final ResourceResolver resourceResolver, RequestData requestData) throws IOException {
 
         // setting the Sling request and response
-        final RequestData requestData = new RequestData(this, servletRequest,
-            servletResponse);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
@@ -137,8 +154,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             }
 
             // initialize the request data - resolve resource and servlet
-            Resource resource = requestData.initResource(resourceResolver);
-            requestData.initServlet(resource, sr);
+            requestData.setResourceResolver(resourceResolver);
+            requestData.initServlet(sr);
 
             FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
             if (filters != null) {
@@ -245,7 +262,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final Object oldValue = servletRequest.getAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING);
         servletRequest.setAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING, Boolean.TRUE);
         try {
-            this.doProcessRequest(servletRequest, servletResponse, resourceResolver);
+            final RequestData requestData = new RequestData(this, servletRequest, servletResponse);
+            this.doProcessRequest(servletRequest, servletResponse, resourceResolver, requestData);
         } finally {
             // restore the old value
             if ( oldValue != null ) {
@@ -435,4 +453,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             super.flushBuffer();
         }
     }
+
+
 }

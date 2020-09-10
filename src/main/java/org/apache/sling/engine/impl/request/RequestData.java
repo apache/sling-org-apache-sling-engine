@@ -45,6 +45,9 @@ import org.apache.sling.api.request.RequestUtil;
 import org.apache.sling.api.request.TooManyCallsException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.mapping.PathToUriMappingService;
+import org.apache.sling.api.resource.mapping.PathToUriMappingService.Result;
+import org.apache.sling.api.resource.uri.ResourceUri;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
@@ -56,6 +59,8 @@ import org.apache.sling.engine.impl.StaticResponseHeader;
 import org.apache.sling.engine.impl.adapter.SlingServletRequestAdapter;
 import org.apache.sling.engine.impl.adapter.SlingServletResponseAdapter;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -123,7 +128,7 @@ public class RequestData {
 
     private static volatile ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
 
-    /** The SlingMainServlet used for request dispatching and other stuff */
+    /** The SlingRequestProcessorImpl used for request dispatching and other stuff */
     private final SlingRequestProcessorImpl slingRequestProcessor;
 
     private final long startTimestamp;
@@ -149,6 +154,8 @@ public class RequestData {
 
     /** the current ContentData */
     private ContentData currentContentData;
+
+    private ResourceUri resourceUri;
 
     /**
      * the number of servlets called by
@@ -229,9 +236,12 @@ public class RequestData {
         }
     }
 
-    public Resource initResource(ResourceResolver resourceResolver) {
+    public void setResourceResolver(ResourceResolver resourceResolver) {
         // keep the resource resolver for request processing
         this.resourceResolver = resourceResolver;
+    }
+
+    public void initResourceUri() {
 
         // resolve the resource
         requestProgressTracker.startTimer("ResourceResolution");
@@ -249,23 +259,27 @@ public class RequestData {
             path = path.concat(decodedURL.substring(decodedURL.indexOf(';')));
         }
 
-        Resource resource = resourceResolver.resolve(request, path);
+        Result resolveResult = slingRequestProcessor.getPathToUriMappingService().resolve(request, path);
+        this.resourceUri = resolveResult.getResourceUri();
+
+        String resourcePath = resourceUri.getResourcePath();
+
         if (request.getAttribute(REQUEST_RESOURCE_PATH_ATTR) == null) {
-            request.setAttribute(REQUEST_RESOURCE_PATH_ATTR, resource.getPath());
+            request.setAttribute(REQUEST_RESOURCE_PATH_ATTR, resourcePath);
         }
         requestProgressTracker.logTimer("ResourceResolution",
-            "URI={0} resolves to Resource={1}",
-            getServletRequest().getRequestURI(), resource);
-        return resource;
+                "URI={0} resolves to Resource Path={1}",
+                getServletRequest().getRequestURI(), resourcePath);
+
     }
 
-    public void initServlet(final Resource resource,
-            final ServletResolver sr) {
+    public void initServlet(final ServletResolver sr) {
         // the resource and the request path info, will never be null
-        RequestPathInfo requestPathInfo = new SlingRequestPathInfo(resource);
-        ContentData contentData = setContent(resource, requestPathInfo);
 
-	    requestProgressTracker.log("Resource Path Info: {0}", requestPathInfo);
+        Resource resource = this.resourceResolver.resolve(this.resourceUri.getResourcePath());
+        ContentData contentData = setContent(resource, this.resourceUri);
+
+        requestProgressTracker.log("Resource Uri: {0}", resourceUri);
 
         // finally resolve the servlet for the resource
         requestProgressTracker.startTimer("ServletResolution");
@@ -274,6 +288,7 @@ public class RequestData {
             "URI={0} handled by Servlet={1}",
             getServletRequest().getRequestURI(), (servlet == null ? "-none-" : RequestUtil.getServletName(servlet)));
         contentData.setServlet(servlet);
+
     }
 
     public SlingRequestProcessorImpl getSlingRequestProcessor() {
@@ -564,7 +579,6 @@ public class RequestData {
     }
 
     // ---------- Content inclusion stacking -----------------------------------
-
     public ContentData setContent(final Resource resource,
             final RequestPathInfo requestPathInfo) {
         if ( this.recursionDepth >=  maxInclusionCounter) {

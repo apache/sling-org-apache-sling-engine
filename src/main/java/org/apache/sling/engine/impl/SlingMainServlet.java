@@ -37,6 +37,7 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.mapping.PathToUriMappingService;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
@@ -142,6 +143,9 @@ public class SlingMainServlet extends GenericServlet {
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
     private volatile RequestListenerManager requestListenerManager;
 
+    @Reference
+    private volatile PathToUriMappingService pathToUriMappingService;
+
     private BundleContext bundleContext;
 
     /** default log */
@@ -231,6 +235,9 @@ public class SlingMainServlet extends GenericServlet {
                 localRLM.sendEvent(request, SlingRequestEvent.EventType.EVENT_INIT);
             }
 
+            final RequestData requestData = new RequestData(requestProcessor, request, (HttpServletResponse) res);
+            requestData.initResourceUri();
+
             ResourceResolver resolver = null;
             try {
                 if (!allowTrace && "TRACE".equals(request.getMethod())) {
@@ -247,8 +254,7 @@ public class SlingMainServlet extends GenericServlet {
                         : null;
 
                 // real request handling for HTTP requests
-                requestProcessor.doProcessRequest(request, (HttpServletResponse) res,
-                    resolver);
+                requestProcessor.doProcessRequest(request, (HttpServletResponse) res, resolver, requestData);
 
             } catch (ClientAbortException cae) {
                 log.debug("service: ClientAbortException, probable cause is client aborted request or network problem", cae);
@@ -600,6 +606,15 @@ public class SlingMainServlet extends GenericServlet {
 
     public void unsetMimeTypeService(final MimeTypeService mimeTypeService) {
         slingHttpContext.unsetMimeTypeService(mimeTypeService);
+    }
+    
+    @Reference(name = "PathToUriMappingService", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetPathToUriMappingService")
+    public void setPathToUriMappingService(final PathToUriMappingService pathToUriMappingService) {
+        requestProcessor.setPathToUriMappingService(pathToUriMappingService);
+    }
+
+    public void unsetPathToUriMappingService(final PathToUriMappingService pathToUriMappingService) {
+        requestProcessor.unsetPathToUriMappingService(pathToUriMappingService);
     }
 
     @Reference(name = "AuthenticationSupport", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetAuthenticationSupport")
