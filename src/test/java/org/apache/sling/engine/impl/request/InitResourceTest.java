@@ -24,6 +24,8 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.uri.SlingUriBuilder;
+import org.apache.sling.auth.core.AuthenticationSupport;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.junit.Before;
@@ -48,13 +50,13 @@ public class InitResourceTest {
     @Parameters(name="URL={0} path={1}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
-                { "/one;v=1.1", "one;v=1.1", "/one;v=1.1" },
-                { "/two;v=1.1", "two", "/two;v=1.1" },
+                { "/one;v=1.1", "one;v=1.1", "/one;v='1.1'" },
+                { "/two;v=1.1", "two", "/two;v='1.1'" },
                 { "/three", "three", "/three" },
                 { "/four%3Bv=1.1", "four", "/four" },
-                { "/five%3Bv=1.1", "five;v=1.1", "/five;v=1.1" },
-                { "/six;v=1.1", "six;v=1.1", "/six;v=1.1" },
-                { "/seven", "seven;v=1.1", "/seven;v=1.1" },
+                { "/five%3Bv=1.1", "five;v=1.1", "/five;v='1.1'" },
+                { "/six;v=1.1", "six;v=1.1", "/six;v='1.1'" },
+                { "/seven", "seven;v=1.1", "/seven;v='1.1'" },
         });
     }
 
@@ -73,8 +75,9 @@ public class InitResourceTest {
         resourceResolver = context.mock(ResourceResolver.class);
 
         context.checking(new Expectations() {{
-            allowing(req).getRequestURL();
-            will(returnValue(new StringBuffer(requestURL)));
+
+            allowing(req).getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_URI);
+            will(returnValue(SlingUriBuilder.create().setPath(expectedResolvePath).build()));
 
             allowing(req).getRequestURI();
 
