@@ -23,7 +23,6 @@ import static org.apache.sling.api.SlingConstants.SLING_CURRENT_SERVLET_NAME;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 
 import javax.servlet.Servlet;
@@ -46,8 +45,10 @@ import org.apache.sling.api.request.TooManyCallsException;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
+import org.apache.sling.api.uri.SlingUri;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
+import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingMainServlet;
@@ -213,8 +214,7 @@ public class RequestData {
         this.servletResponse = response;
 
         this.slingRequest = getSlingHttpServletRequestFactory().createRequest(this, this.servletRequest);
-        this.slingResponse = new SlingHttpServletResponseImpl(this,
-            servletResponse);
+        this.slingResponse = new SlingHttpServletResponseImpl(this, servletResponse);
 
         // Getting the RequestProgressTracker from the request attributes like
         // this should not be generally used, it's just a way to pass it from
@@ -237,19 +237,17 @@ public class RequestData {
         requestProgressTracker.startTimer("ResourceResolution");
         final SlingHttpServletRequest request = getSlingRequest();
 
-        StringBuffer requestURL = servletRequest.getRequestURL();
-        String path = request.getPathInfo();
-        if (requestURL.indexOf(";") > -1 && !path.contains(";")) {
-            final String decodedURL;
-            try {
-                decodedURL = URLDecoder.decode(requestURL.toString(), "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new AssertionError("UTF-8 encoding is not supported");
-            }
-            path = path.concat(decodedURL.substring(decodedURL.indexOf(';')));
+        // Set by o.a.s.auth.core bundle
+        SlingUri slingUri = (SlingUri) request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_URI);
+        if (slingUri == null) {
+            throw new IllegalStateException(
+                    "SlingUri not available as attribute of request (expected to be set in bundle o.a.s.auth.core)");
         }
+        // ensure slingUri is bound to correct resource resolver
+        slingUri = slingUri.adjust(b -> b.setResourceResolver(resourceResolver));
+        request.setAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_URI, slingUri);
 
-        Resource resource = resourceResolver.resolve(request, path);
+        Resource resource = resourceResolver.resolve(request, slingUri.getPath());
         if (request.getAttribute(REQUEST_RESOURCE_PATH_ATTR) == null) {
             request.setAttribute(REQUEST_RESOURCE_PATH_ATTR, resource.getPath());
         }
@@ -262,10 +260,14 @@ public class RequestData {
     public void initServlet(final Resource resource,
             final ServletResolver sr) {
         // the resource and the request path info, will never be null
-        RequestPathInfo requestPathInfo = new SlingRequestPathInfo(resource);
-        ContentData contentData = setContent(resource, requestPathInfo);
+        SlingUri slingUri = (SlingUri) getSlingRequest().getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_URI);
+        ContentData contentData = setContent(resource, slingUri);
 
-	    requestProgressTracker.log("Resource Path Info: {0}", requestPathInfo);
+        requestProgressTracker.log("Resource Path Info: resourcePath={0}, selectorString={1}, extension={2}, suffix={3}",
+                slingUri.getResourcePath(),
+                slingUri.getSelectorString(),
+                slingUri.getExtension(),
+                slingUri.getSuffix());
 
         // finally resolve the servlet for the resource
         requestProgressTracker.startTimer("ServletResolution");
