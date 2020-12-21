@@ -4,3 +4,6 @@ Import-Package:\
   org.osgi.service.useradmin;resolution:=optional,\
   *
 
+Provide-Capability:\
+  osgi.service;objectClass=org.apache.sling.engine.SlingRequestProcessor,\
+  osgi.service;objectClass=javax.servlet.ServletContext
