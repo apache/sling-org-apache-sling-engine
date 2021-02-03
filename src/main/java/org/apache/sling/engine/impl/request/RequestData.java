@@ -25,6 +25,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -173,6 +175,11 @@ public class RequestData {
      * The peak value for the recursion depth.
      */
     private int peakRecusionDepth;
+
+    /**
+     * consecutive dots will be treated as Invalid request pattern
+     */
+    private static final Pattern INVALID_REQUEST_PATTERN = Pattern.compile("(\\.\\.+)|(\\/\\.{3})");
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -522,7 +529,10 @@ public class RequestData {
 
         RequestData requestData = RequestData.getRequestData(request);
         Servlet servlet = requestData.getContentData().getServlet();
-        if (servlet == null) {
+        if(!isValidRequest(request)){
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "No Servlet to handle request");
+        }else if (servlet == null) {
 
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                 "No Servlet to handle request");
@@ -561,6 +571,20 @@ public class RequestData {
 
             }
         }
+    }
+
+    protected static boolean isValidRequest(SlingHttpServletRequest request){
+        Matcher invalidRequestMatch = INVALID_REQUEST_PATTERN.matcher(request.getPathInfo());
+        boolean isValidRequest = true;
+        while(invalidRequestMatch.find()){
+            String doubleDotMatchedString = invalidRequestMatch.group(1);
+            String otherMatchedString = invalidRequestMatch.group(2);
+            if((doubleDotMatchedString != null && !doubleDotMatchedString.isEmpty())||otherMatchedString != null && !otherMatchedString.isEmpty()){
+               isValidRequest = false;
+                break;
+            }
+        }
+        return isValidRequest;
     }
 
     // ---------- Content inclusion stacking -----------------------------------

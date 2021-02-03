@@ -16,12 +16,8 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import static org.junit.Assert.fail;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -36,6 +32,7 @@ import org.jmock.Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
+import static org.junit.Assert.*;
 
 public class RequestDataTest {
 
@@ -47,10 +44,13 @@ public class RequestDataTest {
     private SlingHttpServletResponse slingResponse;
 
     @Before
-    public void setup() throws Exception {
+    public void setup(){
         context = new Mockery() {{
             setImposteriser(ClassImposteriser.INSTANCE);
         }};
+    }
+
+    private void init() throws Exception {
 
         req = context.mock(HttpServletRequest.class);
         resp = context.mock(HttpServletResponse.class);
@@ -114,6 +114,7 @@ public class RequestDataTest {
 
     @Test
     public void testTooManyCallsDefault() throws Exception {
+        init();
         context.checking(new Expectations() {{
             allowing(req).getAttribute(with(any(String.class)));
             will(returnValue(null));
@@ -123,10 +124,54 @@ public class RequestDataTest {
 
     @Test
     public void testTooManyCallsOverride() throws Exception {
+        init();
         context.checking(new Expectations() {{
             allowing(req).getAttribute(with(any(String.class)));
             will(returnValue(1));
         }});
         assertTooManyCallsException(2);
+    }
+
+    @Test
+    public void testConsecutiveDots() {
+        final RequestData requestData = context.mock(RequestData.class, "requestData");
+        //HttpRequest with consecutive dots
+        HttpServletRequest servletRequest = initInvalidRequest("/path/content../test");
+        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        boolean isValid = RequestData.isValidRequest(slingRequest);
+        assertFalse(isValid);
+    }
+
+    @Test
+    public void testInvalidRequest() {
+        final RequestData requestData = context.mock(RequestData.class, "requestData");
+        //HttpRequest with /...
+        HttpServletRequest servletRequest = initInvalidRequest("/path/...");
+        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        boolean isValid = RequestData.isValidRequest(slingRequest);
+        assertFalse(isValid);
+    }
+
+    @Test
+    public void testConsecutiveDotsWithPathSeparator() {
+        final RequestData requestData = context.mock(RequestData.class, "requestData");
+        //HttpRequest with /..
+        HttpServletRequest servletRequest = initInvalidRequest("/path/..");
+        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        boolean isValid = RequestData.isValidRequest(slingRequest);
+        assertFalse(isValid);
+    }
+
+    private HttpServletRequest initInvalidRequest(final String path){
+        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+
+        context.checking(new Expectations() {{
+            one(servletRequest).getServletPath();
+            will(returnValue(path));
+            allowing(servletRequest).getPathInfo();
+            will(returnValue(""));
+        }});
+
+        return servletRequest;
     }
 }
