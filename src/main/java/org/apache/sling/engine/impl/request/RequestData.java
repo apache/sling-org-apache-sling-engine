@@ -529,10 +529,7 @@ public class RequestData {
 
         RequestData requestData = RequestData.getRequestData(request);
         Servlet servlet = requestData.getContentData().getServlet();
-        if(!isValidRequest(request)){
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-                    "No Servlet to handle request");
-        }else if (servlet == null) {
+        if (servlet == null || !isValidRequest(request)) {
 
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                 "No Servlet to handle request");

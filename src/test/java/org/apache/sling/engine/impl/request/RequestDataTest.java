@@ -143,7 +143,7 @@ public class RequestDataTest {
     }
 
     @Test
-    public void testInvalidRequest() {
+    public void testInvalidRequest_1() {
         final RequestData requestData = context.mock(RequestData.class, "requestData");
         //HttpRequest with /...
         HttpServletRequest servletRequest = initInvalidRequest("/path/...");
@@ -153,7 +153,7 @@ public class RequestDataTest {
     }
 
     @Test
-    public void testConsecutiveDotsWithPathSeparator() {
+    public void testInvalidRequest_2() {
         final RequestData requestData = context.mock(RequestData.class, "requestData");
         //HttpRequest with /..
         HttpServletRequest servletRequest = initInvalidRequest("/path/..");
