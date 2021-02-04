@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.Arrays;
+import java.util.List;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -179,7 +179,7 @@ public class RequestData {
     /**
      * consecutive dots will be treated as Invalid request pattern
      */
-    private static final Pattern INVALID_REQUEST_PATTERN = Pattern.compile("(\\.\\.+)|(\\/\\.{3})");
+    private static final String VALID_REQUEST_REGEX = "(\\/\\.{2})";
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -529,7 +529,7 @@ public class RequestData {
 
         RequestData requestData = RequestData.getRequestData(request);
         Servlet servlet = requestData.getContentData().getServlet();
-        if(!isValidRequest(request)){
+        if(!isValidRequest(request.getPathInfo())){
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "No Servlet to handle request");
         }else if (servlet == null) {
@@ -573,16 +573,17 @@ public class RequestData {
         }
     }
 
-    protected static boolean isValidRequest(SlingHttpServletRequest request){
-        Matcher invalidRequestMatch = INVALID_REQUEST_PATTERN.matcher(request.getPathInfo());
+    protected static boolean isValidRequest(String path){
         boolean isValidRequest = true;
-        while(invalidRequestMatch.find()){
-            String doubleDotMatchedString = invalidRequestMatch.group(1);
-            String otherMatchedString = invalidRequestMatch.group(2);
-            if((doubleDotMatchedString != null && !doubleDotMatchedString.isEmpty())||otherMatchedString != null && !otherMatchedString.isEmpty()){
-               isValidRequest = false;
-                break;
-            }
+        if(path.contains("...")){ //invalid request
+            isValidRequest = false;
+        }else {
+            List<String> pathSplits = Arrays.asList(path.split(VALID_REQUEST_REGEX));
+            for (String pathSplit : pathSplits)
+                if (pathSplit.trim().contains("..")) {
+                    isValidRequest = false;
+                    break;
+                }
         }
         return isValidRequest;
     }

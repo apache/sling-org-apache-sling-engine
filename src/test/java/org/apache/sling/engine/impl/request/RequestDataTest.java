@@ -134,44 +134,24 @@ public class RequestDataTest {
 
     @Test
     public void testConsecutiveDots() {
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
         //HttpRequest with consecutive dots
-        HttpServletRequest servletRequest = initInvalidRequest("/path/content../test");
-        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
-        boolean isValid = RequestData.isValidRequest(slingRequest);
+        boolean isValid = RequestData.isValidRequest("/path/content../test");
+        System.out.println("isvalid " + isValid);
         assertFalse(isValid);
-    }
 
-    @Test
-    public void testInvalidRequest() {
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
         //HttpRequest with /...
-        HttpServletRequest servletRequest = initInvalidRequest("/path/...");
-        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
-        boolean isValid = RequestData.isValidRequest(slingRequest);
+        isValid = RequestData.isValidRequest("/path/.....");
+        System.out.println("isvalid " + isValid);
         assertFalse(isValid);
-    }
 
-    @Test
-    public void testConsecutiveDotsWithPathSeparator() {
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
         //HttpRequest with /..
-        HttpServletRequest servletRequest = initInvalidRequest("/path/..");
-        SlingHttpServletRequest slingRequest = new SlingHttpServletRequestImpl(requestData, servletRequest);
-        boolean isValid = RequestData.isValidRequest(slingRequest);
-        assertFalse(isValid);
-    }
+        isValid = RequestData.isValidRequest("/path/..");
+        System.out.println("isvalid " + isValid);
+        assertTrue(isValid);
 
-    private HttpServletRequest initInvalidRequest(final String path){
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
-
-        context.checking(new Expectations() {{
-            one(servletRequest).getServletPath();
-            will(returnValue(path));
-            allowing(servletRequest).getPathInfo();
-            will(returnValue(""));
-        }});
-
-        return servletRequest;
+        //HttpRequest with null
+        isValid = RequestData.isValidRequest("/path");
+        System.out.println("isvalid " + isValid);
+        assertTrue(isValid);
     }
 }
