@@ -32,6 +32,9 @@ import org.jmock.Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.IOException;
+
 import static org.junit.Assert.*;
 
 public class RequestDataTest {
@@ -44,13 +47,10 @@ public class RequestDataTest {
     private SlingHttpServletResponse slingResponse;
 
     @Before
-    public void setup(){
+    public void setup() throws ServletException, IOException {
         context = new Mockery() {{
             setImposteriser(ClassImposteriser.INSTANCE);
         }};
-    }
-
-    private void init() throws Exception {
 
         req = context.mock(HttpServletRequest.class);
         resp = context.mock(HttpServletResponse.class);
@@ -114,7 +114,6 @@ public class RequestDataTest {
 
     @Test
     public void testTooManyCallsDefault() throws Exception {
-        init();
         context.checking(new Expectations() {{
             allowing(req).getAttribute(with(any(String.class)));
             will(returnValue(null));
@@ -124,7 +123,6 @@ public class RequestDataTest {
 
     @Test
     public void testTooManyCallsOverride() throws Exception {
-        init();
         context.checking(new Expectations() {{
             allowing(req).getAttribute(with(any(String.class)));
             will(returnValue(1));
@@ -136,22 +134,18 @@ public class RequestDataTest {
     public void testConsecutiveDots() {
         //HttpRequest with consecutive dots
         boolean isValid = RequestData.isValidRequest("/path/content../test");
-        System.out.println("isvalid " + isValid);
         assertFalse(isValid);
 
         //HttpRequest with /...
         isValid = RequestData.isValidRequest("/path/.....");
-        System.out.println("isvalid " + isValid);
         assertFalse(isValid);
 
         //HttpRequest with /..
         isValid = RequestData.isValidRequest("/path/..");
-        System.out.println("isvalid " + isValid);
         assertTrue(isValid);
 
         //HttpRequest with null
         isValid = RequestData.isValidRequest("/path");
-        System.out.println("isvalid " + isValid);
         assertTrue(isValid);
     }
 }
