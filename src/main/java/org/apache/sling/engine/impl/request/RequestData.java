@@ -176,10 +176,7 @@ public class RequestData {
      */
     private int peakRecusionDepth;
 
-    /**
-     * consecutive dots will be treated as Invalid request pattern
-     */
-    private static final String VALID_REQUEST_REGEX = "(\\/\\.{2})";
+    private static final String CONSECUTIVE_DOTS = "..";
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -529,7 +526,7 @@ public class RequestData {
 
         RequestData requestData = RequestData.getRequestData(request);
         Servlet servlet = requestData.getContentData().getServlet();
-         if (servlet == null || !isValidRequest(request.getPathInfo())) {
+        if (servlet == null || !isValidRequest(request.getPathInfo())) {
 
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                 "No Servlet to handle request");
@@ -572,15 +569,18 @@ public class RequestData {
 
     protected static boolean isValidRequest(String path){
         boolean isValidRequest = true;
-        if(path.contains("...")){ //invalid request
+        if(path.contains("...")){ //any occurrence "..." will mark request invalid
             isValidRequest = false;
         }else {
-            List<String> pathSplits = Arrays.asList(path.split(VALID_REQUEST_REGEX));
-            for (String pathSplit : pathSplits)
-                if (pathSplit.trim().contains("..")) {
+            //consecutive dots will be treated as Invalid request except "/.."
+            int doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS);
+            while(doubleDotIndex >= 0) {
+                if(doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/'){//doubleDotIndex == 0 When path start with ..
                     isValidRequest = false;
                     break;
                 }
+                doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS, doubleDotIndex + 2);
+            }
         }
         return isValidRequest;
     }

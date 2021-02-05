@@ -136,16 +136,31 @@ public class RequestDataTest {
         boolean isValid = RequestData.isValidRequest("/path/content../test");
         assertFalse(isValid);
 
+        isValid = RequestData.isValidRequest("/../path/content../test");
+        assertFalse(isValid);
+
+        isValid = RequestData.isValidRequest("/../path/content/.../test");
+        assertFalse(isValid);
+
+        isValid = RequestData.isValidRequest("../path/content/.../test");
+        assertFalse(isValid);
+    }
+
+    @Test
+    public void testConsecutiveDotsAfterPathSeparator() {
         //HttpRequest with /...
-        isValid = RequestData.isValidRequest("/path/.....");
+        boolean isValid = RequestData.isValidRequest("/path/.....");
         assertFalse(isValid);
 
         //HttpRequest with /..
         isValid = RequestData.isValidRequest("/path/..");
         assertTrue(isValid);
+    }
 
-        //HttpRequest with null
-        isValid = RequestData.isValidRequest("/path");
+    @Test
+    public void testValidRequest() {
+        //HttpRequest with valid path
+        boolean isValid = RequestData.isValidRequest("/path");
         assertTrue(isValid);
     }
 }
