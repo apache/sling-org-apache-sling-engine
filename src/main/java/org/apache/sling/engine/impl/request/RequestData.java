@@ -522,9 +522,14 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
+        if(!isValidRequest(request.getPathInfo())){
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
+                    "Malformed request syntax");
+        }
+
         RequestData requestData = RequestData.getRequestData(request);
         Servlet servlet = requestData.getContentData().getServlet();
-        if (servlet == null || !isValidRequest(request.getPathInfo())) {
+        if (servlet == null) {
 
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                 "No Servlet to handle request");
