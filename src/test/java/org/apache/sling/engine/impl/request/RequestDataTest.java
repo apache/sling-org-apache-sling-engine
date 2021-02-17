@@ -132,35 +132,29 @@ public class RequestDataTest {
 
     @Test
     public void testConsecutiveDots() {
-        //HttpRequest with consecutive dots
-        boolean isValid = RequestData.isValidRequest("/path/content../test");
-        assertFalse(isValid);
-
-        isValid = RequestData.isValidRequest("/../path/content../test");
-        assertFalse(isValid);
-
-        isValid = RequestData.isValidRequest("/../path/content/.../test");
-        assertFalse(isValid);
-
-        isValid = RequestData.isValidRequest("../path/content/.../test");
-        assertFalse(isValid);
+        assertValidRequest(false, "/path/content../test");
+        assertValidRequest(false, "/../path/content../test");
+        assertValidRequest(false, "/../path/content/.../test");
+        assertValidRequest(false, "../path/content/.../test");
     }
 
     @Test
     public void testConsecutiveDotsAfterPathSeparator() {
-        //HttpRequest with /...
-        boolean isValid = RequestData.isValidRequest("/path/.....");
-        assertFalse(isValid);
-
-        //HttpRequest with /..
-        isValid = RequestData.isValidRequest("/path/..");
-        assertTrue(isValid);
+        assertValidRequest(false, "/path/....");
+        assertValidRequest(true, "/path/..");
     }
 
     @Test
     public void testValidRequest() {
         //HttpRequest with valid path
-        boolean isValid = RequestData.isValidRequest("/path");
-        assertTrue(isValid);
+        assertValidRequest(true, "/path");
+    }
+
+    private static void assertValidRequest(boolean expected, String path) {
+        assertEquals(
+                "Expected " + expected + " for " + path,
+                expected,
+                RequestData.isValidRequest(path)
+        );
     }
 }

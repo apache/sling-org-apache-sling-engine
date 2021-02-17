@@ -522,9 +522,10 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if(!isValidRequest(request.getPathInfo())){
+        if(!isValidRequest(request.getPathInfo())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
+            return;
         }
 
         RequestData requestData = RequestData.getRequestData(request);
@@ -570,15 +571,22 @@ public class RequestData {
         }
     }
 
-    protected static boolean isValidRequest(String path){
+    /*
+     * Returns true if and only if path contains no consecutive dots
+     * except "/..".
+     *
+     * @param path The path of request object
+     * @return true if path contains no consecutive dots except "/..", false otherwise
+     */
+    static boolean isValidRequest(String path) {
         boolean isValidRequest = true;
-        if(path.contains("...")){ //any occurrence "..." will mark request invalid
+        if(path.contains("...")) { //any occurrence "..." will mark request invalid
             isValidRequest = false;
         }else {
             //consecutive dots will be treated as Invalid request except "/.."
             int doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS);
             while(doubleDotIndex >= 0) {
-                if(doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/'){//doubleDotIndex == 0 When path start with ..
+                if(doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/') {//doubleDotIndex == 0 When path start with ..
                     isValidRequest = false;
                     break;
                 }
