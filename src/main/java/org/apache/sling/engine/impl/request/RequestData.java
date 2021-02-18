@@ -522,7 +522,7 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if(!isValidRequest(request.getPathInfo())) {
+        if (!isValidRequest(request.getPathInfo())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -580,13 +580,13 @@ public class RequestData {
      */
     static boolean isValidRequest(String path) {
         boolean isValidRequest = true;
-        if(path.contains("...")) { //any occurrence "..." will mark request invalid
+        if (path.contains("...")) { //any occurrence "..." will mark request invalid
             isValidRequest = false;
-        }else {
+        } else {
             //consecutive dots will be treated as Invalid request except "/.."
             int doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS);
-            while(doubleDotIndex >= 0) {
-                if(doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/') {//doubleDotIndex == 0 When path start with ..
+            while (doubleDotIndex >= 0) {
+                if (doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/') {//doubleDotIndex == 0 When path start with ..
                     isValidRequest = false;
                     break;
                 }
