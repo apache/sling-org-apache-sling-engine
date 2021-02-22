@@ -102,6 +102,9 @@ public class SlingServletContext implements ServletContext {
      * has been fully initialized. Otherwise the {@link #getServletContext()}
      * method may cause a {@link NullPointerException} !
      * @see #dispose()
+     *
+     * @param bundleContext the OSGi Bundle Context
+     * @param slingMainServlet the main servlet
      */
     public SlingServletContext(final BundleContext bundleContext,
             final SlingMainServlet slingMainServlet) {
@@ -659,6 +662,8 @@ public class SlingServletContext implements ServletContext {
     /**
      * Returns the real servlet context of the servlet container in which the
      * Sling Servlet is running.
+     *
+     * @return the servlet context
      */
     protected ServletContext getServletContext() {
         return slingMainServlet.getServletContext();

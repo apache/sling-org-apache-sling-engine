@@ -57,6 +57,10 @@ public class FastMessageFormat {
     /**
      * Use this method exactly like {@link MessageFormat#format(String, Object...)}.
      *
+     * @param pattern the pattern to use
+     * @param arguments the objects to format
+     * @return the string which has been formatted.
+     *
      * @see MessageFormat#format(String, Object...)
      */
     public String format(String pattern, Object... arguments) {

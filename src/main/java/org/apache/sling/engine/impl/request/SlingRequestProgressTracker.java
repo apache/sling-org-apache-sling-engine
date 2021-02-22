@@ -140,7 +140,9 @@ public class SlingRequestProgressTracker implements RequestProgressTracker {
     }
 
     /**
-     * Creates a new request progress tracker and logs initial messages about the supplied request
+     * Creates a new request progress tracker and logs initial messages about the supplied request.
+     *
+     * @param request the request
      */
     public SlingRequestProgressTracker(HttpServletRequest request) {
         reset();

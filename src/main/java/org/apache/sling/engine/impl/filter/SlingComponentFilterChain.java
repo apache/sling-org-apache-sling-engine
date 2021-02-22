@@ -29,7 +29,8 @@ import org.apache.sling.engine.impl.request.RequestData;
 /**
  * The <code>SlingComponentFilterChain</code> implements the filter chain for
  * component scoped filters. It is used by the
- * {@link org.apache.sling.engine.impl.SlingMainServlet#processRequest(SlingHttpServletRequest, SlingHttpServletResponse)}
+ * {@link org.apache.sling.engine.impl.SlingMainServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
+ * 
  * method to dispatch component processing.
  */
 public class SlingComponentFilterChain extends AbstractSlingFilterChain {

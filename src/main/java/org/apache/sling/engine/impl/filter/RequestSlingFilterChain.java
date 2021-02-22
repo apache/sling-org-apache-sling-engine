@@ -31,7 +31,7 @@ import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 /**
  * The <code>RequestSlingFilterChain</code> implements the filter chain for
  * request scoped filters. It is used by the
- * {@link SlingMainServlet#service(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse)}
+ * {@link SlingMainServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
  * method to dispatch request processing.
  */
 public class RequestSlingFilterChain extends AbstractSlingFilterChain {

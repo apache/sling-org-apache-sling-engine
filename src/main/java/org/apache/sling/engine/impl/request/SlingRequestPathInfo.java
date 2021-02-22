@@ -29,7 +29,7 @@ import org.apache.sling.api.resource.Resource;
  * not used to locate the Resource, and we split that part in different
  * subparts: selectors, extension and suffix.
  *
- * @see SlingRequestPathInfoTest for a number of examples.
+ * see SlingRequestPathInfoTest for a number of examples.
  */
 public class SlingRequestPathInfo implements RequestPathInfo {
 
@@ -47,7 +47,11 @@ public class SlingRequestPathInfo implements RequestPathInfo {
 
     private final static String[] NO_SELECTORS = new String[0];
 
-    /** break requestPath as required by SlingRequestPathInfo */
+    /** 
+     * Break requestPath as required by SlingRequestPathInfo.
+     *
+     * @param r the resource
+     */
     public SlingRequestPathInfo(Resource r) {
 
         // ensure the resource

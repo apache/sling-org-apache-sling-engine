@@ -97,6 +97,9 @@ public class SlingFilterConfig implements FilterConfig {
      * comment at the top for the list of properties checked by this method. As the
      * service id is part of the checked property list this method always returns a
      * name.
+     *
+     * @param reference the filter service
+     * @return the name
      */
     public static String getName(ServiceReference<Filter> reference) {
         String servletName = null;

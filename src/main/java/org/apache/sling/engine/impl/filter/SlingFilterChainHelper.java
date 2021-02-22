@@ -72,6 +72,8 @@ public class SlingFilterChainHelper {
      * Returns the list of <code>Filter</code>s added to this instance
      * or <code>null</code> if no filters have been added.
      * This method doesn't need to be synced as it is called from synced methods.
+     *
+     * @return the filters
      */
     public FilterHandle[] getFilters() {
         return filters;

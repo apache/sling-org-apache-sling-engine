@@ -82,7 +82,11 @@ public class WebConsoleConfigPrinter {
 
     /**
      * Print out the servlet filter chains.
-     * @see org.apache.felix.webconsole.ConfigurationPrinter#printConfiguration(java.io.PrintWriter)
+     *
+     * @param pw the writer to use.
+     *
+     * <p>
+     * see org.apache.felix.webconsole.ConfigurationPrinter#printConfiguration(java.io.PrintWriter)
      */
     public void printConfiguration(PrintWriter pw) {
         pw.println("Current Apache Sling Servlet Filter Configuration");

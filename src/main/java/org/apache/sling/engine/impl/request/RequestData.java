@@ -303,6 +303,8 @@ public class RequestData {
     /**
      * Unwraps the ServletRequest to a SlingHttpServletRequest.
      *
+     * @param request the request
+     * @return the unwrapped request
      * @throws IllegalArgumentException If the <code>request</code> is not a
      *             <code>SlingHttpServletRequest</code> and not a
      *             <code>ServletRequestWrapper</code> wrapping a
@@ -334,7 +336,8 @@ public class RequestData {
     /**
      * Unwraps the SlingHttpServletRequest to a SlingHttpServletRequestImpl
      *
-     * @param request
+     * @param request the request
+     * @return the unwrapped request
      * @throws IllegalArgumentException If <code>request</code> is not a
      *             <code>SlingHttpServletRequestImpl</code> and not
      *             <code>SlingHttpServletRequestWrapper</code> wrapping a
@@ -357,6 +360,8 @@ public class RequestData {
     /**
      * Unwraps the ServletRequest to a SlingHttpServletRequest.
      *
+     * @param response the response
+     * @return the unwrapped response
      * @throws IllegalArgumentException If the <code>response</code> is not a
      *             <code>SlingHttpServletResponse</code> and not a
      *             <code>ServletResponseWrapper</code> wrapping a
@@ -388,7 +393,8 @@ public class RequestData {
     /**
      * Unwraps a SlingHttpServletResponse to a SlingHttpServletResponseImpl
      *
-     * @param response
+     * @param response the response
+     * @return the unwrapped response
      * @throws IllegalArgumentException If <code>response</code> is not a
      *             <code>SlingHttpServletResponseImpl</code> and not
      *             <code>SlingHttpServletResponseWrapper</code> wrapping a
@@ -409,7 +415,8 @@ public class RequestData {
     }
 
     /**
-     * @param request
+     * @param request the request
+     * @return the request data
      * @throws IllegalArgumentException If the <code>request</code> is not a
      *             <code>SlingHttpServletRequest</code> and not a
      *             <code>ServletRequestWrapper</code> wrapping a
@@ -420,7 +427,8 @@ public class RequestData {
     }
 
     /**
-     * @param request
+     * @param request the request
+     * @return the request data
      * @throws IllegalArgumentException If <code>request</code> is not a
      *             <code>SlingHttpServletRequestImpl</code> and not
      *             <code>SlingHttpServletRequestWrapper</code> wrapping a
@@ -431,7 +439,8 @@ public class RequestData {
     }
 
     /**
-     * @param request
+     * @param request the request
+     * @return the sling http servlet request
      * @throws IllegalArgumentException if <code>request</code> is not a
      *             <code>HttpServletRequest</code> of if <code>request</code>
      *             is not backed by <code>SlingHttpServletRequestImpl</code>.
@@ -464,7 +473,8 @@ public class RequestData {
     }
 
     /**
-     * @param response
+     * @param response the response
+     * @return the sling http servlet response
      * @throws IllegalArgumentException if <code>response</code> is not a
      *             <code>HttpServletResponse</code> of if
      *             <code>response</code> is not backed by
@@ -669,6 +679,9 @@ public class RequestData {
     /**
      * Sets the name of the currently active servlet and returns the name of the
      * previously active servlet.
+     *
+     * @param servletName the servlet name
+     * @return the previous servlet name
      */
     public String setActiveServletName(String servletName) {
         String old = activeServletName;
@@ -682,6 +695,8 @@ public class RequestData {
      * the case of an uncaught <code>Throwable</code> at the end of request
      * processing, this is the name of the servlet causing the uncaught
      * <code>Throwable</code>.
+     *
+     * @return the current servlet name
      */
     public String getActiveServletName() {
         return activeServletName;
