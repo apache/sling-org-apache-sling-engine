@@ -16,12 +16,8 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import static org.junit.Assert.fail;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
+import javax.servlet.*;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -37,6 +33,10 @@ import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.IOException;
+
+import static org.junit.Assert.*;
+
 public class RequestDataTest {
 
     private Mockery context;
@@ -47,7 +47,7 @@ public class RequestDataTest {
     private SlingHttpServletResponse slingResponse;
 
     @Before
-    public void setup() throws Exception {
+    public void setup() throws ServletException, IOException {
         context = new Mockery() {{
             setImposteriser(ClassImposteriser.INSTANCE);
         }};
@@ -128,5 +128,33 @@ public class RequestDataTest {
             will(returnValue(1));
         }});
         assertTooManyCallsException(2);
+    }
+
+    @Test
+    public void testConsecutiveDots() {
+        assertValidRequest(false, "/path/content../test");
+        assertValidRequest(false, "/../path/content../test");
+        assertValidRequest(false, "/../path/content/.../test");
+        assertValidRequest(false, "../path/content/.../test");
+    }
+
+    @Test
+    public void testConsecutiveDotsAfterPathSeparator() {
+        assertValidRequest(false, "/path/....");
+        assertValidRequest(true, "/path/..");
+    }
+
+    @Test
+    public void testValidRequest() {
+        //HttpRequest with valid path
+        assertValidRequest(true, "/path");
+    }
+
+    private static void assertValidRequest(boolean expected, String path) {
+        assertEquals(
+                "Expected " + expected + " for " + path,
+                expected,
+                RequestData.isValidRequest(path)
+        );
     }
 }
