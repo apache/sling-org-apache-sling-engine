@@ -53,6 +53,12 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         final int filterIdx = ++this.current;
         final long start = System.currentTimeMillis();
 
+        if (filterIdx > this.filters.length) {
+            //this happens when the whole filter chain has been executed, and a filter in that chain,
+            //for some (bad) reason, calls doFilter yet another time.
+            throw new IllegalStateException("doFilter should not be called more than once");
+        }
+
         // the previous filter may have wrapped non-Sling request and response
         // wrappers (e.g. WebCastellum does this), so we have to make
         // sure the request and response are Sling types again
@@ -67,11 +73,11 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
                 FilterHandle filter = this.filters[this.current];
                 
                 if (filter.select(slingRequest)) {
-                    LOG.debug("{} got selected for this request", filter);
+                    LOG.debug("{} got selected for this request", filter);
                     trackFilter(slingRequest, filter);
                     filter.getFilter().doFilter(slingRequest, slingResponse, this);
                 } else {
-                    LOG.debug("{} was not selected for this request", filter);
+                    LOG.debug("{} was not selected for this request", filter);
                     if (this.current == this.filters.length-1) {
                         this.render(slingRequest, slingResponse);
                     } else {
@@ -83,9 +89,11 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
             }
 
         } finally {
-            times[filterIdx] = System.currentTimeMillis() - start;
-            if (filterIdx == 0) {
-                consolidateFilterTimings(slingRequest);
+            if (filterIdx < times.length) {
+                times[filterIdx] = System.currentTimeMillis() - start;
+                if (filterIdx == 0) {
+                    consolidateFilterTimings(slingRequest);
+                }
             }
         }
     }
