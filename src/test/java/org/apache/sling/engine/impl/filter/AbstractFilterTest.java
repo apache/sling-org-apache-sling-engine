@@ -23,6 +23,7 @@ import java.util.Map;
 
 import javax.servlet.Filter;
 
+import junit.framework.TestCase;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.jmock.Expectations;
@@ -34,7 +35,7 @@ import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 
 @RunWith(JMock.class)
-public abstract class AbstractFilterTest {
+public abstract class AbstractFilterTest extends TestCase {
     protected final Mockery context = new JUnit4Mockery();
     protected ServiceReference<Filter> mockService(Object... map){
 
@@ -103,6 +104,10 @@ public abstract class AbstractFilterTest {
             will(returnValue(method));
             allowing(req).getPathInfo();
             will(returnValue(path));
+            allowing(req).getServletPath();
+            will(returnValue(path));
+            allowing(req).getAttribute(with(any(String.class)));
+            will(returnValue(new Object()));
         }});
         return req;
     }
