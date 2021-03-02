@@ -18,19 +18,12 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.request.RequestData;
 
-import org.apache.sling.testing.mock.sling.junit.SlingContext;
-
-import org.apache.tools.ant.taskdefs.condition.Http;
-import org.jmock.Expectations;
-import org.junit.Rule;
 import org.junit.Test;
 
 import javax.servlet.Filter;
