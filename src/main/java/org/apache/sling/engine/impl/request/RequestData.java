@@ -532,7 +532,7 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if (!isValidRequest(request.getPathInfo())) {
+        if (!isValidRequest(request)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -588,22 +588,14 @@ public class RequestData {
      * @param path The path of request object
      * @return true if path contains no consecutive dots except "/..", false otherwise
      */
-    static boolean isValidRequest(String path) {
-        boolean isValidRequest = true;
-        if (path.contains("...")) { //any occurrence "..." will mark request invalid
-            isValidRequest = false;
-        } else {
-            //consecutive dots will be treated as Invalid request except "/.."
-            int doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS);
-            while (doubleDotIndex >= 0) {
-                if (doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/') {//doubleDotIndex == 0 When path start with ..
-                    isValidRequest = false;
-                    break;
-                }
-                doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS, doubleDotIndex + 2);
+    static boolean isValidRequest(SlingHttpServletRequest request) {
+        RequestPathInfo info = request.getRequestPathInfo();
+        for (String selector : info.getSelectors()) {
+            if (selector.trim().isEmpty()) {
+                return false;
             }
         }
-        return isValidRequest;
+        return !info.getResourcePath().matches(".*/\\[*\\.\\[*\\.[\\[,\\.]*/.*|.*/\\[*\\.\\[*\\.[\\[,\\.]*$");
     }
 
     // ---------- Content inclusion stacking -----------------------------------
