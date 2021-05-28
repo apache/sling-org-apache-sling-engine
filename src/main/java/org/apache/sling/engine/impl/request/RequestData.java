@@ -582,11 +582,8 @@ public class RequestData {
     }
 
     /*
-     * Returns true if and only if path contains no consecutive dots
-     * except "/..".
-     *
-     * @param path The path of request object
-     * @return true if path contains no consecutive dots except "/..", false otherwise
+     * Don't allow path segments that contain only dots or a mix of dots and %5B.
+     * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
     static boolean isValidRequest(SlingHttpServletRequest request) {
         RequestPathInfo info = request.getRequestPathInfo();
