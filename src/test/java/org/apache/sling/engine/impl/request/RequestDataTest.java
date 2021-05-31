@@ -179,7 +179,7 @@ public class RequestDataTest {
         assertValidRequest(true, "/path");
     }
 
-    private void assertValidRequest(boolean expected, final String path) {
+    private static void assertValidRequest(boolean expected, String path) {
         assertEquals(
                 "Expected " + expected + " for " + path,
                 expected,
