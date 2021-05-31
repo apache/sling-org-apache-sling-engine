@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -174,7 +175,10 @@ public class RequestData {
      */
     private int peakRecusionDepth;
 
-    private static final String CONSECUTIVE_DOTS = "..";
+    /**
+     * Prevent traversal using '/../' or '/..' even if '[' is used inbetween
+     */
+    private static final Pattern PREVENT_TRAVERSAL = Pattern.compile(".*/\\[*\\.\\[*\\.[\\[,\\.]*/.*|.*/\\[*\\.\\[*\\.[\\[,\\.]*$");
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -532,7 +536,7 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if (!isValidRequest(request)) {
+        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), request.getRequestPathInfo().getSelectors())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -585,14 +589,13 @@ public class RequestData {
      * Don't allow path segments that contain only dots or a mix of dots and %5B.
      * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
-    static boolean isValidRequest(SlingHttpServletRequest request) {
-        RequestPathInfo info = request.getRequestPathInfo();
-        for (String selector : info.getSelectors()) {
+    static boolean isValidRequest(String resourcePath, String... selectors) {
+       for (String selector : selectors) {
             if (selector.trim().isEmpty()) {
                 return false;
             }
         }
-        return !info.getResourcePath().matches(".*/\\[*\\.\\[*\\.[\\[,\\.]*/.*|.*/\\[*\\.\\[*\\.[\\[,\\.]*$");
+        return !PREVENT_TRAVERSAL.matcher(resourcePath).matches();
     }
 
     // ---------- Content inclusion stacking -----------------------------------
