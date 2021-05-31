@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -174,7 +175,10 @@ public class RequestData {
      */
     private int peakRecusionDepth;
 
-    private static final String CONSECUTIVE_DOTS = "..";
+    /**
+     * Prevent traversal using '/../' or '/..' even if '[' is used inbetween
+     */
+    private static final Pattern PREVENT_TRAVERSAL = Pattern.compile(".*/\\[*\\.\\[*\\.[\\[,\\.]*/.*|.*/\\[*\\.\\[*\\.[\\[,\\.]*$");
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -532,7 +536,7 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if (!isValidRequest(request.getPathInfo())) {
+        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), request.getRequestPathInfo().getSelectors())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -582,28 +586,16 @@ public class RequestData {
     }
 
     /*
-     * Returns true if and only if path contains no consecutive dots
-     * except "/..".
-     *
-     * @param path The path of request object
-     * @return true if path contains no consecutive dots except "/..", false otherwise
+     * Don't allow path segments that contain only dots or a mix of dots and %5B.
+     * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
-    static boolean isValidRequest(String path) {
-        boolean isValidRequest = true;
-        if (path.contains("...")) { //any occurrence "..." will mark request invalid
-            isValidRequest = false;
-        } else {
-            //consecutive dots will be treated as Invalid request except "/.."
-            int doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS);
-            while (doubleDotIndex >= 0) {
-                if (doubleDotIndex == 0 || path.charAt(doubleDotIndex - 1) != '/') {//doubleDotIndex == 0 When path start with ..
-                    isValidRequest = false;
-                    break;
-                }
-                doubleDotIndex = path.indexOf(CONSECUTIVE_DOTS, doubleDotIndex + 2);
+    static boolean isValidRequest(String resourcePath, String... selectors) {
+       for (String selector : selectors) {
+            if (selector.trim().isEmpty()) {
+                return false;
             }
         }
-        return isValidRequest;
+        return !PREVENT_TRAVERSAL.matcher(resourcePath).matches();
     }
 
     // ---------- Content inclusion stacking -----------------------------------

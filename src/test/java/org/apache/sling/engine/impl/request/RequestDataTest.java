@@ -17,7 +17,11 @@
 package org.apache.sling.engine.impl.request;
 
 
-import javax.servlet.*;
+import javax.servlet.Servlet;
+import javax.servlet.ServletConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -78,6 +82,8 @@ public class RequestDataTest {
             allowing(servlet).getServletConfig();
             will(returnValue(servletConfig));
 
+            allowing(contentData).getRequestPathInfo();
+
             allowing(servlet).service(with(any(ServletRequest.class)), with(any(ServletResponse.class)));
 
             allowing(servletConfig).getServletName();
@@ -132,16 +138,39 @@ public class RequestDataTest {
 
     @Test
     public void testConsecutiveDots() {
-        assertValidRequest(false, "/path/content../test");
+        assertValidRequest(true, "/path/content../test");
         assertValidRequest(false, "/../path/content../test");
         assertValidRequest(false, "/../path/content/.../test");
         assertValidRequest(false, "../path/content/.../test");
+        assertValidRequest(false, "/content/.../test");
     }
 
     @Test
     public void testConsecutiveDotsAfterPathSeparator() {
         assertValidRequest(false, "/path/....");
-        assertValidRequest(true, "/path/..");
+        assertValidRequest(false, "/path/..");
+        assertValidRequest(true, "/path/foo..");
+        assertValidRequest(true, "/path/..foo..");
+    }
+
+    @Test
+    public void testDots() {
+        assertValidRequest(false, "/a/.../b");
+        assertValidRequest(false, "/a/............../b");
+        assertValidRequest(true, "/a/..........helloo......./b");
+        assertValidRequest(true, "/path/content./test");
+        assertValidRequest(true, "/./path/content./test");
+        assertValidRequest(true, "/./path/content/./test");
+        assertValidRequest(true, "./path/content/./test");
+        assertValidRequest(true, "/content/./test");
+    }
+
+    @Test
+    public void testDotsAnd5B() {
+        assertValidRequest(false, "/a/..[[./b");
+        assertValidRequest(false, "/a/[............../b");
+        assertValidRequest(true, "/a/..........helloo......./b");
+        assertValidRequest(false, "/a/[..");
     }
 
     @Test
@@ -154,7 +183,6 @@ public class RequestDataTest {
         assertEquals(
                 "Expected " + expected + " for " + path,
                 expected,
-                RequestData.isValidRequest(path)
-        );
+                RequestData.isValidRequest(path));
     }
 }
