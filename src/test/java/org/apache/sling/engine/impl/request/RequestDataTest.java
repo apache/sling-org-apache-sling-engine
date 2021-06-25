@@ -166,6 +166,11 @@ public class RequestDataTest {
     }
 
     @Test
+    public void testNullResolutionPath() {
+        assertValidRequest(true, null);
+    }
+
+    @Test
     public void testDotsAnd5B() {
         assertValidRequest(false, "/a/..[[./b");
         assertValidRequest(false, "/a/[............../b");
