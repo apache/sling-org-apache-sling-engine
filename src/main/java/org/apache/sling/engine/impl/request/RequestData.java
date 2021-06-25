@@ -595,7 +595,7 @@ public class RequestData {
                 return false;
             }
         }
-        return !PREVENT_TRAVERSAL.matcher(resourcePath).matches();
+        return resourcePath == null || !PREVENT_TRAVERSAL.matcher(resourcePath).matches();
     }
 
     // ---------- Content inclusion stacking -----------------------------------
