@@ -51,7 +51,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
             throws ServletException, IOException {
 
         final int filterIdx = ++this.current;
-        final long start = System.currentTimeMillis();
+        final long start = System.nanoTime();
 
         if (filterIdx > this.filters.length) {
             //this happens when the whole filter chain has been executed, and a filter in that chain,
@@ -90,7 +90,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
 
         } finally {
             if (filterIdx < times.length) {
-                times[filterIdx] = System.currentTimeMillis() - start;
+                times[filterIdx] = (System.nanoTime() - start) / 1000;
                 if (filterIdx == 0) {
                     consolidateFilterTimings(slingRequest);
                 }
@@ -122,7 +122,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
             for (int i = filters.length - 1; i > 0; i--) {
                 filters[i].trackTime(times[i] - times[i + 1]);
                 if (tracker != null) {
-                    tracker.log("Filter timing: filter={0}, inner={1}, total={2}, outer={3}",
+                    tracker.log("Filter timing: filter={0}, inner={1,number,#}, total={2,number,#}, outer={3,number,#}",
                         filters[i].getFilter().getClass().getName(), times[i + 1], times[i], (times[i] - times[i + 1]));
                 }
             }
