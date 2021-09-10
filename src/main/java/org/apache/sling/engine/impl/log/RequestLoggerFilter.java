@@ -45,8 +45,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(configurationPolicy = ConfigurationPolicy.IGNORE,
         service = Filter.class)
-@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
-        + SlingMainServlet.SERVLET_CONTEXT_NAME + ")")
+@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=*)")
 @HttpWhiteboardFilterPattern("/")
 @ServiceRanking(32768)
 @ServiceDescription("Request Logger Filter")
