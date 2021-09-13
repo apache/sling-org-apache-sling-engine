@@ -31,7 +31,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.engine.impl.SlingMainServlet;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.ConfigurationPolicy;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
@@ -43,8 +42,7 @@ import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelec
 import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardFilterPattern;
 import org.slf4j.LoggerFactory;
 
-@Component(configurationPolicy = ConfigurationPolicy.IGNORE,
-        service = Filter.class)
+@Component(service = Filter.class)
 @HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
         + SlingMainServlet.SERVLET_CONTEXT_NAME + ")")
 @HttpWhiteboardFilterPattern("/")
