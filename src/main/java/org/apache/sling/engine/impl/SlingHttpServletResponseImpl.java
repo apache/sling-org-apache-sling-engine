@@ -150,11 +150,12 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 LOG.warn("Response already committed. Failed to set status code from {} to {}. {}",
                         getStatus(), sc, explanation);
             }
-        }
-        if (msg == null) {
-            super.setStatus(sc);
-        } else {
-            super.setStatus(sc, msg);
+        } else { // response is not yet committed, so the statuscode can be changed
+            if (msg == null) {
+                super.setStatus(sc);
+            } else {
+                super.setStatus(sc, msg);
+            }
         }
     }
 
