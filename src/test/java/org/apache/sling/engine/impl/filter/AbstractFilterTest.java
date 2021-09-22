@@ -18,30 +18,27 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.Dictionary;
+import java.util.Hashtable;
 
 import javax.servlet.Filter;
 
-import junit.framework.TestCase;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
-import org.junit.runner.RunWith;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 
-@RunWith(JMock.class)
-public abstract class AbstractFilterTest extends TestCase {
+public abstract class AbstractFilterTest {
+
     protected final Mockery context = new JUnit4Mockery();
     protected ServiceReference<Filter> mockService(Object... map){
 
-        final Map props = new HashMap();
+        final Dictionary<String, Object> props = new Hashtable<>();
         for (int i = 0;  i < map.length; i += 2){
-            props.put(map[i], map[i + 1]);
+            props.put(map[i].toString(), map[i + 1]);
         }
 
         ServiceReference<Filter> ref = new ServiceReference<Filter>() {
@@ -73,6 +70,11 @@ public abstract class AbstractFilterTest extends TestCase {
             @Override
             public int compareTo(Object reference) {
                 return 0;
+            }
+
+            @Override
+            public Dictionary<String, Object> getProperties() {
+                return props;
             }
         };
         return ref;

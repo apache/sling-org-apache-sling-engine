@@ -18,13 +18,9 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
-import org.apache.sling.engine.impl.request.RequestData;
+import static org.junit.Assert.assertTrue;
 
-import org.junit.Test;
+import java.io.IOException;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
@@ -34,10 +30,16 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
+import org.apache.sling.engine.impl.request.RequestData;
+import org.junit.Test;
 
 public class AbstractSlingFilterChainTest extends AbstractFilterTest {
-    
+
     @Test
     public void testDoubleCall() throws Exception {
         Filter badFilter = new Filter() {

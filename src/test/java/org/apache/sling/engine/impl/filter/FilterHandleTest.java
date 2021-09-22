@@ -18,10 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import org.junit.Test;
-
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import org.junit.Test;
 
 public class FilterHandleTest extends AbstractFilterTest {
 

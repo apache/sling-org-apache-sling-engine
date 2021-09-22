@@ -21,18 +21,16 @@ import static org.junit.Assert.assertEquals;
 import javax.servlet.Filter;
 
 import org.jmock.Mockery;
-import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
 /**
  * Basic tests for the filter chain.
  */
-@RunWith(JMock.class)
 public class SlingFilterChainHelperTest {
 
     private final Mockery context = new JUnit4Mockery();
+
     @Test public void testOrdering() {
         final SlingFilterChainHelper chain = new SlingFilterChainHelper();
 
