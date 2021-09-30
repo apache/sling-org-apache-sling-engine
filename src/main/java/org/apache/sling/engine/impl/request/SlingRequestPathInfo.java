@@ -161,8 +161,20 @@ public class SlingRequestPathInfo implements RequestPathInfo {
                 suffix = getSuffix();
             }
 
+            // extension replacement
+            String extension = options.getReplaceExtension();
+            if (extension != null) {
+                // if we get an empty string, set extension to null
+                if ( extension.isEmpty() ) {
+                    extension = null;
+                }                
+                needCreate = true;
+            } else {
+                extension = getExtension();
+            }
+
             if (needCreate) {
-                return new SlingRequestPathInfo(getResource(), getResourcePath(), selectors, getExtension(), suffix);
+                return new SlingRequestPathInfo(getResource(), getResourcePath(), selectors, extension, suffix);
             }
         }
 
