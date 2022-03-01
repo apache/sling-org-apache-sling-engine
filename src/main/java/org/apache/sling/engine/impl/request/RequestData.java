@@ -24,7 +24,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
@@ -116,13 +116,13 @@ public class RequestData {
     /**
      * The name of the request attribute to override the max call number (-1 for infinite or integer value).
      */
-    private static String REQUEST_MAX_CALL_OVERRIDE = "sling.max.calls";
+    private static final String REQUEST_MAX_CALL_OVERRIDE = "sling.max.calls";
 
     private static volatile SlingMainServlet SLING_MAIN_SERVLET;
 
     private static volatile SlingHttpServletRequestFactory REQUEST_FACTORY;
 
-    private static volatile ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
+    private static volatile List<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
 
     /** The SlingMainServlet used for request dispatching and other stuff */
     private final SlingRequestProcessorImpl slingRequestProcessor;
@@ -201,11 +201,11 @@ public class RequestData {
         RequestData.REQUEST_FACTORY = null;
     }
 
-    public static void setAdditionalResponseHeaders(ArrayList<StaticResponseHeader> mappings){
+    public static void setAdditionalResponseHeaders(List<StaticResponseHeader> mappings){
         RequestData.ADDITIONAL_RESPONSE_HEADERS = mappings;
     }
 
-    public static ArrayList<StaticResponseHeader> getAdditionalResponseHeaders() {
+    public static List<StaticResponseHeader> getAdditionalResponseHeaders() {
         return ADDITIONAL_RESPONSE_HEADERS;
     }
 
@@ -230,7 +230,7 @@ public class RequestData {
         if(o instanceof SlingRequestProgressTracker) {
             this.requestProgressTracker = (SlingRequestProgressTracker)o;
         } else {
-            log.warn("SlingRequestProgressTracker not found in request attributes");
+            log.debug("SlingRequestProgressTracker not found in request attributes");
             this.requestProgressTracker = new SlingRequestProgressTracker(request);
         }
     }
