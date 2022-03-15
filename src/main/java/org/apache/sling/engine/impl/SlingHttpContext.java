@@ -25,11 +25,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.request.RequestProgressTracker;
+import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
-import org.apache.sling.engine.impl.request.SlingRequestProgressTracker;
 import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
 import org.slf4j.Logger;
@@ -119,7 +119,8 @@ class SlingHttpContext extends ServletContextHelper {
     public boolean handleSecurity(HttpServletRequest request,
             HttpServletResponse response) throws IOException {
 
-        final SlingRequestProgressTracker t = new SlingRequestProgressTracker(request);
+        final RequestProgressTracker t = Builders.newRequestProgressTracker();
+        t.log("Method={0}, PathInfo={1}", request.getMethod(), request.getPathInfo());
         request.setAttribute(RequestProgressTracker.class.getName(), t);
         final String timerName = "handleSecurity";
         t.startTimer(timerName);

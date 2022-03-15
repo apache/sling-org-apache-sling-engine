@@ -33,7 +33,6 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.EngineConstants;
-import org.apache.sling.engine.impl.request.SlingRequestProgressTracker;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.propertytypes.ServiceDescription;
@@ -167,14 +166,8 @@ public class RequestProgressTrackerLogFilter implements Filter {
     }
 
     private boolean allowDuration(final RequestProgressTracker rpt) {
-        if (rpt instanceof SlingRequestProgressTracker) {
-            final long duration = ((SlingRequestProgressTracker) rpt).getDuration() / NANOSEC_TO_MSEC;
-            return configuration.minDurationMs() <= duration && duration <= configuration.maxDurationMs();
-        } else {
-            log.debug("Logged requests can only be filtered by duration if the SlingRequestProgressTracker is used.");
-            return true;
-        }
-
+        final long duration = rpt.getDuration() / NANOSEC_TO_MSEC;
+        return configuration.minDurationMs() <= duration && duration <= configuration.maxDurationMs();
     }
 
     /**

@@ -24,7 +24,7 @@ import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 import org.apache.sling.api.request.RequestProgressTracker;
-import org.apache.sling.engine.impl.request.SlingRequestProgressTracker;
+import org.apache.sling.api.request.builder.Builders;
 import org.junit.Test;
 
 /** Partial tests of RequestProgressTrackerLogFilter */
@@ -69,7 +69,7 @@ public class RequestProgressTrackerLogFilterTest {
     public void verifySlingRequestProgressTrackerDurationIsNanos() throws Exception {
         // Verify that SlingRequestProgressTracker duration is based on nano time
         final long startMsec = System.currentTimeMillis();
-        final SlingRequestProgressTracker rpt = new SlingRequestProgressTracker();
+        final RequestProgressTracker rpt = Builders.newRequestProgressTracker();
         Thread.sleep(10);
         final long rptElapsed = rpt.getDuration();
         final long elapsedMsec = System.currentTimeMillis() - startMsec;
@@ -85,7 +85,7 @@ public class RequestProgressTrackerLogFilterTest {
         final Method allowDuration = filter.getClass().getDeclaredMethod("allowDuration", RequestProgressTracker.class);
         allowDuration.setAccessible(true);
 
-        final SlingRequestProgressTracker rpt = new SlingRequestProgressTracker();
+        final RequestProgressTracker rpt = Builders.newRequestProgressTracker();
         final int delta = 2;
         Thread.sleep(delta * 2);
         rpt.done();

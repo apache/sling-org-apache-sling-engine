@@ -44,6 +44,7 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.RequestUtil;
 import org.apache.sling.api.request.TooManyCallsException;
+import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
@@ -130,23 +131,23 @@ public class RequestData {
     private final long startTimestamp;
 
     /** The original servlet Servlet Request Object */
-    private HttpServletRequest servletRequest;
+    private final HttpServletRequest servletRequest;
 
     /** The original servlet Servlet Response object */
-    private HttpServletResponse servletResponse;
+    private final HttpServletResponse servletResponse;
 
     /** The original servlet Servlet Request Object */
-    private SlingHttpServletRequest slingRequest;
+    private final SlingHttpServletRequest slingRequest;
 
     /** The original servlet Servlet Response object */
-    private SlingHttpServletResponse slingResponse;
+    private final SlingHttpServletResponse slingResponse;
 
     /** The parameter support class */
     private ParameterSupport parameterSupport;
 
     private ResourceResolver resourceResolver;
 
-    private RequestProgressTracker requestProgressTracker;
+    private final RequestProgressTracker requestProgressTracker;
 
     /** the current ContentData */
     private ContentData currentContentData;
@@ -222,16 +223,22 @@ public class RequestData {
         this.slingResponse = new SlingHttpServletResponseImpl(this,
             servletResponse);
 
-        // Getting the RequestProgressTracker from the request attributes like
-        // this should not be generally used, it's just a way to pass it from
-        // its creation point to here, so it's made available via
-        // the Sling request's getRequestProgressTracker method.
-        final Object o = request.getAttribute(RequestProgressTracker.class.getName());
-        if (o instanceof RequestProgressTracker) {
-            this.requestProgressTracker = (RequestProgressTracker)o;
+        // Use tracker from SlingHttpServletRequest
+        if ( request instanceof SlingHttpServletRequest ) {
+            this.requestProgressTracker = ((SlingHttpServletRequest)request).getRequestProgressTracker();
         } else {
-            log.warn("RequestProgressTracker not found in request attributes");
-            this.requestProgressTracker = new SlingRequestProgressTracker(request);
+            // Getting the RequestProgressTracker from the request attributes like
+            // this should not be generally used, it's just a way to pass it from
+            // its creation point to here, so it's made available via
+            // the Sling request's getRequestProgressTracker method.
+            final Object o = request.getAttribute(RequestProgressTracker.class.getName());
+            if (o instanceof RequestProgressTracker) {
+                this.requestProgressTracker = (RequestProgressTracker)o;
+            } else {
+                log.warn("RequestProgressTracker not found in request attributes");
+                this.requestProgressTracker = Builders.newRequestProgressTracker();
+                this.requestProgressTracker.log("Method={0}, PathInfo={1}", request.getMethod(), request.getPathInfo());
+            }
         }
     }
 
