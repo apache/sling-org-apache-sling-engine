@@ -44,24 +44,30 @@ public class InitResourceTest {
     private final String requestURL;
     private final String pathInfo;
     private final String expectedResolvePath;
+    private final String servletPath;
+    private final String contextPath;
 
     @Parameters(name="URL={0} path={1}")
     public static Collection<Object[]> data() {
         return Arrays.asList(new Object[][] {
-                { "/one;v=1.1", "one;v=1.1", "/one;v=1.1" },
-                { "/two;v=1.1", "two", "/two;v=1.1" },
-                { "/three", "three", "/three" },
-                { "/four%3Bv=1.1", "four", "/four" },
-                { "/five%3Bv=1.1", "five;v=1.1", "/five;v=1.1" },
-                { "/six;v=1.1", "six;v=1.1", "/six;v=1.1" },
-                { "/seven", "seven;v=1.1", "/seven;v=1.1" },
+                { "http://localhost/one;v=1.1", "/one;v=1.1", "/one;v=1.1", "", "" },
+                { "http://localhost/two;v=1.1", "/two", "/two;v=1.1", "", "" },
+                { "http://localhost/three", "/three", "/three", "", "" },
+                { "http://localhost/four%3Bv=1.1", "/four", "/four", "", "" },
+                { "http://localhost/five%3Bv=1.1", "/five;v=1.1", "/five;v=1.1", "", "" },
+                { "http://localhost/six;v=1.1", "/six;v=1.1", "/six;v=1.1", "", "" },
+                { "http://localhost/seven", "/seven;v=1.1", "/seven;v=1.1", "", "" },
+                { "http://localhost/context/path;v=1.1/more/foo;x=y/end", "/path/more/foo/end", "/path;v=1.1/more/foo;x=y/end", "/context", "" },
+                { "http://localhost:4502/content;foo=bar/we-retail;bar=baz/us/en.html", "/content/we-retail/us/en.html", "/content;foo=bar/we-retail;bar=baz/us/en.html", "", ""}
         });
     }
 
-    public InitResourceTest(String requestURL, String pathInfo, String expectedResolvePath) {
+    public InitResourceTest(String requestURL, String pathInfo, String expectedResolvePath, String contextPath, String servletPath) {
         this.requestURL = requestURL;
         this.pathInfo = pathInfo;
         this.expectedResolvePath = expectedResolvePath;
+        this.contextPath = contextPath;
+        this.servletPath = servletPath;
     }
 
     @Before
@@ -81,8 +87,11 @@ public class InitResourceTest {
             allowing(req).getPathInfo();
             will(returnValue(pathInfo));
 
+            allowing(req).getContextPath();
+            will(returnValue(contextPath));
+
             allowing(req).getServletPath();
-            will(returnValue("/"));
+            will(returnValue(servletPath));
 
             allowing(req).getMethod();
             will(returnValue("GET"));

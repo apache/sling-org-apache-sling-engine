@@ -23,6 +23,8 @@ import static org.apache.sling.api.SlingConstants.SLING_CURRENT_SERVLET_NAME;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
@@ -253,13 +255,13 @@ public class RequestData {
         StringBuffer requestURL = servletRequest.getRequestURL();
         String path = request.getPathInfo();
         if (requestURL.indexOf(";") > -1 && !path.contains(";")) {
-            final String decodedURL;
             try {
-                decodedURL = URLDecoder.decode(requestURL.toString(), "UTF-8");
-            } catch (UnsupportedEncodingException e) {
-                throw new AssertionError("UTF-8 encoding is not supported");
+                final URL rUrl = new URL(requestURL.toString());
+                final String prefix = request.getContextPath().concat(request.getServletPath());
+                path = rUrl.getPath().substring(prefix.length());
+            } catch ( final MalformedURLException e) {
+                // ignore
             }
-            path = path.concat(decodedURL.substring(decodedURL.indexOf(';')));
         }
 
         Resource resource = resourceResolver.resolve(request, path);
