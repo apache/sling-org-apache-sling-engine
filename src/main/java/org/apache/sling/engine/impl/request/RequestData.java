@@ -227,10 +227,10 @@ public class RequestData {
         // its creation point to here, so it's made available via
         // the Sling request's getRequestProgressTracker method.
         final Object o = request.getAttribute(RequestProgressTracker.class.getName());
-        if(o instanceof SlingRequestProgressTracker) {
-            this.requestProgressTracker = (SlingRequestProgressTracker)o;
+        if (o instanceof RequestProgressTracker) {
+            this.requestProgressTracker = (RequestProgressTracker)o;
         } else {
-            log.warn("SlingRequestProgressTracker not found in request attributes");
+            log.warn("RequestProgressTracker not found in request attributes");
             this.requestProgressTracker = new SlingRequestProgressTracker(request);
         }
     }
