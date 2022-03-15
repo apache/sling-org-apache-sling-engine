@@ -25,6 +25,7 @@ import javax.servlet.Filter;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
+import org.apache.sling.api.request.builder.Builders;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.integration.junit4.JUnit4Mockery;
@@ -100,6 +101,8 @@ public abstract class AbstractFilterTest {
 
         final SlingHttpServletRequest req = context.mock(SlingHttpServletRequest.class, "req " + path + extension + method + suffix);
         context.checking(new Expectations() {{
+            allowing(req).getRequestProgressTracker();
+            will(returnValue(Builders.newRequestProgressTracker()));
             allowing(req).getRequestPathInfo();
             will(returnValue(info));
             allowing(req).getMethod();
