@@ -341,7 +341,7 @@ class CustomLogFormat {
             // don't care
         }
         if (num >= 100 && num <= 999) {
-            numbers.add(new Integer(num));
+            numbers.add(num);
         }
 
         if (numbers.isEmpty()) {
