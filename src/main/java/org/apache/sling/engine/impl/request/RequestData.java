@@ -28,6 +28,8 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.regex.Pattern;
+import java.util.HashSet;
+import java.util.Set;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -179,9 +181,13 @@ public class RequestData {
     private int peakRecusionDepth;
 
     /**
-     * Prevent traversal using '/../' or '/..' even if '[' is used inbetween
+     * Prevent traversal using '/../' or '/..' even if '[' or '}' is used in-between
      */
-    private static final Pattern PREVENT_TRAVERSAL = Pattern.compile(".*/\\[*\\.\\[*\\.[\\[,\\.]*/.*|.*/\\[*\\.\\[*\\.[\\[,\\.]*$");
+    private static final Set<Character> SKIPPED_TRAVERSAL_CHARS = new HashSet<>();
+    static {
+        SKIPPED_TRAVERSAL_CHARS.add('[');
+        SKIPPED_TRAVERSAL_CHARS.add('}');
+    }
 
     public static void setMaxCallCounter(int maxCallCounter) {
         RequestData.maxCallCounter = maxCallCounter;
@@ -604,7 +610,7 @@ public class RequestData {
                 return false;
             }
         }
-        return resourcePath == null || !PREVENT_TRAVERSAL.matcher(resourcePath).matches();
+        return resourcePath == null || !travesesParentPath(resourcePath);
     }
 
     // ---------- Content inclusion stacking -----------------------------------
@@ -763,4 +769,33 @@ public class RequestData {
     private static interface SlingHttpServletRequestFactory {
         SlingHttpServletRequest createRequest(RequestData requestData, HttpServletRequest request);
     }
+
+    /*
+    * Traverses the path segment wise and checks
+    * if there is any path with only dots (".")
+    * skipping SKIPPED_TRAVERSAL_CHARS characters in segment.
+    */
+    private static boolean travesesParentPath(String path) {
+        int index = 0;
+        while(index < path.length()) {
+            int dotCount = 0, charCount = 0;
+            // count dots (".") and total chars in each path segment (between two '/')
+            while(index < path.length() && path.charAt(index) != '/') {
+                char c = path.charAt(index);
+                if (!SKIPPED_TRAVERSAL_CHARS.contains(c)) {
+                    if (c == '.') dotCount++;
+                    charCount++;
+                }
+                index++;
+            }
+            // if all chars are dots (".")
+            // path is traversing the parent directory
+            if (charCount > 1 && dotCount == charCount) {
+                return true;
+            }
+            index++;
+        }
+        return false;
+    }
+
 }
