@@ -27,7 +27,6 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLDecoder;
 import java.util.ArrayList;
-import java.util.regex.Pattern;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -778,7 +777,8 @@ public class RequestData {
     private static boolean travesesParentPath(String path) {
         int index = 0;
         while(index < path.length()) {
-            int dotCount = 0, charCount = 0;
+            int charCount = 0;
+            int dotCount = 0;
             // count dots (".") and total chars in each path segment (between two '/')
             while(index < path.length() && path.charAt(index) != '/') {
                 char c = path.charAt(index);
