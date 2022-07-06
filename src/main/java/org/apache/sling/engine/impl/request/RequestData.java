@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -609,7 +608,7 @@ public class RequestData {
                 return false;
             }
         }
-        return resourcePath == null || !travesesParentPath(resourcePath);
+        return resourcePath == null || !traversesParentPath(resourcePath);
     }
 
     // ---------- Content inclusion stacking -----------------------------------
@@ -774,7 +773,7 @@ public class RequestData {
     * if there is any path with only dots (".")
     * skipping SKIPPED_TRAVERSAL_CHARS characters in segment.
     */
-    private static boolean travesesParentPath(String path) {
+    private static boolean traversesParentPath(String path) {
         int index = 0;
         while(index < path.length()) {
             int charCount = 0;
