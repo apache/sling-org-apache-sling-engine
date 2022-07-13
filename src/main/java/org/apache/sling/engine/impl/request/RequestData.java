@@ -775,14 +775,16 @@ public class RequestData {
     */
     private static boolean traversesParentPath(String path) {
         int index = 0;
-        while(index < path.length()) {
+        while (index < path.length()) {
             int charCount = 0;
             int dotCount = 0;
             // count dots (".") and total chars in each path segment (between two '/')
-            while(index < path.length() && path.charAt(index) != '/') {
+            while (index < path.length() && path.charAt(index) != '/') {
                 char c = path.charAt(index);
                 if (!SKIPPED_TRAVERSAL_CHARS.contains(c)) {
-                    if (c == '.') dotCount++;
+                    if (c == '.') {
+                        dotCount++;
+                    }
                     charCount++;
                 }
                 index++;
