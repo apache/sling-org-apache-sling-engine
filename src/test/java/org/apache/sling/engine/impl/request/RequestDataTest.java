@@ -179,6 +179,27 @@ public class RequestDataTest {
     }
 
     @Test
+    public void testDotsAnd7D() {
+        assertValidRequest(false, "/a/..}}./b");
+        assertValidRequest(false, "/a/}............../b");
+        assertValidRequest(false, "/a/..}..}./b");
+        assertValidRequest(false, "/a/}..");
+        assertValidRequest(false, "/a/..}");
+        assertValidRequest(true, "/a/}./b");
+        assertValidRequest(true, "/a//b/c");
+    }
+
+    @Test
+    public void testDotsAnd7D5B() {
+        assertValidRequest(false, "/a/..}[./b");
+        assertValidRequest(false, "/a/}....[........../b");
+        assertValidRequest(true, "/a/..........[helloo}......./b");
+        assertValidRequest(false, "/a/[}....");
+        assertValidRequest(false, "/a/....}[");
+        assertValidRequest(true, "/a/.}[");
+    }
+
+    @Test
     public void testValidRequest() {
         //HttpRequest with valid path
         assertValidRequest(true, "/path");
