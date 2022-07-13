@@ -30,7 +30,7 @@
     <artifactId>org.apache.sling.engine</artifactId>
     <version>2.9.1-SNAPSHOT</version>
 
-    <name>Apache Sling Engine Implementation</name>
+    <name>Apache Sling Engine</name>
     <description>
         Bundle implementing the core of Apache Sling.
     </description>
