@@ -295,16 +295,23 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     /**
      * Dispatches the request on behalf of the
      * {@link org.apache.sling.engine.impl.request.SlingRequestDispatcher}.
+     * @param request The request
+     * @param response The response
+     * @param resource The resource
+     * @param resolvedURL Request path info
+     * @param include Is this an include (or forward) ?
+     * @param protectHeadersOnInclude Should the headers be protected on include?
      */
-    public void dispatchRequest(ServletRequest request,
-            ServletResponse response, Resource resource,
-            RequestPathInfo resolvedURL, boolean include) throws IOException,
-            ServletException {
+    public void dispatchRequest(final ServletRequest request,
+            final ServletResponse response, final Resource resource,
+            final RequestPathInfo resolvedURL, 
+            final boolean include,
+            final boolean protectHeadersOnInclude) throws IOException, ServletException {
 
         // we need a SlingHttpServletRequest/SlingHttpServletResponse tupel
         // to continue
-        SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
-        SlingHttpServletResponse cResponse = RequestData.toSlingHttpServletResponse(response);
+        final SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
+        final SlingHttpServletResponse cResponse = RequestData.toSlingHttpServletResponse(response);
 
         // get the request data (and btw check the correct type)
         final RequestData requestData = RequestData.getRequestData(cRequest);
@@ -320,7 +327,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                     ? FilterChainType.INCLUDE
                     : FilterChainType.FORWARD;
 
-            processComponent(cRequest, cResponse, type);
+            processComponent(cRequest, include && protectHeadersOnInclude ? new IncludeResponseWrapper(cResponse) : cResponse, type);
         } finally {
             requestData.resetContent(oldContentData);
         }

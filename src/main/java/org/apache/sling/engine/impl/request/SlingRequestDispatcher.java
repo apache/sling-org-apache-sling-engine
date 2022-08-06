@@ -168,8 +168,14 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         return uri + '/' + path;
     }
 
-    private void dispatch(ServletRequest request, ServletResponse sResponse,
-            boolean include) throws ServletException, IOException {
+    /**
+     * Dispatch the request
+     * @param request The request
+     * @param response The response
+     * @param include Is this an include (or forward)
+     */
+    private void dispatch(final ServletRequest request, final ServletResponse response,
+            final boolean include) throws ServletException, IOException {
         SlingHttpServletRequest cRequest = RequestData.unwrap(request);
         RequestData rd = RequestData.getRequestData(cRequest);
         String absPath = getAbsolutePath(cRequest, path);
@@ -177,7 +183,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
 
         // if the response is not an HttpServletResponse, fail gracefully not
         // doing anything
-        if (!(sResponse instanceof HttpServletResponse)) {
+        if (!(response instanceof HttpServletResponse)) {
             log.error("include: Failed to include {}, response has wrong type",
                 absPath);
             return;
@@ -208,8 +214,8 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
         requestProgressTracker.log(
             "Including resource {0} ({1})", resource, info);
-        rd.getSlingRequestProcessor().dispatchRequest(request, sResponse, resource,
-            info, include);
+        rd.getSlingRequestProcessor().dispatchRequest(request, response, resource,
+            info, include, this.options.isProtectHeadersOnInclude());
     }
 
     /**
