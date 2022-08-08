@@ -23,7 +23,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ConcurrentNavigableMap;
 import java.util.concurrent.ConcurrentSkipListMap;
@@ -41,7 +40,12 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Deactivate;
 import org.osgi.service.component.annotations.Modified;
 
-@Component(service = {RequestInfoProvider.class}, configurationPid = SlingMainServlet.PID)
+/**
+ * Track requests.
+ */
+@Component(service = {RequestInfoProvider.class},
+        immediate=true, // track requests from the start
+        configurationPid = SlingMainServlet.PID)
 public class RequestInfoProviderImpl implements RequestInfoProvider {
 
     /** Default for stored requests */
