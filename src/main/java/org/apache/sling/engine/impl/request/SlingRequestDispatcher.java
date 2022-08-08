@@ -214,8 +214,9 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
         requestProgressTracker.log(
             "Including resource {0} ({1})", resource, info);
+        final boolean protectHeaders = this.options != null ? this.options.isProtectHeadersOnInclude() : false;
         rd.getSlingRequestProcessor().dispatchRequest(request, response, resource,
-            info, include, this.options.isProtectHeadersOnInclude());
+            info, include, protectHeaders);
     }
 
     /**
