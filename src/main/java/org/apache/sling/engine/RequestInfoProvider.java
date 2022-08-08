@@ -16,7 +16,37 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-@org.osgi.annotation.versioning.Version("2.5.0")
 package org.apache.sling.engine;
 
+/**
+  * This service can be used to gather information about requests processed by the
+  * engine.
+  *
+  * @since 2.5
+  */
+ public interface RequestInfoProvider {
+
+    /**
+     * Get the request info for the id
+     * @param id The id
+     * @return The request info or {@code null}
+     */
+    RequestInfo getRequestInfo(String id);
+
+    /**
+     * Get the request infos
+     * @return An iterator for the request infos
+     */
+    Iterable<RequestInfo> getRequestInfos();
+
+    /**
+     * Get the maximum number of provided infos
+     * @return The maximum number, {@code 0} if no infos are recorded
+     */
+    int getMayNumberOfInfos();
+
+    /**
+     * Clear all request infos
+     */
+    void clear();
+ }

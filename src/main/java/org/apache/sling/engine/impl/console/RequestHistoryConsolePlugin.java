@@ -21,12 +21,7 @@ package org.apache.sling.engine.impl.console;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.concurrent.atomic.AtomicLong;
-import java.util.regex.Pattern;
 
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
@@ -34,15 +29,13 @@ import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.ResponseUtil;
 import org.apache.sling.api.resource.ResourceUtil;
-import org.apache.sling.engine.impl.SlingMainServlet;
+import org.apache.sling.engine.RequestInfo;
+import org.apache.sling.engine.RequestInfoProvider;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
-import org.osgi.service.component.annotations.Deactivate;
-import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceVendor;
 
@@ -52,7 +45,6 @@ import org.osgi.service.component.propertytypes.ServiceVendor;
  * useful when testing or explaining things.
  */
 @Component(service = Servlet.class,
-    configurationPid = SlingMainServlet.PID,
     property = {
             "felix.webconsole.label=" + RequestHistoryConsolePlugin.LABEL,
             "felix.webconsole.title=Recent requests",
@@ -70,104 +62,32 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
 
     public static final String CLEAR = "clear";
 
-    private static volatile RequestHistoryConsolePlugin instance;
-
-    public static final int STORED_REQUESTS_COUNT = 20;
-
-    private volatile RequestInfoMap requests;
-
-    private volatile List<Pattern> storePatterns = Collections.emptyList();
+    private final RequestInfoProvider infoProvider;
 
     @Activate
-    public RequestHistoryConsolePlugin(final SlingMainServlet.Config config) {
-        update(config);
-        instance = this;
+    public RequestHistoryConsolePlugin(final @Reference RequestInfoProvider provider) {
+        this.infoProvider = provider;
     }
 
-
-    @Modified
-    protected void update(final SlingMainServlet.Config config) {
-        this.requests = (config.sling_max_record_requests() > 0)
-                ? new RequestInfoMap(config.sling_max_record_requests())
-                : null;
-        final List<Pattern> compiledPatterns = new ArrayList<>();
-        if (config.sling_store_pattern_requests() != null) {
-            for (String pattern : config.sling_store_pattern_requests()) {
-                if (pattern != null && pattern.trim().length() > 0) {
-                    compiledPatterns.add(Pattern.compile(pattern));
-                }
-            }
-        }
-        this.storePatterns = compiledPatterns;
-
-    }
-
-    @Deactivate
-    protected void deactivate() {
-        instance = null;
-        clear();
-    }
-
-    public static void recordRequest(final SlingHttpServletRequest r) {
-        final RequestHistoryConsolePlugin local = instance;
-        if (local != null) {
-            local.addRequest(r);
-        }
-    }
-
-    private void addRequest(SlingHttpServletRequest r) {
-        final RequestInfoMap local = requests;
-        if (local != null) {
-            String requestPath = r.getPathInfo();
-            boolean accept = true;
-            final List<Pattern> patterns = storePatterns;
-            if (!patterns.isEmpty()) {
-                accept = false;
-                for (Pattern pattern : patterns) {
-                    if (pattern.matcher(requestPath).matches()) {
-                        accept = true;
-                        break;
-                    }
-                }
-            }
-
-            if (accept) {
-                RequestInfo info = new RequestInfo(r);
-                synchronized (local) {
-                    local.put(info.getKey(), info);
-                }
-            }
-        }
-    }
-
-    private void clear() {
-        final RequestInfoMap local = requests;
-        if (local != null) {
-            local.clear();
-        }
-    }
-
-    private void printLinksTable(PrintWriter pw, List<RequestInfo> values, String currentRequestIndex) {
+    private void printLinksTable(final PrintWriter pw, final List<RequestInfo> values, final String currentRequestIndex) {
         final List<String> links = new ArrayList<String>();
-        if (values != null) {
-            for (RequestInfo info : values) {
-                final String key = ResponseUtil.escapeXml(info.getKey());
-                final boolean isCurrent = info.getKey().equals(currentRequestIndex);
-                final StringBuilder sb = new StringBuilder();
-                sb.append("<span style='white-space: pre; text-align:right; font-size:80%'>");
-                sb.append(String.format("%1$8s", key));
-                sb.append("</span> ");
-                sb.append("<a href='" + LABEL + "?index=" + key + "'>");
-                if (isCurrent) {
-                    sb.append("<b>");
-                }
-                sb.append(ResponseUtil.escapeXml(info.getLabel()));
-                if (isCurrent) {
-                    sb.append("</b>");
-                }
-                sb.append("</a> ");
-                links.add(sb.toString());
+        for (final RequestInfo info : values) {
+            final String key = ResponseUtil.escapeXml(info.getId());
+            final boolean isCurrent = info.getId().equals(currentRequestIndex);
+            final StringBuilder sb = new StringBuilder();
+            sb.append("<span style='white-space: pre; text-align:right; font-size:80%'>");
+            sb.append(String.format("%1$8s", key));
+            sb.append("</span> ");
+            sb.append("<a href='" + LABEL + "?index=" + key + "'>");
+            if (isCurrent) {
+                sb.append("<b>");
             }
+            sb.append(ResponseUtil.escapeXml(getLabel(info)));
+            if (isCurrent) {
+                sb.append("</b>");
+            }
+            sb.append("</a> ");
+            links.add(sb.toString());
         }
 
         final int nCols = 5;
@@ -197,30 +117,21 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
     }
 
     @Override
-    protected void doGet(HttpServletRequest req, HttpServletResponse resp)
+    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
             throws ServletException, IOException {
-        final RequestInfoMap local = requests;
-
         // get all requests and select request to display
         final String key = req.getParameter(INDEX);
-        final List<RequestInfo> values;
-        RequestInfo info = null;
-        if (local != null) {
-            synchronized (local) {
-                values = new ArrayList<>(local.values());
-                if (key != null) {
-                    info = local.get(key);
-                }
-            }
-        } else {
-            values = null;
+        final RequestInfo info = key == null ? null : this.infoProvider.getRequestInfo(key);
+        final List<RequestInfo> values = new ArrayList<>();
+        for(final RequestInfo i : this.infoProvider.getRequestInfos()) {
+            values.add(i);
         }
 
         final PrintWriter pw = resp.getWriter();
 
-        if (local != null) {
+        if (this.infoProvider.getMayNumberOfInfos() > 0) {
             pw.println("<p class='statline ui-state-highlight'>Recorded "
-                    + values.size() + " requests (max: " + local.getMaxSize() + ")</p>");
+                    + values.size() + " requests (max: " + this.infoProvider.getMayNumberOfInfos() + ")</p>");
         } else {
             pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
         }
@@ -243,109 +154,42 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
             pw.printf(
                 "<th class='ui-widget-header'>Request %s (%s %s) by %s - RequestProgressTracker Info</th>%n",
                 key, ResponseUtil.escapeXml(info.getMethod()),
-                ResponseUtil.escapeXml(info.getPathInfo()), ResponseUtil.escapeXml(info.getUser()));
+                ResponseUtil.escapeXml(info.getPath()), ResponseUtil.escapeXml(info.getUserId()));
             pw.println("</tr>");
             pw.println("</thead>");
 
             pw.println("<tbody>");
 
             // Request Progress Tracker Info
-            pw.println("<tr><td>");
-            final Iterator<String> it = info.getTracker().getMessages();
-            pw.print("<pre>");
-            while (it.hasNext()) {
-                pw.print(ResponseUtil.escapeXml(it.next()));
-            }
+            pw.println("<tr><td><pre>");
+            pw.print(ResponseUtil.escapeXml(info.getLog()));
             pw.println("</pre></td></tr>");
             pw.println("</tbody></table>");
         }
     }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp)
+    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp)
             throws IOException {
         if (req.getParameter(CLEAR) != null) {
-            clear();
+            this.infoProvider.clear();
             resp.sendRedirect(req.getRequestURI());
         }
     }
 
-    private static class RequestInfo {
+    public String getLabel(final RequestInfo info) {
+        final StringBuilder sb = new StringBuilder();
 
-        private static AtomicLong requestCounter = new AtomicLong(0);
+        sb.append(info.getMethod());
+        sb.append(' ');
 
-        private final String key;
-
-        private final String method;
-
-        private final String pathInfo;
-
-        private final String user;
-
-        private final RequestProgressTracker tracker;
-
-        RequestInfo(SlingHttpServletRequest request) {
-            this.key = String.valueOf(requestCounter.incrementAndGet());
-            this.method = request.getMethod();
-            this.pathInfo = request.getPathInfo();
-            this.user = request.getRemoteUser();
-            this.tracker = request.getRequestProgressTracker();
+        final String path = info.getPath();
+        if (path.length() > 0) {
+            sb.append(ResourceUtil.getName(path));
+        } else {
+            sb.append('/');
         }
 
-        public String getKey() {
-            return key;
-        }
-
-        public String getMethod() {
-            return method;
-        }
-
-        public String getPathInfo() {
-            return pathInfo;
-        }
-
-        public String getUser() {
-            return user;
-        }
-
-        public String getLabel() {
-            final StringBuilder sb = new StringBuilder();
-
-            sb.append(getMethod());
-            sb.append(' ');
-
-            final String path = getPathInfo();
-            if (path != null && path.length() > 0) {
-                sb.append(ResourceUtil.getName(getPathInfo()));
-            } else {
-                sb.append('/');
-            }
-
-            return sb.toString();
-        }
-
-        public RequestProgressTracker getTracker() {
-            return tracker;
-        }
-    }
-
-    private static class RequestInfoMap extends LinkedHashMap<String, RequestInfo> {
-
-        private static final long serialVersionUID = 4120391774146501524L;
-
-        private int maxSize;
-
-        RequestInfoMap(int maxSize) {
-            this.maxSize = maxSize;
-        }
-
-        @Override
-        protected boolean removeEldestEntry(java.util.Map.Entry<String, RequestInfo> eldest) {
-            return size() > maxSize;
-        }
-
-        public int getMaxSize() {
-            return maxSize;
-        }
+        return sb.toString();
     }
 }

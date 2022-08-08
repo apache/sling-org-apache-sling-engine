@@ -42,6 +42,7 @@ import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.console.RequestHistoryConsolePlugin;
+import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 import org.apache.sling.engine.impl.helper.RequestListenerManager;
@@ -116,7 +117,7 @@ public class SlingMainServlet extends GenericServlet {
                      "internally recorded for display on the \"Recent Requests\" Web Console page. If " +
                      "this value is less than or equal to zero, no requests are internally kept. The " +
                      "default value is 20. ")
-        int sling_max_record_requests() default RequestHistoryConsolePlugin.STORED_REQUESTS_COUNT;
+        int sling_max_record_requests() default RequestInfoProviderImpl.STORED_REQUESTS_COUNT;
 
         @AttributeDefinition(name = "Recorded Request Path Patterns",
                 description = "One or more regular expressions which " +

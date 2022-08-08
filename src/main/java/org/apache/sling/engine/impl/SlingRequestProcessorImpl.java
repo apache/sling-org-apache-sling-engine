@@ -48,6 +48,7 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.console.RequestHistoryConsolePlugin;
+import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.filter.AbstractSlingFilterChain;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
@@ -122,9 +123,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             servletResponse);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
-
-        // record the request for the web console display
-        RequestHistoryConsolePlugin.recordRequest(request);
 
         try {
             final ServletResolver sr = this.servletResolver;
@@ -226,6 +224,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             handleError(t, request, response);
 
         } finally {
+            // record the request for the web console and info provider
+            RequestInfoProviderImpl.recordRequest(request);
+
             if (mbean != null) {
                 mbean.addRequestData(requestData);
             }

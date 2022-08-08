@@ -16,7 +16,45 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
-@org.osgi.annotation.versioning.Version("2.5.0")
 package org.apache.sling.engine;
 
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+/**
+ * Information about a single request.
+ * @see RequestInfoProvider
+ * @since 2.5
+ */
+public interface RequestInfo {
+    
+    /**
+     * Get the unique id for the request
+     * @return The id
+     */
+    @NotNull String getId();
+
+    /**
+     * Get the request method
+     * @return The request method
+     */
+    @NotNull String getMethod();
+
+    /**
+     * Get the requested path
+     * @return The path
+     */
+    @NotNull String getPath();
+
+    /**
+     * Get the user id for the request
+     * @return the user id or {@code null}
+     */
+    @Nullable String getUserId();
+
+    /**
+     * Get the log for the request
+     * @return The request log, multi-line output
+     */
+    @NotNull String getLog();
+}
