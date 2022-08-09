@@ -37,8 +37,8 @@ import javax.servlet.Filter;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
-import org.apache.sling.commons.osgi.PropertiesUtil;
 import org.osgi.framework.ServiceReference;
+import org.osgi.util.converter.Converters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -51,27 +51,28 @@ public class FilterPredicate {
 
     private static final Logger LOG = LoggerFactory.getLogger(FilterPredicate.class);
 
-    Collection<String> methods;
-    Collection<String> selectors;
-    Collection<String> extensions;
-    Collection<String> resourceTypes;
-    Pattern pathRegex;
-    Pattern resourcePathRegex;
-    Pattern requestPathRegex;
-    Pattern suffixRegex;
+    private final Collection<String> methods;
+    private final Collection<String> selectors;
+    private final Collection<String> extensions;
+    private final Collection<String> resourceTypes;
+    private final Pattern pathRegex;
+    private final Pattern resourcePathRegex;
+    private final Pattern requestPathRegex;
+    private final Pattern suffixRegex;
 
-    /*
+    /**
+     * Create a new predicate
      * @param reference osgi service configuration
      */
-    public FilterPredicate(ServiceReference<Filter> reference) {
-        selectors = asCollection(reference, SLING_FILTER_SELECTORS);
-        extensions = asCollection(reference, SLING_FILTER_EXTENSIONS);
-        resourceTypes = asCollection(reference, SLING_FILTER_RESOURCETYPES);
-        methods = asCollection(reference, SLING_FILTER_METHODS);
-        pathRegex = asPattern(reference, SLING_FILTER_PATTERN);
-        resourcePathRegex = asPattern(reference, SLING_FILTER_RESOURCE_PATTERN);
-        requestPathRegex = asPattern(reference, SLING_FILTER_REQUEST_PATTERN);
-        suffixRegex = asPattern(reference, SLING_FILTER_SUFFIX_PATTERN);
+    public FilterPredicate(final ServiceReference<Filter> reference) {
+        this.selectors = asCollection(reference, SLING_FILTER_SELECTORS);
+        this.extensions = asCollection(reference, SLING_FILTER_EXTENSIONS);
+        this.resourceTypes = asCollection(reference, SLING_FILTER_RESOURCETYPES);
+        this.methods = asCollection(reference, SLING_FILTER_METHODS);
+        this.pathRegex = asPattern(reference, SLING_FILTER_PATTERN);
+        this.resourcePathRegex = asPattern(reference, SLING_FILTER_RESOURCE_PATTERN);
+        this.requestPathRegex = asPattern(reference, SLING_FILTER_REQUEST_PATTERN);
+        this.suffixRegex = asPattern(reference, SLING_FILTER_SUFFIX_PATTERN);
     }
 
     /**
@@ -80,7 +81,7 @@ public class FilterPredicate {
      * @return value of the given property, as a collection, or null if it does not exist
      */
     private Collection<String> asCollection(final ServiceReference<Filter> reference, final String propertyName) {
-        String[] value = PropertiesUtil.toStringArray(reference.getProperty(propertyName));
+        final String[] value = Converters.standardConverter().convert(reference.getProperty(propertyName)).to(String[].class);
         return value != null && value.length > 0 ? asList(value) : null;
     }
 
@@ -90,7 +91,7 @@ public class FilterPredicate {
      * @return value of the given property, as a compiled pattern, or null if it does not exist
      */
     private Pattern asPattern(final ServiceReference<Filter> reference, String propertyName) {
-        String pattern = PropertiesUtil.toString(reference.getProperty(propertyName), null);
+        String pattern = Converters.standardConverter().convert(reference.getProperty(propertyName)).to(String.class);
         return pattern != null && pattern.length() > 0 ? Pattern.compile(pattern) : null;
     }
 
@@ -134,11 +135,11 @@ public class FilterPredicate {
      * @param req request that is tested upon this predicate
      * @return true if this predicate's configuration match the request
      */
-    boolean test(SlingHttpServletRequest req) {
+    boolean test(final SlingHttpServletRequest req) {
         LOG.debug("starting filter test against {} request", req);
-        RequestPathInfo requestPathInfo = req.getRequestPathInfo();
-        String path = requestPathInfo.getResourcePath();
-        String uri = req.getPathInfo();
+        final RequestPathInfo requestPathInfo = req.getRequestPathInfo();
+        final String path = requestPathInfo.getResourcePath();
+        final String uri = req.getPathInfo();
         boolean select = anyElementMatches(methods, req.getMethod())
                 && anyElementMatches(selectors, requestPathInfo.getSelectors())
                 && anyElementMatches(extensions, requestPathInfo.getExtension())

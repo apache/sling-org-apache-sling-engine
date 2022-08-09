@@ -42,7 +42,7 @@ public class WebConsoleConfigPrinter {
         this.filterManager = filterManager;
     }
 
-    public static ServiceRegistration register(final BundleContext bundleContext,
+    public static ServiceRegistration<WebConsoleConfigPrinter> register(final BundleContext bundleContext,
             final ServletFilterManager filterManager) {
         // first we register the plugin for the filters
         final WebConsoleConfigPrinter filterPrinter = new WebConsoleConfigPrinter(filterManager);
@@ -54,12 +54,12 @@ public class WebConsoleConfigPrinter {
         serviceProps.put("felix.webconsole.title", "Sling Servlet Filter");
         serviceProps.put("felix.webconsole.configprinter.modes", "always");
 
-        return bundleContext.registerService(WebConsoleConfigPrinter.class.getName(),
+        return bundleContext.registerService(WebConsoleConfigPrinter.class,
                 filterPrinter,
                 serviceProps);
     }
 
-    public static void unregister(final ServiceRegistration reg) {
+    public static void unregister(final ServiceRegistration<WebConsoleConfigPrinter> reg) {
         if (reg != null) {
             reg.unregister();
         }
@@ -69,14 +69,10 @@ public class WebConsoleConfigPrinter {
      * Helper method for printing out a filter chain.
      */
     private void printFilterChain(final PrintWriter pw, final FilterHandle[] entries) {
-        if ( entries == null ) {
-            pw.println("---");
-        } else {
-            for(final FilterHandle entry : entries) {
-                pw.printf("%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
-                    entry.getOrder(), entry.getFilter().getClass(), entry.getFilterId(), entry.getOrderSource(),
-                    entry.getCalls(), entry.getTime(), entry.getTimePerCall());
-            }
+        for(final FilterHandle entry : entries) {
+            pw.printf("%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
+                entry.getOrder(), entry.getFilter().getClass(), entry.getFilterId(), entry.getOrderSource(),
+                entry.getCalls(), entry.getTime(), entry.getTimePerCall());
         }
     }
 

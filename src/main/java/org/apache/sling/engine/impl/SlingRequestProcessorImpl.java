@@ -47,9 +47,9 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.engine.SlingRequestProcessor;
-import org.apache.sling.engine.impl.console.RequestHistoryConsolePlugin;
 import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
-import org.apache.sling.engine.impl.filter.AbstractSlingFilterChain;
+import org.apache.sling.engine.impl.filter.ErrorFilterChainStatus;
+import org.apache.sling.engine.impl.filter.ErrorFilterChainThrowable;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
@@ -138,22 +138,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
 
-            FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
-            if (filters != null) {
-                FilterChain processor = new RequestSlingFilterChain(this,
-                    filters);
+            final FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
+            FilterChain processor = new RequestSlingFilterChain(this, filters);
 
-                request.getRequestProgressTracker().log(
-                    "Applying " + FilterChainType.REQUEST + "filters");
+            request.getRequestProgressTracker().log(
+                "Applying " + FilterChainType.REQUEST + "filters");
 
-                processor.doFilter(request, response);
-
-            } else {
-
-                // no filters, directly call resource level filters and servlet
-                processComponent(request, response, FilterChainType.COMPONENT);
-
-            }
+            processor.doFilter(request, response);
 
         } catch ( final SlingHttpServletResponseImpl.WriterAlreadyClosedException wace ) {
             log.error("Writer has already been closed.", wace);
@@ -275,20 +266,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             final FilterChainType filterChainType) throws IOException,
             ServletException {
 
-        FilterHandle filters[] = filterManager.getFilters(filterChainType);
-        if (filters != null) {
+        final FilterHandle filters[] = filterManager.getFilters(filterChainType);
 
-            FilterChain processor = new SlingComponentFilterChain(filters);
-            request.getRequestProgressTracker().log(
-                "Applying " + filterChainType + "filters");
-            processor.doFilter(request, response);
-
-        } else {
-
-            log.debug("service: No Resource level filters, calling servlet");
-            RequestData.service(request, response);
-
-        }
+        FilterChain processor = new SlingComponentFilterChain(filters);
+        request.getRequestProgressTracker().log(
+            "Applying " + filterChainType + "filters");
+        processor.doFilter(request, response);
     }
 
     // ---------- Generic Content Request processor ----------------------------
@@ -344,26 +327,15 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         // the response output stream if reset does not reset this
         response = new ErrorResponseWrapper(response);
 
-        FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        if (filters != null && filters.length > 0) {
-            FilterChain processor = new AbstractSlingFilterChain(filters) {
+        final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
+        FilterChain processor = new ErrorFilterChainStatus(filters, errorHandler, status, message);
+        request.getRequestProgressTracker().log(
+            "Applying " + FilterChainType.ERROR + " filters");
 
-                @Override
-                protected void render(SlingHttpServletRequest request,
-                        SlingHttpServletResponse response) throws IOException {
-                    errorHandler.handleError(status, message, request, response);
-                }
-            };
-            request.getRequestProgressTracker().log(
-                "Applying " + FilterChainType.ERROR + " filters");
-
-            try {
-                processor.doFilter(request, response);
-            } catch (ServletException se) {
-                throw new SlingServletException(se);
-            }
-        } else {
-            errorHandler.handleError(status, message, request, response);
+        try {
+            processor.doFilter(request, response);
+        } catch (ServletException se) {
+            throw new SlingServletException(se);
         }
     }
 
@@ -376,26 +348,15 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         // the response output stream if reset does not reset this
         response = new ErrorResponseWrapper(response);
 
-        FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        if (filters != null && filters.length > 0) {
-            FilterChain processor = new AbstractSlingFilterChain(filters) {
+        final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
+        FilterChain processor = new ErrorFilterChainThrowable(filters, errorHandler, throwable);
+        request.getRequestProgressTracker().log(
+            "Applying " + FilterChainType.ERROR + " filters");
 
-                @Override
-                protected void render(SlingHttpServletRequest request,
-                        SlingHttpServletResponse response) throws IOException {
-                    errorHandler.handleError(throwable, request, response);
-                }
-            };
-            request.getRequestProgressTracker().log(
-                "Applying " + FilterChainType.ERROR + " filters");
-
-            try {
-                processor.doFilter(request, response);
-            } catch (ServletException se) {
-                throw new SlingServletException(se);
-            }
-        } else {
-            errorHandler.handleError(throwable, request, response);
+        try {
+            processor.doFilter(request, response);
+        } catch (ServletException se) {
+            throw new SlingServletException(se);
         }
     }
 

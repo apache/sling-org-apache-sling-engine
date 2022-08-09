@@ -41,7 +41,6 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
-import org.apache.sling.engine.impl.console.RequestHistoryConsolePlugin;
 import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.helper.ClientAbortException;

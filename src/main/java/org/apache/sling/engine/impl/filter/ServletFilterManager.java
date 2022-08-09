@@ -27,7 +27,6 @@ import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 
-import org.apache.sling.commons.osgi.OsgiUtil;
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.console.WebConsoleConfigPrinter;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
@@ -39,6 +38,7 @@ import org.osgi.framework.FrameworkUtil;
 import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.util.converter.Converters;
 import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,7 +104,7 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
 
     private final Map<Long, MBeanReg> mbeanMap = new ConcurrentHashMap<>();
 
-    private volatile ServiceRegistration printerRegistration;
+    private volatile ServiceRegistration<WebConsoleConfigPrinter> printerRegistration;
 
     private static final org.osgi.framework.Filter SERVICE_FILTER;
     static {
@@ -269,51 +269,52 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
             orderObj = reference.getProperty(EngineConstants.FILTER_ORDER);
             if (orderObj != null) {
                 log.warn("Filter service {} is using deprecated property {}. Use {} instead.",
-                        new Object[] { reference, EngineConstants.FILTER_ORDER, Constants.SERVICE_RANKING });
+                        reference, EngineConstants.FILTER_ORDER, Constants.SERVICE_RANKING );
                 // we can use 0 as the default as this will be applied
                 // in the next step anyway if this props contains an
                 // invalid value
-                orderSource = EngineConstants.FILTER_ORDER + "=" + orderObj;
-                orderObj = Integer.valueOf(-1 * OsgiUtil.toInteger(orderObj, 0));
+                orderSource = EngineConstants.FILTER_ORDER.concat("=").concat(orderObj.toString());
+                orderObj = Integer.valueOf(-1 * Converters.standardConverter().convert(orderObj).defaultValue(0).to(Integer.class));
             } else {
                 orderSource = "none";
             }
         } else {
-            orderSource = Constants.SERVICE_RANKING + "=" + orderObj;
+            orderSource = Constants.SERVICE_RANKING.concat("=").concat(orderObj.toString());
         }
         final int order = (orderObj instanceof Integer) ? ((Integer) orderObj).intValue() : 0;
 
         // register by scope
-        String[] scopes = OsgiUtil.toStringArray(reference.getProperty(EngineConstants.SLING_FILTER_SCOPE), null);
-
-        FilterPredicate predicate = new FilterPredicate(reference);
-
-        if (scopes == null) {
-            scopes = OsgiUtil.toStringArray(reference.getProperty(EngineConstants.FILTER_SCOPE), null);
+        Object scopeValue = reference.getProperty(EngineConstants.SLING_FILTER_SCOPE);
+        if ( scopeValue == null ) {
+            scopeValue = reference.getProperty(EngineConstants.FILTER_SCOPE);
             log.warn("Filter service {} is using deprecated property {}. Use {} instead.",
-                    new Object[] { reference, EngineConstants.FILTER_SCOPE, EngineConstants.SLING_FILTER_SCOPE });
+                    reference, EngineConstants.FILTER_SCOPE, EngineConstants.SLING_FILTER_SCOPE );
         }
-        if (scopes != null && scopes.length > 0) {
-            for (String scope : scopes) {
-                scope = scope.toUpperCase();
-                try {
-                    FilterChainType type = FilterChainType.valueOf(scope.toString());
-                    getFilterChain(type).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
+        final String[] scopes = Converters.standardConverter().convert(scopeValue).to(String[].class);
+        final FilterPredicate predicate = new FilterPredicate(reference);
 
-                    if (type == FilterChainType.COMPONENT) {
-                        getFilterChain(FilterChainType.INCLUDE).addFilter(filter, predicate, serviceId, order,
-                                orderSource, mbean);
-                        getFilterChain(FilterChainType.FORWARD).addFilter(filter, predicate, serviceId, order,
-                                orderSource, mbean);
-                    }
+        boolean used = false;
+        for (String scope : scopes) {
+            scope = scope.toUpperCase();
+            try {
+                FilterChainType type = FilterChainType.valueOf(scope.toString());
+                getFilterChain(type).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
 
-                } catch (IllegalArgumentException iae) {
-                    // TODO: log ...
+                if (type == FilterChainType.COMPONENT) {
+                    getFilterChain(FilterChainType.INCLUDE).addFilter(filter, predicate, serviceId, order,
+                            orderSource, mbean);
+                    getFilterChain(FilterChainType.FORWARD).addFilter(filter, predicate, serviceId, order,
+                            orderSource, mbean);
                 }
+
+                used = true;
+            } catch (final IllegalArgumentException iae) {
+                log.warn("Filter service {} has invalid value {} for scope. Value is ignored", reference, scope);
             }
-        } else {
-            log.warn(String.format("A Filter (Service ID %s) has been registered without a %s property.", serviceId,
-                    EngineConstants.SLING_FILTER_SCOPE));
+        } 
+        if ( !used ){
+            log.warn("Filter service {} has been registered without a valid {} property. Using default value.", serviceId,
+                    EngineConstants.SLING_FILTER_SCOPE);
             getFilterChain(FilterChainType.REQUEST).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
         }
 

@@ -35,32 +35,33 @@ public class SlingFilterChainHelper {
 
     private static final FilterHandle[] EMPTY_FILTER_ARRAY = new FilterHandle[0];
 
-    private SortedSet<FilterHandle> filterList;
+    private final SortedSet<FilterHandle> filterList = new TreeSet<FilterHandle>();
 
-    private FilterHandle[] filters = EMPTY_FILTER_ARRAY;
+    private volatile FilterHandle[] filters = EMPTY_FILTER_ARRAY;
 
-    SlingFilterChainHelper() {
-    }
-
-    public synchronized Filter addFilter(final Filter filter,  FilterPredicate pattern,
+    /**
+     * Add a filter
+     * @param filter The filter
+     * @param pattern Optional pattern
+     * @param filterId Id of the filter
+     * @param order The order index
+     * @param orderSource The source for the order
+     * @param mbean MBean
+     * @return
+     */
+    public synchronized void addFilter(final Filter filter,  FilterPredicate pattern,
             final long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
-        if (filterList == null) {
-            filterList = new TreeSet<FilterHandle>();
-        }
-        filterList.add(new FilterHandle(filter, pattern, filterId, order, orderSource, mbean));
-        filters = getFiltersInternal();
-        return filter;
+        this.filterList.add(new FilterHandle(filter, pattern, filterId, order, orderSource, mbean));
+        this.filters = getFiltersInternal();
     }
 
     public synchronized boolean removeFilterById(final long filterId) {
-        if (filterList != null) {
-            for (Iterator<FilterHandle> fi = filterList.iterator(); fi.hasNext();) {
-                FilterHandle test = fi.next();
-                if (test.getFilterId() == filterId) {
-                    fi.remove();
-                    filters = getFiltersInternal();
-                    return true;
-                }
+        for (Iterator<FilterHandle> fi = filterList.iterator(); fi.hasNext();) {
+            final FilterHandle test = fi.next();
+            if (test.getFilterId() == filterId) {
+                fi.remove();
+                this.filters = getFiltersInternal();
+                return true;
             }
         }
 
@@ -69,10 +70,9 @@ public class SlingFilterChainHelper {
     }
 
     /**
-     * Returns the list of <code>Filter</code>s added to this instance
-     * or <code>null</code> if no filters have been added.
-     * This method doesn't need to be synced as it is called from synced methods.
-     *
+     * Returns the list of {@code Filter}s added to this instance.
+     * The array might be empty
+     * This method doesn't need to be synced as the update is atomioc.
      * @return the filters
      */
     public FilterHandle[] getFilters() {
@@ -80,7 +80,7 @@ public class SlingFilterChainHelper {
     }
 
     private FilterHandle[] getFiltersInternal() {
-        if (filterList == null || filterList.isEmpty()) {
+        if (filterList.isEmpty()) {
             return EMPTY_FILTER_ARRAY;
         }
         return filterList.toArray(new FilterHandle[filterList.size()]);

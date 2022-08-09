@@ -34,13 +34,13 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     private final String orderSource;
 
-    private AtomicLong calls;
+    private final AtomicLong calls;
 
-    private AtomicLong time;
+    private final AtomicLong time;
 
-    private FilterPredicate predicate;
+    private final FilterPredicate predicate;
 
-    FilterProcessorMBeanImpl mbean;
+    private final FilterProcessorMBeanImpl mbean;
 
     FilterHandle(Filter filter, FilterPredicate predicate, long filterId, int order, final String orderSource,
             FilterProcessorMBeanImpl mbean) {

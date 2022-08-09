@@ -199,6 +199,6 @@ public class RequestProgressTrackerLogFilter implements Filter {
         // extensions needs to be sorted for Arrays.binarySearch() to work
         this.extensions = sortAndClean(this.configuration.extensions());
         log.debug("activated: extensions = {}, min = {}, max = {}, compact = {}",
-                new Object[]{extensions, configuration.minDurationMs(), configuration.maxDurationMs(), configuration.compactLogFormat()});
+                extensions, configuration.minDurationMs(), configuration.maxDurationMs(), configuration.compactLogFormat());
     }
 }

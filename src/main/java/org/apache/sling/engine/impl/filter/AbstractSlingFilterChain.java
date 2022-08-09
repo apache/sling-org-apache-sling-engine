@@ -41,13 +41,13 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
 
     private long[] times;
 
-    protected AbstractSlingFilterChain(FilterHandle[] filters) {
+    protected AbstractSlingFilterChain(final FilterHandle[] filters) {
         this.filters = filters;
         this.current = -1;
-        this.times = (filters != null) ? new long[filters.length + 1] : null;
+        this.times = new long[filters.length + 1];
     }
 
-    public void doFilter(ServletRequest request, ServletResponse response)
+    public void doFilter(final ServletRequest request, final ServletResponse response)
             throws ServletException, IOException {
 
         final int filterIdx = ++this.current;
