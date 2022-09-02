@@ -18,13 +18,31 @@
  */
 package org.apache.sling.engine;
 
+import org.osgi.annotation.versioning.ProviderType;
+
 /**
   * This service can be used to gather information about requests processed by the
   * engine.
   *
   * @since 2.5
   */
- public interface RequestInfoProvider {
+@ProviderType
+public interface RequestInfoProvider {
+
+    /**
+     * Is recording of requests enabled?
+     * @return {@code true} if enabled, {@code} false} otherwise
+     * @since 2.6
+     */
+    boolean isEnabled();
+
+    /**
+     * Is recording of requests for this path enabled?
+     * @param path The path
+     * @return {@code true} if enabled, {@code} false} otherwise
+     * @since 2.6
+     */
+    boolean isEnabledFor(String path);
 
     /**
      * Get the request info for the id
@@ -42,8 +60,17 @@ package org.apache.sling.engine;
     /**
      * Get the maximum number of provided infos
      * @return The maximum number, {@code 0} if no infos are recorded
+     * @deprecated Use {@link #getMaxNumberOfInfos()}
      */
+    @Deprecated
     int getMayNumberOfInfos();
+
+    /**
+     * Get the maximum number of provided infos
+     * @return The maximum number, {@code 0} if no infos are recorded
+     * @since 2.6
+     */
+    int getMaxNumberOfInfos();
 
     /**
      * Clear all request infos

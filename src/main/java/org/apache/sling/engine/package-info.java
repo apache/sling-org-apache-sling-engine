@@ -17,6 +17,6 @@
  * under the License.
  */
 
-@org.osgi.annotation.versioning.Version("2.5.0")
+@org.osgi.annotation.versioning.Version("2.6.0")
 package org.apache.sling.engine;
 

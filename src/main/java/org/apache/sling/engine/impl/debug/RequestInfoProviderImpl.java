@@ -100,31 +100,44 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
 
     private void addRequest(final SlingHttpServletRequest r) {
         final ConcurrentNavigableMap<String, RequestInfo> local = requests;
-        if (local != null) {
-            final String requestPath = r.getPathInfo();
-            final List<Pattern> patterns = this.patterns;
-            boolean accept = patterns.isEmpty();
-            for (Pattern pattern : patterns) {
-                if (pattern.matcher(requestPath).matches()) {
-                    accept = true;
-                    break;
+        if (local != null && isEnabledFor(r.getPathInfo())) {
+            final RequestInfo info = new RequestInfoImpl(r);
+            synchronized (local) {
+                if ( local.size() == this.maxSize ) {
+                    local.remove(local.firstKey());
                 }
-            }
-
-            if (accept) {
-                final RequestInfo info = new RequestInfoImpl(r);
-                synchronized (local) {
-                    if ( local.size() == this.maxSize ) {
-                        local.remove(local.firstKey());
-                    }
-                    local.put(info.getId(), info);
-                }
+                local.put(info.getId(), info);
             }
         }
     }
 
     @Override
+    public boolean isEnabled() {
+        return this.requests != null;
+    }
+
+    @Override
+    public boolean isEnabledFor(final String path) {
+        if ( this.requests != null ) {
+            boolean accept = patterns.isEmpty();
+            for (Pattern pattern : patterns) {
+                if (pattern.matcher(path).matches()) {
+                    accept = true;
+                    break;
+                }
+            }
+            return accept;
+        }
+        return false;
+    }
+
+    @Override
     public int getMayNumberOfInfos() {
+        return this.getMaxNumberOfInfos();
+    }
+
+    @Override
+    public int getMaxNumberOfInfos() {
         return this.maxSize;
     }
 

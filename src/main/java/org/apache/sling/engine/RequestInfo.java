@@ -20,12 +20,14 @@ package org.apache.sling.engine;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import org.osgi.annotation.versioning.ProviderType;
 
 /**
  * Information about a single request.
  * @see RequestInfoProvider
  * @since 2.5
  */
+@ProviderType
 public interface RequestInfo {
     
     /**
