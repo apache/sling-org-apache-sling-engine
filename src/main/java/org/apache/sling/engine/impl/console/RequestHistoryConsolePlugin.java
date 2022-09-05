@@ -129,9 +129,9 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
 
         final PrintWriter pw = resp.getWriter();
 
-        if (this.infoProvider.getMayNumberOfInfos() > 0) {
+        if (this.infoProvider.isEnabled()) {
             pw.println("<p class='statline ui-state-highlight'>Recorded "
-                    + values.size() + " requests (max: " + this.infoProvider.getMayNumberOfInfos() + ")</p>");
+                    + values.size() + " requests (max: " + this.infoProvider.getMaxNumberOfInfos() + ")</p>");
         } else {
             pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
         }
