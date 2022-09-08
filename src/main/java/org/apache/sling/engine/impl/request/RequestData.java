@@ -503,9 +503,6 @@ public class RequestData {
         // unwrap to SlingHttpServletResponse
         SlingHttpServletResponse cResponse = unwrap(response);
 
-        // check type of response, don't care actually for the response itself
-        RequestData.unwrap(cResponse);
-
         // if the servlet response is actually the SlingHttpServletResponse, we
         // are done
         if (cResponse == response) {
