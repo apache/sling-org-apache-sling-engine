@@ -47,7 +47,6 @@ public class SlingFilterChainHelper {
      * @param order The order index
      * @param orderSource The source for the order
      * @param mbean MBean
-     * @return
      */
     public synchronized void addFilter(final Filter filter,  FilterPredicate pattern,
             final long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
