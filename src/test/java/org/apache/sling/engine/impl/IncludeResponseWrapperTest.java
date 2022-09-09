@@ -24,7 +24,6 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.impl.IncludeResponseWrapper;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -33,7 +32,7 @@ public class IncludeResponseWrapperTest {
     @Test public void testReset() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final HttpServletResponse include = new IncludeResponseWrapper(orig);
-        
+
         Mockito.when(orig.isCommitted()).thenReturn(false);
         include.reset();
         Mockito.verify(orig, times(1)).isCommitted();

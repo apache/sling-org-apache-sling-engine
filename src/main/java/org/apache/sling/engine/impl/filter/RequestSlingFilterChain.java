@@ -24,7 +24,6 @@ import javax.servlet.ServletException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.impl.SlingMainServlet;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 
@@ -43,6 +42,7 @@ public class RequestSlingFilterChain extends AbstractSlingFilterChain {
         this.handler = handler;
     }
 
+    @Override
     protected void render(SlingHttpServletRequest request,
             SlingHttpServletResponse response) throws ServletException,
             IOException {
