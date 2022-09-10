@@ -117,41 +117,54 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     public void doProcessRequest(final HttpServletRequest servletRequest,
             final HttpServletResponse servletResponse,
             final ResourceResolver resourceResolver) throws IOException {
+        final ServletResolver sr = this.servletResolver;
+
+        // check that we have all required services
+        if (resourceResolver == null || sr == null) {
+            // Dependencies are missing
+            // In this case we must not use the Sling error handling infrastructure but
+            // just return a 503 status response handled by the servlet container environment
+
+            final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+            String errorMessage = "Required service missing (";
+            if ( resourceResolver == null ) {
+                errorMessage = errorMessage.concat("ResourceResolver");
+                if ( sr == null ) {
+                    errorMessage = errorMessage.concat(", ");
+                }
+            }
+            if ( sr == null ) {
+                errorMessage = errorMessage.concat("ServletResolver");
+            }
+            log.debug("{}), cannot service requests, sending status {}", errorMessage, status);
+            servletResponse.sendError(status, errorMessage);
+            return;
+        }
 
         // setting the Sling request and response
-        final RequestData requestData = new RequestData(this, servletRequest,
-            servletResponse);
+        final RequestData requestData = new RequestData(this, servletRequest, servletResponse);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
         try {
-            final ServletResolver sr = this.servletResolver;
-
-            // check that we have all required services
-            if (resourceResolver == null) {
-                throw new UnavailableException("ResourceResolver");
-            } else if (sr == null) {
-                throw new UnavailableException("ServletResolver");
-            }
-
             // initialize the request data - resolve resource and servlet
-            Resource resource = requestData.initResource(resourceResolver);
+            final Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
 
             final FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
-            FilterChain processor = new RequestSlingFilterChain(this, filters);
+            final FilterChain processor = new RequestSlingFilterChain(this, filters);
 
-            request.getRequestProgressTracker().log(
-                "Applying " + FilterChainType.REQUEST + "filters");
+            request.getRequestProgressTracker().log("Applying ".concat(FilterChainType.REQUEST.name()).concat("filters"));
 
             processor.doFilter(request, response);
 
         } catch ( final SlingHttpServletResponseImpl.WriterAlreadyClosedException wace ) {
+            // this is an exception case, log as error
             log.error("Writer has already been closed.", wace);
-        } catch (ResourceNotFoundException rnfe) {
 
+        } catch (final ResourceNotFoundException rnfe) {
             // send this exception as a 404 status
-            log.info("service: Resource {} not found", rnfe.getResource());
+            log.debug("service: Resource {} not found", rnfe.getResource());
 
             handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(),
                 request, response);
@@ -171,38 +184,24 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             while ( t instanceof SlingException && t.getCause() != null ) {
                 t = t.getCause();
             }
-            log.error("service: Uncaught SlingException", t);
+            log.error("service: Uncaught SlingException ", t);
             handleError(t, request, response);
 
-        } catch (AccessControlException ace) {
+        } catch (final AccessControlException ace) {
 
             // SLING-319 if anything goes wrong, send 403/FORBIDDEN
-            log.info(
+            log.debug(
                 "service: Authenticated user {} does not have enough rights to executed requested action",
                 request.getRemoteUser());
             handleError(HttpServletResponse.SC_FORBIDDEN, null, request,
                 response);
 
-        } catch (UnavailableException ue) {
-
-            // exception is thrown before the SlingHttpServletRequest/Response
-            // is properly set up due to missing dependencies. In this case
-            // we must not use the Sling error handling infrastructure but
-            // just return a 503 status response handled by the servlet
-            // container environment
-
-            final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
-            final String errorMessage = ue.getMessage()
-                + " service missing, cannot service requests";
-            log.error("{} , sending status {}", errorMessage, status);
-            servletResponse.sendError(status, errorMessage);
-
-        } catch (IOException ioe) {
+        } catch (final IOException ioe) {
 
             // forward IOException up the call chain to properly handle it
             throw ioe;
 
-        } catch (Throwable t) {
+        } catch (final Throwable t) {
 
             // if we have request data and a non-null active servlet name
             // we assume, that this is the name of the causing servlet
