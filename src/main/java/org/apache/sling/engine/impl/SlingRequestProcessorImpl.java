@@ -26,13 +26,14 @@ import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
 import java.security.AccessControlException;
+import java.util.ArrayList;
 
 import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import javax.servlet.UnavailableException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
@@ -40,6 +41,7 @@ import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingServletException;
+import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceNotFoundException;
@@ -54,61 +56,88 @@ import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
+import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.servlets.ErrorHandler;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Deactivate;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+@Component(service = {SlingRequestProcessor.class, SlingRequestProcessorImpl.class},
+    configurationPid = SlingMainServlet.PID)
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingRequestProcessorImpl.class);
 
-    // used fields ....
+    @Reference
+    private ServletResolver servletResolver;
+
+    @Reference
+    private ServletFilterManager filterManager;
+
+    @Reference
+    private RequestProcessorMBeanImpl mbean;
+
+    @Reference(target = SlingServletContext.TARGET)
+    private ServletContext slingServletContext;
 
     private final DefaultErrorHandler errorHandler = new DefaultErrorHandler();
 
-    private volatile ServletResolver servletResolver;
-
-    private volatile ServletFilterManager filterManager;
-
-    private volatile RequestProcessorMBeanImpl mbean;
-
-    // ---------- helper setters
-
-    void setServerInfo(final String serverInfo) {
-        errorHandler.setServerInfo(serverInfo);
+    @Activate
+    public void activate(final SlingMainServlet.Config config) {
+        this.errorHandler.setServerInfo(this.slingServletContext.getServerInfo());
+        this.modified(config);
     }
 
-    void setErrorHandler(final ErrorHandler eh) {
-        errorHandler.setDelegate(eh);
-    }
-
-    void unsetErrorHandler(final ErrorHandler eh) {
-        if (errorHandler.getDelegate() == eh) {
-            errorHandler.setDelegate(null);
+    @Modified
+    public void modified(final SlingMainServlet.Config config) {
+        final ArrayList<StaticResponseHeader> mappings = new ArrayList<>();
+        final String[] props = config.sling_additional_response_headers();
+        if ( props != null ) {
+            for (final String prop : props) {
+                if (prop != null && prop.trim().length() > 0 ) {
+                    try {
+                        final StaticResponseHeader mapping = new StaticResponseHeader(prop.trim());
+                        mappings.add(mapping);
+                    } catch (final IllegalArgumentException iae) {
+                        log.info("configure: Ignoring '{}': {}", prop, iae.getMessage());
+                    }
+                }
+            }
         }
+        RequestData.setAdditionalResponseHeaders(mappings);
+
+        // configure the request limits
+        RequestData.setMaxIncludeCounter(config.sling_max_inclusions());
+        RequestData.setMaxCallCounter(config.sling_max_calls());
     }
 
-    void setServletResolver(final ServletResolver servletResolver) {
-        this.servletResolver = servletResolver;
+    @Reference(name = "ErrorHandler", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetErrorHandler")
+    void setErrorHandler(final ErrorHandler errorHandler) {
+        this.errorHandler.setDelegate(errorHandler);
     }
 
-    void unsetServletResolver(final ServletResolver servletResolver) {
-        if (this.servletResolver == servletResolver) {
-            this.servletResolver = null;
-        }
+    void unsetErrorHandler(final ErrorHandler errorHandler) {
+        this.errorHandler.setDelegate(null);
     }
 
-    void setFilterManager(final ServletFilterManager filterManager) {
-        this.filterManager = filterManager;
+    @Reference(name = "AdapterManager", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetAdapterManager")
+    void setAdapterManager(final AdapterManager manager) {
+        RequestData.setAdapterManager(manager);
     }
 
-    void setMBean(final RequestProcessorMBeanImpl mbean) {
-        this.mbean = mbean;
+    void unsetAdapterManager(final AdapterManager manager) {
+        RequestData.setAdapterManager(null);
     }
 
     /**

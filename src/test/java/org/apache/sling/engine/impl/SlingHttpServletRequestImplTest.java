@@ -43,7 +43,7 @@ public class SlingHttpServletRequestImplTest {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
-            one(servletRequest).getServletPath();
+            oneOf(servletRequest).getServletPath();
             will(returnValue("/path"));
             allowing(servletRequest).getPathInfo();
             will(returnValue("/path"));
@@ -70,7 +70,7 @@ public class SlingHttpServletRequestImplTest {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
-            one(servletRequest).getServletPath();
+            oneOf(servletRequest).getServletPath();
             will(returnValue("/path"));
             allowing(servletRequest).getPathInfo();
             will(returnValue("/path"));
@@ -97,7 +97,7 @@ public class SlingHttpServletRequestImplTest {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
-            one(servletRequest).getServletPath();
+            oneOf(servletRequest).getServletPath();
             will(returnValue("/path"));
             allowing(servletRequest).getPathInfo();
             will(returnValue("/path"));

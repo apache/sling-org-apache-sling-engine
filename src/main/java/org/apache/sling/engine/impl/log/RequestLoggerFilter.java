@@ -29,7 +29,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.sling.engine.impl.SlingMainServlet;
+import org.apache.sling.engine.impl.SlingHttpContext;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
@@ -44,7 +44,7 @@ import org.slf4j.LoggerFactory;
 
 @Component(service = Filter.class)
 @HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
-        + SlingMainServlet.SERVLET_CONTEXT_NAME + ")")
+        + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
 @HttpWhiteboardFilterPattern("/")
 @ServiceRanking(32768)
 @ServiceDescription("Request Logger Filter")

@@ -28,24 +28,33 @@ import java.util.EventListener;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterRegistration;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
 import javax.servlet.ServletRegistration;
 import javax.servlet.ServletRegistration.Dynamic;
 import javax.servlet.SessionCookieConfig;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.descriptor.JspConfigDescriptor;
 
+import org.apache.sling.engine.impl.ProductInfoProvider;
+import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.SlingMainServlet;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
 import org.osgi.framework.BundleContext;
-import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Modified;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelect;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,64 +87,138 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This class implements the Servlet API 3.0 {@code ServletContext} interface.
  */
-public class SlingServletContext implements ServletContext {
+@Component(service = ServletContextListener.class,
+    configurationPid = SlingMainServlet.PID)
+@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+@HttpWhiteboardListener
+public class SlingServletContext implements ServletContext, ServletContextListener {
+
+    public static final String TARGET = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")";
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    /** The {@link SlingMainServlet} to which some calls are delegated */
-    private final SlingMainServlet slingMainServlet;
+    private final ProductInfoProvider productInfoProvider;
+
+    private final BundleContext bundleContext;
 
     /**
-     * The service registration of this service as ServletContext
-     * @see #SlingServletContext(BundleContext, SlingMainServlet)
-     * @see #dispose()
+     * The server information to report in the {@link #getServerInfo()} method.
+     * By default this is just the {@link #PRODUCT_NAME} (same as
+     * {@link #productInfo}. During {@link #activate(BundleContext, Map, Config)}
+     * activation} the field is updated with the full {@link #productInfo} value
+     * as well as the operating system and java version it is running on.
+     * Finally during servlet initialization the product information from the
+     * servlet container's server info is added to the comment section.
      */
-    private AtomicReference<ServiceRegistration<ServletContext>> registration = new AtomicReference<>();
+    private volatile String serverInfo;
 
-    /**
-     * Creates an instance of this class delegating some methods to the given
-     * {@link SlingMainServlet}. In addition the new instance is registered as
-     * a<code>ServletContext</code>.
-     * <p>
-     * This method must only be called <b>after</b> the sling main servlet
-     * has been fully initialized. Otherwise the {@link #getServletContext()}
-     * method may cause a {@link NullPointerException} !
-     * @see #dispose()
-     *
-     * @param bundleContext the OSGi Bundle Context
-     * @param slingMainServlet the main servlet
-     */
-    public SlingServletContext(final BundleContext bundleContext,
-            final SlingMainServlet slingMainServlet) {
-        this.slingMainServlet = slingMainServlet;
+    private volatile String configuredServerInfo;
+
+    private volatile ServletContext servletContext;
+
+    private volatile ServiceRegistration<ServletContext> registration;
+
+    @Activate
+    public SlingServletContext(final SlingMainServlet.Config config, 
+        final BundleContext bundleContext,
+        @Reference final ProductInfoProvider infoProvider) {
+        this.bundleContext = bundleContext;
+        this.productInfoProvider = infoProvider;
+        this.setup(config);
     }
 
-    public void register(BundleContext bundleContext) {
-        Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put(Constants.SERVICE_DESCRIPTION, "Apache Sling ServletContext");
-        props.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
-        props.put("name", SlingMainServlet.SERVLET_CONTEXT_NAME); // property to identify this context
-        registration.set(bundleContext.registerService(
-                ServletContext.class, this, props));
+    @Modified
+    protected void modified(final SlingMainServlet.Config config) {
+        setup(config);
+    }
+
+    private void setup(final SlingMainServlet.Config config) {
+        if (config.sling_serverinfo() != null && !config.sling_serverinfo().isEmpty()) {
+            this.configuredServerInfo = config.sling_serverinfo();
+        } else {
+            this.configuredServerInfo = null;
+        }
+
+        this.setServerInfo();
     }
 
     /**
-     * Unregisters this servlet context as a service (if registered at all)
+     * Sets up the server info to be returned for the
+     * <code>ServletContext.getServerInfo()</code> method for servlets and
+     * filters deployed inside Sling. The {@link SlingRequestProcessor} instance
+     * is also updated with the server information.
      * <p>
-     * This method must be called <b>before</b> the sling main servlet
-     * is destroyed. Otherwise the {@link #getServletContext()} method may
-     * cause a {@link NullPointerException} !
-     * @see #SlingServletContext(BundleContext, SlingMainServlet)
+     * This server info is either configured through an OSGi configuration or
+     * it is made up of the following components:
+     * <ol>
+     * <li>The {@link #productInfo} field as the primary product information</li>
+     * <li>The primary product information of the servlet container into which
+     * the Sling Main Servlet is deployed. If the servlet has not yet been
+     * deployed this will show as <i>unregistered</i>. If the servlet container
+     * does not provide a server info this will show as <i>unknown</i>.</li>
+     * <li>The name and version of the Java VM as reported by the
+     * <code>java.vm.name</code> and <code>java.vm.version</code> system
+     * properties</li>
+     * <li>The name, version, and architecture of the OS platform as reported by
+     * the <code>os.name</code>, <code>os.version</code>, and
+     * <code>os.arch</code> system properties</li>
+     * </ol>
      */
-    public void dispose() {
-        ServiceRegistration<ServletContext> localRegistration = registration.getAndSet(null);
-        if (localRegistration != null) {
-            localRegistration.unregister();
+    private void setServerInfo() {
+        if ( this.configuredServerInfo != null ) {
+            this.serverInfo = this.configuredServerInfo;
+        } else {
+            final String containerProductInfo;
+            if (getServletContext() == null) {
+                containerProductInfo = "unregistered";
+            } else {
+                final String containerInfo = getServletContext().getServerInfo();
+                if (containerInfo != null && containerInfo.length() > 0) {
+                    int lbrace = containerInfo.indexOf('(');
+                    if (lbrace < 0) {
+                        lbrace = containerInfo.length();
+                    }
+                    containerProductInfo = containerInfo.substring(0, lbrace).trim();
+                } else {
+                    containerProductInfo = "unknown";
+                }
+            }
+
+            this.serverInfo = String.format("%s (%s, %s %s, %s %s %s)",
+                this.productInfoProvider.getProductInfo(), containerProductInfo,
+                System.getProperty("java.vm.name"),
+                System.getProperty("java.version"), System.getProperty("os.name"),
+                System.getProperty("os.version"), System.getProperty("os.arch"));
         }
     }
 
-    // ---------- Web App configuration ----------------------------------------
+    @Override
+    public void contextDestroyed(final ServletContextEvent sce) {
+        this.servletContext = null;
+        this.setServerInfo();
+        if ( this.registration != null ) {
+            this.registration.unregister();
+            this.registration = null;    
+        }
+    }
+
+    @Override
+    public void contextInitialized(final ServletContextEvent sce) {
+        this.servletContext = sce.getServletContext();
+        this.setServerInfo();
+        // async registreation
+        final Thread thread = new Thread("SlingServletContext registration") {
+            @Override
+            public void run() {
+                final Dictionary<String, Object> props = new Hashtable<String, Object>();
+                props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
+                registration = bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);
+            }
+        };
+        thread.setDaemon(true);
+        thread.start();
+    }
 
     /**
      * Returns the name of the servlet context in which Sling is configured.
@@ -259,7 +342,7 @@ public class SlingServletContext implements ServletContext {
      */
     @Override
     public String getServerInfo() {
-        return slingMainServlet.getServerInfo();
+        return this.serverInfo;
     }
 
     /**
@@ -657,6 +740,12 @@ public class SlingServletContext implements ServletContext {
         throw new IllegalStateException();
     }
 
+
+    @Override
+    public String getVirtualServerName() {
+        return getServletContext().getVirtualServerName();
+    }
+
     // ---------- internal -----------------------------------------------------
 
     /**
@@ -666,15 +755,10 @@ public class SlingServletContext implements ServletContext {
      * @return the servlet context
      */
     protected ServletContext getServletContext() {
-        return slingMainServlet.getServletContext();
+        return this.servletContext;
     }
 
-    protected ServletContext wrapServletContext(ServletContext context) {
+    protected ServletContext wrapServletContext(final ServletContext context) {
         return new ExternalServletContextWrapper(context);
-    }
-
-    @Override
-    public String getVirtualServerName() {
-        return getServletContext().getVirtualServerName();
     }
 }

@@ -25,25 +25,27 @@ import java.util.concurrent.ConcurrentHashMap;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 
 import org.apache.sling.engine.EngineConstants;
-import org.apache.sling.engine.impl.console.WebConsoleConfigPrinter;
+import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
-import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.jmx.FilterProcessorMBean;
-import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
-import org.osgi.framework.FrameworkUtil;
-import org.osgi.framework.InvalidSyntaxException;
 import org.osgi.framework.ServiceReference;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.util.converter.Converters;
-import org.osgi.util.tracker.ServiceTracker;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
+@Component(service = ServletFilterManager.class)
+public class ServletFilterManager {
 
     private static final String JMX_OBJECTNAME = "jmx.objectname";
 
@@ -98,51 +100,19 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final SlingServletContext servletContext;
+    private final ServletContext servletContext;
 
     private final SlingFilterChainHelper[] filterChains;
 
     private final Map<Long, MBeanReg> mbeanMap = new ConcurrentHashMap<>();
 
-    private volatile ServiceRegistration<WebConsoleConfigPrinter> printerRegistration;
-
-    private static final org.osgi.framework.Filter SERVICE_FILTER;
-    static {
-        org.osgi.framework.Filter f = null;
-        try {
-            f = FrameworkUtil.createFilter("(&(" + Constants.OBJECTCLASS + "=" + Filter.class.getName()
-                    + ")(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*)))");
-        } catch (InvalidSyntaxException e) {
-            // we ignore this here as the above is a constant expression
-        }
-        SERVICE_FILTER = f;
-    }
-
-    public ServletFilterManager(final BundleContext context,
-            final SlingServletContext servletContext) {
-        super(context, SERVICE_FILTER, null);
+    @Activate
+    public ServletFilterManager(@Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")") final ServletContext servletContext) {
         this.servletContext = servletContext;
         this.filterChains = new SlingFilterChainHelper[FilterChainType.values().length];
         for (final FilterChainType type : FilterChainType.values()) {
             this.filterChains[type.ordinal()] = new SlingFilterChainHelper();
         }
-    }
-
-    @Override
-    public void open() {
-        super.open();
-        // Setup configuration printer
-        printerRegistration = WebConsoleConfigPrinter.register(context, this);
-
-    }
-
-    @Override
-    public void close() {
-        if (this.printerRegistration != null) {
-            WebConsoleConfigPrinter.unregister(this.printerRegistration);
-            this.printerRegistration = null;
-        }
-        super.close();
     }
 
     public SlingFilterChainHelper getFilterChain(final FilterChainType chain) {
@@ -153,17 +123,16 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
         return getFilterChain(chain).getFilters();
     }
 
-    @Override
-    public Filter addingService(ServiceReference<Filter> reference) {
-        Filter service = super.addingService(reference);
-        if (service != null) {
-            initFilter(reference, service);
-        }
-        return service;
+    @Reference(service = Filter.class,
+        updated = "updatedFilter",
+        policy = ReferencePolicy.DYNAMIC,
+        cardinality = ReferenceCardinality.MULTIPLE,
+        target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
+    public void bindFilter(final ServiceReference<Filter> reference, final Filter filter) {
+        initFilter(reference, filter);
     }
 
-    @Override
-    public void modifiedService(ServiceReference<Filter> reference, Filter service) {
+    public void updatedFilter(final ServiceReference<Filter> reference, final Filter service) {
         // only if the filter name has changed, we need to do a service re-registration
         final String newFilterName = SlingFilterConfig.getName(reference);
         if (newFilterName.equals(getUsedFilterName(reference))) {
@@ -175,12 +144,8 @@ public class ServletFilterManager extends ServiceTracker<Filter, Filter> {
         }
     }
 
-    @Override
-    public void removedService(ServiceReference<Filter> reference, Filter service) {
-        if ( service != null ) {
-            destroyFilter(reference, service);
-            super.removedService(reference, service);
-        }
+    public void unbindFilter(final ServiceReference<Filter> reference, final Filter service) {
+        destroyFilter(reference, service);
     }
 
     private void initFilter(final ServiceReference<Filter> reference,

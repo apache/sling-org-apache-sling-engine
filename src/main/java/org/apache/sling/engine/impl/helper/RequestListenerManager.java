@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
-import org.apache.sling.engine.impl.SlingMainServlet;
+import org.apache.sling.engine.impl.SlingHttpContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.FieldOption;
@@ -50,7 +50,7 @@ public class RequestListenerManager  {
     private volatile List<SlingRequestListener> listeners;
 
     @Activate
-    public RequestListenerManager(@Reference(target = "(name=" + SlingMainServlet.SERVLET_CONTEXT_NAME
+    public RequestListenerManager(@Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME
             + ")") final ServletContext servletContext) {
 		this.servletContext = servletContext;
 	}

@@ -47,8 +47,13 @@ import org.slf4j.LoggerFactory;
  */
 @RequireHttpWhiteboard
 @Component(service = ServletContextHelper.class)
-@HttpWhiteboardContext(name = SlingMainServlet.SERVLET_CONTEXT_NAME, path = "/")
+@HttpWhiteboardContext(name = SlingHttpContext.SERVLET_CONTEXT_NAME, path = "/")
 public class SlingHttpContext extends ServletContextHelper {
+
+    /**
+     * The name of the servlet context for Sling
+     */
+    public static final String SERVLET_CONTEXT_NAME = "org.apache.sling";
 
     /** Logger */
     private final Logger log = LoggerFactory.getLogger(SlingHttpContext.class);

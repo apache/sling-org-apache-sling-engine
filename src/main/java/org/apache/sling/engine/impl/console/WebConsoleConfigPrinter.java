@@ -28,41 +28,28 @@ import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
 
 /**
  * This is a configuration printer for the web console which
  * prints out the currently configured filter chains.
  *
  */
+@Component(service = WebConsoleConfigPrinter.class,
+    property = {
+        "felix.webconsole.label=slingfilter",
+        "felix.webconsole.title=Sling Servlet Filter",
+        "felix.webconsole.configprinter.modes=always"
+    })
 public class WebConsoleConfigPrinter {
 
     private final ServletFilterManager filterManager;
 
-    public WebConsoleConfigPrinter(final ServletFilterManager filterManager) {
+    @Activate
+    public WebConsoleConfigPrinter(@Reference final ServletFilterManager filterManager) {
         this.filterManager = filterManager;
-    }
-
-    public static ServiceRegistration<WebConsoleConfigPrinter> register(final BundleContext bundleContext,
-            final ServletFilterManager filterManager) {
-        // first we register the plugin for the filters
-        final WebConsoleConfigPrinter filterPrinter = new WebConsoleConfigPrinter(filterManager);
-        final Dictionary<String, String> serviceProps = new Hashtable<String, String>();
-        serviceProps.put(Constants.SERVICE_DESCRIPTION,
-            "Apache Sling Servlet Filter Configuration Printer");
-        serviceProps.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
-        serviceProps.put("felix.webconsole.label", "slingfilter");
-        serviceProps.put("felix.webconsole.title", "Sling Servlet Filter");
-        serviceProps.put("felix.webconsole.configprinter.modes", "always");
-
-        return bundleContext.registerService(WebConsoleConfigPrinter.class,
-                filterPrinter,
-                serviceProps);
-    }
-
-    public static void unregister(final ServiceRegistration<WebConsoleConfigPrinter> reg) {
-        if (reg != null) {
-            reg.unregister();
-        }
     }
 
     /**

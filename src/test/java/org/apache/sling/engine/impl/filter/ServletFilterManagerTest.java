@@ -18,43 +18,55 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import org.apache.commons.lang3.ArrayUtils;
-import org.apache.sling.engine.EngineConstants;
-import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
-import org.apache.sling.testing.mock.osgi.context.ContextCallback;
-import org.apache.sling.testing.mock.osgi.context.OsgiContextImpl;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
-import org.apache.sling.testing.mock.osgi.junit.OsgiContextBuilder;
-import org.junit.Rule;
-import org.junit.Test;
-import org.osgi.framework.BundleContext;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
+import java.io.IOException;
+import java.util.Hashtable;
 
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
-import java.io.IOException;
-import java.util.Hashtable;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import org.apache.commons.lang3.ArrayUtils;
+import org.apache.sling.engine.EngineConstants;
+import org.apache.sling.engine.impl.ProductInfoProvider;
+import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
+import org.apache.sling.engine.impl.helper.SlingServletContext;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.mockito.Mockito;
+import org.osgi.framework.BundleContext;
 
 public class ServletFilterManagerTest {
 
     @Rule
-    public OsgiContext osgiContext = new OsgiContextBuilder()
-            .afterSetUp(new ContextCallback<OsgiContextImpl>() {
-                @Override
-                public void execute(OsgiContextImpl context) throws Exception {
-                    servletFilterManager = new ServletFilterManager(context.bundleContext(), null);
-                    servletFilterManager.open();
-                }
-            })
-            .build();
+    public final OsgiContext osgiContext = new OsgiContext();
 
     private ServletFilterManager servletFilterManager;
+
+    @Before
+    public void setup() {
+        osgiContext.registerInjectActivateService(ProductInfoProvider.class);
+        SlingServletContext context = osgiContext.registerInjectActivateService(SlingServletContext.class);
+        final ServletContextEvent sce = new ServletContextEvent(Mockito.mock(ServletContext.class));
+        context.contextInitialized(sce);
+        // servlet context is registered async
+        while ( osgiContext.getService(ServletContext.class) == null ) {
+            try {
+                Thread.sleep(10);
+            } catch (InterruptedException e) {
+            }    
+        }
+        this.servletFilterManager = osgiContext.registerInjectActivateService(ServletFilterManager.class);
+    }
 
     @Test
     public void registerFilterWithMultipleScopes() throws Exception {

@@ -45,7 +45,7 @@ public class DefaultErrorHandler implements ErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private volatile String serverInfo = SlingMainServlet.PRODUCT_NAME;
+    private volatile String serverInfo = ProductInfoProvider.PRODUCT_NAME;
 
     /** Use this if not null, and if that fails output a report about that failure */
     private ErrorHandler delegate;
@@ -53,7 +53,7 @@ public class DefaultErrorHandler implements ErrorHandler {
     void setServerInfo(final String serverInfo) {
         this.serverInfo = (serverInfo != null)
                 ? serverInfo
-                : SlingMainServlet.PRODUCT_NAME;
+                : ProductInfoProvider.PRODUCT_NAME;
     }
 
     public void setDelegate(ErrorHandler eh) {

@@ -41,6 +41,7 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.request.RecursionTooDeepException;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -121,9 +122,7 @@ public class RequestData {
      */
     private static String REQUEST_MAX_CALL_OVERRIDE = "sling.max.calls";
 
-    private static volatile SlingMainServlet SLING_MAIN_SERVLET;
-
-    private static volatile SlingHttpServletRequestFactory REQUEST_FACTORY;
+    private static volatile AdapterManager ADAPTER_MANAGER;
 
     private static volatile ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
 
@@ -203,9 +202,8 @@ public class RequestData {
         return maxInclusionCounter;
     }
 
-    public static void setSlingMainServlet(final SlingMainServlet slingMainServlet) {
-        RequestData.SLING_MAIN_SERVLET = slingMainServlet;
-        RequestData.REQUEST_FACTORY = null;
+    public static void setAdapterManager(final AdapterManager manager) {
+        RequestData.ADAPTER_MANAGER = manager;
     }
 
     public static void setAdditionalResponseHeaders(ArrayList<StaticResponseHeader> mappings){
@@ -225,9 +223,9 @@ public class RequestData {
         this.servletRequest = request;
         this.servletResponse = response;
 
-        this.slingRequest = getSlingHttpServletRequestFactory().createRequest(this, this.servletRequest);
-        this.slingResponse = new SlingHttpServletResponseImpl(this,
-            servletResponse);
+        this.slingRequest = new SlingHttpServletRequestImpl(this, this.servletRequest);
+
+        this.slingResponse = new SlingHttpServletResponseImpl(this, this.servletResponse);
 
         // Use tracker from SlingHttpServletRequest
         if ( request instanceof SlingHttpServletRequest ) {
@@ -705,7 +703,13 @@ public class RequestData {
     }
 
     public <Type> Type adaptTo(Object object, Class<Type> type) {
-        return SLING_MAIN_SERVLET.adaptTo(object, type);
+        final AdapterManager adapterManager = ADAPTER_MANAGER;
+        if (adapterManager != null) {
+            return adapterManager.getAdapter(object, type);
+        }
+
+        // no adapter manager, nothing to adapt to
+        return null;
     }
 
     // ---------- Parameter support -------------------------------------------
@@ -739,26 +743,6 @@ public class RequestData {
         }
 
         return parameterSupport;
-    }
-
-    // SlingHttpServletRequest instance factory
-
-    private static SlingHttpServletRequestFactory getSlingHttpServletRequestFactory() {
-        SlingHttpServletRequestFactory factory = RequestData.REQUEST_FACTORY;
-        if (factory == null) {
-            factory = new SlingHttpServletRequestFactory() {
-                @Override
-                public SlingHttpServletRequest createRequest(RequestData requestData, HttpServletRequest request) {
-                    return new SlingHttpServletRequestImpl(requestData, request);
-                }
-            };
-            RequestData.REQUEST_FACTORY = factory;
-        }
-        return factory;
-    }
-
-    private static interface SlingHttpServletRequestFactory {
-        SlingHttpServletRequest createRequest(RequestData requestData, HttpServletRequest request);
     }
 
     /*

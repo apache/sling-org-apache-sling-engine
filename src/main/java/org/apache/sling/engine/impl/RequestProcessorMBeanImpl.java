@@ -23,16 +23,21 @@ import javax.management.StandardMBean;
 
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.jmx.RequestProcessorMBean;
+import org.osgi.service.component.annotations.Component;
 
 /**
  * This is the implementation of the management interface for the
  * RequestProcessor.
  */
-class RequestProcessorMBeanImpl extends StandardMBean implements RequestProcessorMBean {
+@Component(service = {RequestProcessorMBean.class, RequestProcessorMBeanImpl.class},
+    property = {
+        "jmx.objectname=org.apache.sling:type=engine,service=RequestProcessor"
+    })
+public class RequestProcessorMBeanImpl extends StandardMBean implements RequestProcessorMBean {
 
     private final AtomicReference<Data> dataRef = new AtomicReference<Data>(new Data());
 
-    RequestProcessorMBeanImpl() throws NotCompliantMBeanException {
+    public RequestProcessorMBeanImpl() throws NotCompliantMBeanException {
         super(RequestProcessorMBean.class);
     }
 
