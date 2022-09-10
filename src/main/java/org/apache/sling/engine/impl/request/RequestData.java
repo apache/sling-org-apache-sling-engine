@@ -708,10 +708,6 @@ public class RequestData {
         return SLING_MAIN_SERVLET.adaptTo(object, type);
     }
 
-    public String getMimeType(String fileName) {
-        return SLING_MAIN_SERVLET.getMimeType(fileName);
-    }
-
     // ---------- Parameter support -------------------------------------------
 
     public ServletInputStream getInputStream() throws IOException {

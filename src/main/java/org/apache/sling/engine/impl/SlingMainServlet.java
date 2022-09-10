@@ -38,7 +38,6 @@ import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
-import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
@@ -62,7 +61,6 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceVendor;
-import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
@@ -189,8 +187,6 @@ public class SlingMainServlet extends GenericServlet {
 
     // new properties
 
-    private final SlingHttpContext slingHttpContext = new SlingHttpContext();
-
     private volatile ServletFilterManager filterManager;
 
     private final SlingRequestProcessorImpl requestProcessor = new SlingRequestProcessorImpl();
@@ -198,8 +194,6 @@ public class SlingMainServlet extends GenericServlet {
     private volatile ServiceRegistration<SlingRequestProcessor> requestProcessorRegistration;
 
     private volatile ServiceRegistration<RequestProcessorMBean> requestProcessorMBeanRegistration;
-
-    private volatile ServiceRegistration<ServletContextHelper> contextRegistration;
 
     private volatile ServiceRegistration<Servlet> servletRegistration;
 
@@ -426,18 +420,6 @@ public class SlingMainServlet extends GenericServlet {
         RequestData.setMaxCallCounter(config.sling_max_calls());
         RequestData.setSlingMainServlet(this);
 
-        if (this.contextRegistration == null) {
-            // register the servlet context
-            final Dictionary<String, String> contextProperties = new Hashtable<>();
-            contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME, SERVLET_CONTEXT_NAME);
-            contextProperties.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_PATH, SLING_ROOT);
-            contextProperties.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Servlet Context Helper");
-            contextProperties.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
-
-            this.contextRegistration = bundleContext.registerService(ServletContextHelper.class, this.slingHttpContext,
-                    contextProperties);
-        }
-
         String servletName = config.servlet_name();
         if (servletName == null || servletName.isEmpty()) {
             servletName = this.productInfo;
@@ -526,13 +508,6 @@ public class SlingMainServlet extends GenericServlet {
         // first unregister servlet context
         unregisterSlingServletContext();
 
-        // second unregister the servlet context *before* unregistering
-        // and destroying the the sling main servlet
-        if (this.contextRegistration != null) {
-            this.contextRegistration.unregister();
-            this.contextRegistration = null;
-        }
-
         // third unregister and destroy the sling main servlet
         // unregister servlet
         if ( this.servletRegistration != null ) {
@@ -592,31 +567,7 @@ public class SlingMainServlet extends GenericServlet {
         requestProcessor.unsetServletResolver(servletResolver);
     }
 
-    @Reference(name = "MimeTypeService", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetMimeTypeService")
-    public void setMimeTypeService(final MimeTypeService mimeTypeService) {
-        slingHttpContext.setMimeTypeService(mimeTypeService);
-    }
-
-    public void unsetMimeTypeService(final MimeTypeService mimeTypeService) {
-        slingHttpContext.unsetMimeTypeService(mimeTypeService);
-    }
-
-    @Reference(name = "AuthenticationSupport", cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetAuthenticationSupport")
-    public void setAuthenticationSupport(
-            final AuthenticationSupport authenticationSupport) {
-        slingHttpContext.setAuthenticationSupport(authenticationSupport);
-    }
-
-    public void unsetAuthenticationSupport(
-            final AuthenticationSupport authenticationSupport) {
-        slingHttpContext.unsetAuthenticationSupport(authenticationSupport);
-    }
-
     // ---------- HttpContext interface ----------------------------------------
-
-    public String getMimeType(String name) {
-        return slingHttpContext.getMimeType(name);
-    }
 
     public <Type> Type adaptTo(Object object, Class<Type> type) {
         AdapterManager adapterManager = this.adapterManager;

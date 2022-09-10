@@ -30,8 +30,14 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
+import org.osgi.service.component.annotations.Activate;
+import org.osgi.service.component.annotations.Component;
+import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.component.annotations.ReferenceCardinality;
+import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
+import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +46,9 @@ import org.slf4j.LoggerFactory;
  * register the {@link SlingMainServlet} with the OSGi HttpService.
  */
 @RequireHttpWhiteboard
-class SlingHttpContext extends ServletContextHelper {
+@Component(service = ServletContextHelper.class)
+@HttpWhiteboardContext(name = SlingMainServlet.SERVLET_CONTEXT_NAME, path = "/")
+public class SlingHttpContext extends ServletContextHelper {
 
     /** Logger */
     private final Logger log = LoggerFactory.getLogger(SlingHttpContext.class);
@@ -50,45 +58,27 @@ class SlingHttpContext extends ServletContextHelper {
      *
      * @see #getMimeType(String)
      */
-    private MimeTypeService mimeTypeService;
+    @Reference(policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.OPTIONAL)
+    private volatile MimeTypeService mimeTypeService;
 
     /**
      * Handles security
      *
      * @see #handleSecurity(HttpServletRequest, HttpServletResponse)
      */
-    private AuthenticationSupport authenticationSupport;
+    private final AuthenticationSupport authenticationSupport;
 
-    public void setMimeTypeService(MimeTypeService mimeTypeService) {
-        this.mimeTypeService = mimeTypeService;
+    @Activate
+    public SlingHttpContext(@Reference final AuthenticationSupport support) {
+        this.authenticationSupport = support;
     }
-
-    public void unsetMimeTypeService(MimeTypeService mimeTypeService) {
-        if (this.mimeTypeService == mimeTypeService) {
-            this.mimeTypeService = null;
-        }
-    }
-
-    public void setAuthenticationSupport(
-            AuthenticationSupport authenticationSupport) {
-        this.authenticationSupport = authenticationSupport;
-    }
-
-    public void unsetAuthenticationSupport(
-            AuthenticationSupport authenticationSupport) {
-        if (this.authenticationSupport == authenticationSupport) {
-            this.authenticationSupport = null;
-        }
-    }
-
-    // ---------- HttpContext interface ----------------------------------------
 
     /**
      * Returns the MIME type as resolved by the <code>MimeTypeService</code> or
      * <code>null</code> if the service is not available.
      */
     @Override
-    public String getMimeType(String name) {
+    public String getMimeType(final String name) {
         MimeTypeService mtservice = mimeTypeService;
         if (mtservice != null) {
             return mtservice.getMimeType(name);
@@ -105,15 +95,13 @@ class SlingHttpContext extends ServletContextHelper {
      * through the {@link SlingMainServlet}.
      */
     @Override
-    public URL getResource(String name) {
+    public URL getResource(final String name) {
         return null;
     }
 
     /**
      * Tries to authenticate the request using the
-     * <code>SlingAuthenticator</code>. If the authenticator or the Repository
-     * is missing this method returns <code>false</code> and sends a 503/SERVICE
-     * UNAVAILABLE status back to the client.
+     * <code>SlingAuthenticator</code>.
      */
     @Override
     public boolean handleSecurity(HttpServletRequest request,
@@ -125,28 +113,13 @@ class SlingHttpContext extends ServletContextHelper {
         final String timerName = "handleSecurity";
         t.startTimer(timerName);
 
-        final AuthenticationSupport authenticator = this.authenticationSupport;
-        if (authenticator != null) {
+        // SLING-559: ensure correct parameter handling according to
+        // ParameterSupport
+        request = ParameterSupport.getParameterSupportRequestWrapper(request);
 
-            // SLING-559: ensure correct parameter handling according to
-            // ParameterSupport
-            request = ParameterSupport.getParameterSupportRequestWrapper(request);
-
-            final boolean result = authenticator.handleSecurity(request, response);
-            t.logTimer(timerName, "authenticator {0} returns {1}", authenticator, result);
-            return result;
-        }
-
-        log.error("handleSecurity: AuthenticationSupport service missing. Cannot authenticate request.");
-        log.error("handleSecurity: Possible reason is missing Repository service. Check AuthenticationSupport dependencies.");
-
-        // send 503/SERVICE UNAVAILABLE, flush to ensure delivery
-        response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE,
-            "AuthenticationSupport service missing. Cannot authenticate request.");
-        response.flushBuffer();
-
-        // terminate this request now
-        return false;
+        final boolean result = this.authenticationSupport.handleSecurity(request, response);
+        t.logTimer(timerName, "authenticator {0} returns {1}", this.authenticationSupport, result);
+        return result;
     }
 
     @Override
