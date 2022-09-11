@@ -31,6 +31,7 @@ import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.TooManyCallsException;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
@@ -38,6 +39,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import java.io.IOException;
+import java.util.Collections;
 
 import static org.junit.Assert.*;
 
@@ -62,7 +64,7 @@ public class RequestDataTest {
         final ContentData contentData = context.mock(ContentData.class);
         final Servlet servlet = context.mock(Servlet.class);
         final ServletConfig servletConfig = context.mock(ServletConfig.class);
-
+        final SlingRequestProcessorImpl processor = context.mock(SlingRequestProcessorImpl.class);
         context.checking(new Expectations() {{
             allowing(req).getServletPath();
             will(returnValue("/"));
@@ -91,9 +93,15 @@ public class RequestDataTest {
 
             allowing(req).getAttribute(RequestProgressTracker.class.getName());
             will(returnValue(null));
+
+            allowing(processor).getMaxCallCounter();
+            will(returnValue(2));
+            allowing(processor).getAdditionalResponseHeaders();
+            will(returnValue(Collections.emptyList()));
         }});
 
-        requestData = new RequestData(null, req, resp) {
+        
+        requestData = new RequestData(processor, req, resp) {
             @Override
             public ContentData getContentData() {
                 return contentData;
@@ -102,8 +110,6 @@ public class RequestDataTest {
 
         slingRequest = new SlingHttpServletRequestImpl(requestData, req);
         slingResponse = new SlingHttpServletResponseImpl(requestData, resp);
-
-        RequestData.setMaxCallCounter(2);
     }
 
     private void assertTooManyCallsException(int failAtCall) throws Exception {

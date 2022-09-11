@@ -54,8 +54,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         this.requestData = requestData;
         this.firstSlingResponse = !(response instanceof SlingHttpServletResponse);
         
-        if (firstSlingResponse && RequestData.getAdditionalResponseHeaders() != null) {
-            for (StaticResponseHeader mapping: RequestData.getAdditionalResponseHeaders()) {
+        if (firstSlingResponse) {
+            for (final StaticResponseHeader mapping: requestData.getSlingRequestProcessor().getAdditionalResponseHeaders()) {
                 response.addHeader(mapping.getResponseHeaderName(), mapping.getResponseHeaderValue());
             }
         }
@@ -68,7 +68,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     //---------- Adaptable interface
 
     public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
-        return getRequestData().adaptTo(this, type);
+        return getRequestData().getSlingRequestProcessor().adaptTo(this, type);
     }
 
     // ---------- Redirection support through PathResolver --------------------

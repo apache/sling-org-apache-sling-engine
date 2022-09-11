@@ -51,6 +51,7 @@ import org.apache.sling.engine.RequestLog;
  * implement better buffering in conjunction with the temporary open/close
  * cycles of the files.
  */
+@Deprecated
 class FileRequestLog implements RequestLog {
 
     // The map of shared open files (actually PrintWriter instances)

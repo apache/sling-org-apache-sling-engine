@@ -26,14 +26,14 @@ import static org.junit.Assert.fail;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.engine.RequestInfo;
-import org.apache.sling.engine.impl.SlingMainServlet;
+import org.apache.sling.engine.impl.Config;
 import org.junit.Test;
 import org.mockito.Mockito;
 
 public class RequestInfoProviderImplTest {
 
     @Test public void testDisabledProvider() {
-        final SlingMainServlet.Config config = Mockito.mock(SlingMainServlet.Config.class);
+        final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(0);
 
         final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
@@ -50,7 +50,7 @@ public class RequestInfoProviderImplTest {
     }
 
     @Test public void testEnabledProvider() {
-        final SlingMainServlet.Config config = Mockito.mock(SlingMainServlet.Config.class);
+        final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(5);
 
         final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);

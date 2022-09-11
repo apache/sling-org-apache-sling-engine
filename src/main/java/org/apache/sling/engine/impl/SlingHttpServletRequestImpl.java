@@ -86,7 +86,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
 
     @Override
     public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
-        return getRequestData().adaptTo(this, type);
+        return getRequestData().getSlingRequestProcessor().adaptTo(this, type);
     }
 
     //---------- SlingHttpServletRequest interface

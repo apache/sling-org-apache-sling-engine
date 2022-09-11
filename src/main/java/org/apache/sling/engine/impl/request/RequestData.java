@@ -25,7 +25,6 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -41,7 +40,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.request.RecursionTooDeepException;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -57,7 +55,6 @@ import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingMainServlet;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
-import org.apache.sling.engine.impl.StaticResponseHeader;
 import org.apache.sling.engine.impl.adapter.SlingServletRequestAdapter;
 import org.apache.sling.engine.impl.adapter.SlingServletResponseAdapter;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
@@ -79,21 +76,8 @@ import org.slf4j.LoggerFactory;
  */
 public class RequestData {
 
-    /** default log */
-    private final Logger log = LoggerFactory.getLogger(RequestData.class);
-
-    /**
-     * The default value for the number of recursive inclusions for a single
-     * instance of this class (value is 50).
-     */
-    public static final int DEFAULT_MAX_INCLUSION_COUNTER = 50;
-
-    /**
-     * The default value for the number of calls to the
-     * {@link #service(SlingHttpServletRequest, SlingHttpServletResponse)}
-     * method for a single instance of this class (value is 1000).
-     */
-    public static final int DEFAULT_MAX_CALL_COUNTER = 1000;
+    /** Logger - use static as a new object is created with every request */
+    private static final Logger log = LoggerFactory.getLogger(RequestData.class);
 
     /**
      * The name of the request attribute providing the resource addressed by the
@@ -102,31 +86,11 @@ public class RequestData {
     public static final String REQUEST_RESOURCE_PATH_ATTR = "$$sling.request.resource$$";
 
     /**
-     * The maximum inclusion depth (default
-     * {@link #DEFAULT_MAX_INCLUSION_COUNTER}). This value is compared to the
-     * number of entries in the {@link #contentDataStack} when the
-     * {@link #pushContent(Resource, RequestPathInfo)} method is called.
-     */
-    private static volatile int maxInclusionCounter = DEFAULT_MAX_INCLUSION_COUNTER;
-
-    /**
-     * The maximum number of scripts which may be included through the
-     * {@link #service(SlingHttpServletRequest, SlingHttpServletResponse)}
-     * method (default {@link #DEFAULT_MAX_CALL_COUNTER}). This number should
-     * not be too small to prevent request aborts.
-     */
-    private static volatile int maxCallCounter = DEFAULT_MAX_CALL_COUNTER;
-
-    /**
      * The name of the request attribute to override the max call number (-1 for infinite or integer value).
      */
     private static String REQUEST_MAX_CALL_OVERRIDE = "sling.max.calls";
 
-    private static volatile AdapterManager ADAPTER_MANAGER;
-
-    private static volatile ArrayList<StaticResponseHeader> ADDITIONAL_RESPONSE_HEADERS;
-
-    /** The SlingMainServlet used for request dispatching and other stuff */
+    /** The request processor used for request dispatching and other stuff */
     private final SlingRequestProcessorImpl slingRequestProcessor;
 
     private final long startTimestamp;
@@ -184,34 +148,6 @@ public class RequestData {
     static {
         SKIPPED_TRAVERSAL_CHARS.add('[');
         SKIPPED_TRAVERSAL_CHARS.add('}');
-    }
-
-    public static void setMaxCallCounter(int maxCallCounter) {
-        RequestData.maxCallCounter = maxCallCounter;
-    }
-
-    public static int getMaxCallCounter() {
-        return maxCallCounter;
-    }
-
-    public static void setMaxIncludeCounter(int maxInclusionCounter) {
-        RequestData.maxInclusionCounter = maxInclusionCounter;
-    }
-
-    public static int getMaxIncludeCounter() {
-        return maxInclusionCounter;
-    }
-
-    public static void setAdapterManager(final AdapterManager manager) {
-        RequestData.ADAPTER_MANAGER = manager;
-    }
-
-    public static void setAdditionalResponseHeaders(ArrayList<StaticResponseHeader> mappings){
-        RequestData.ADDITIONAL_RESPONSE_HEADERS = mappings;
-    }
-
-    public static ArrayList<StaticResponseHeader> getAdditionalResponseHeaders() {
-        return ADDITIONAL_RESPONSE_HEADERS;
     }
 
     public RequestData(SlingRequestProcessorImpl slingRequestProcessor,
@@ -610,7 +546,7 @@ public class RequestData {
 
     public ContentData setContent(final Resource resource,
             final RequestPathInfo requestPathInfo) {
-        if ( this.recursionDepth >=  maxInclusionCounter) {
+        if ( this.recursionDepth >=  this.slingRequestProcessor.getMaxIncludeCounter()) {
             throw new RecursionTooDeepException(requestPathInfo.getResourcePath());
         }
         this.recursionDepth++;
@@ -663,7 +599,7 @@ public class RequestData {
 
         // max number of calls can be overriden with a request attribute (-1 for
         // infinite or integer value)
-        int maxCallCounter = RequestData.getMaxCallCounter();
+        int maxCallCounter = this.slingRequestProcessor.getMaxCallCounter();
         Object reqMaxOverride = request.getAttribute(REQUEST_MAX_CALL_OVERRIDE);
         if (reqMaxOverride instanceof Number) {
             maxCallCounter = ((Number) reqMaxOverride).intValue();
@@ -700,16 +636,6 @@ public class RequestData {
      */
     public String getActiveServletName() {
         return activeServletName;
-    }
-
-    public <Type> Type adaptTo(Object object, Class<Type> type) {
-        final AdapterManager adapterManager = ADAPTER_MANAGER;
-        if (adapterManager != null) {
-            return adapterManager.getAdapter(object, type);
-        }
-
-        // no adapter manager, nothing to adapt to
-        return null;
     }
 
     // ---------- Parameter support -------------------------------------------

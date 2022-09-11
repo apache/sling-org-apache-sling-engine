@@ -33,11 +33,9 @@ import javax.servlet.http.HttpServletResponse;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
-import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 import org.apache.sling.engine.impl.helper.RequestListenerManager;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
-import org.apache.sling.engine.impl.request.RequestData;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -52,9 +50,7 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceVendor;
 import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
-import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
-import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,66 +58,11 @@ import org.slf4j.LoggerFactory;
  * The <code>SlingMainServlet</code>
  */
 @SuppressWarnings("serial")
-@Component(configurationPid = SlingMainServlet.PID)
+@Component(configurationPid = Config.PID)
 @ServiceDescription("Apache Sling Main Servlet")
 @ServiceVendor("The Apache Software Foundation")
-@Designate(ocd=SlingMainServlet.Config.class)
+@Designate(ocd=Config.class)
 public class SlingMainServlet extends GenericServlet {
-
-    public static final String PID = "org.apache.sling.engine.impl.SlingMainServlet";
-
-    @ObjectClassDefinition(name ="Apache Sling Main Servlet",
-            description="Main processor of the Sling framework controlling all " +
-                    "aspects of processing requests inside of Sling, namely authentication, " +
-                    "resource resolution, servlet/script resolution and execution of servlets " +
-                    "and scripts.")
-    public @interface Config {
-
-        @AttributeDefinition(name = "Number of Calls per Request",
-                description = "Defines the maximum number of Servlet and Script " +
-                     "calls while processing a single client request. This number should be high " +
-                     "enough to not limit request processing artificially. On the other hand it " +
-                     "should not be too high to allow the mechanism to limit the resources required " +
-                     "to process a request in case of errors. The default value is 1000.")
-        int sling_max_calls() default RequestData.DEFAULT_MAX_CALL_COUNTER;
-
-        @AttributeDefinition(name = "Recursion Depth",
-                description = "The maximum number of recursive Servlet and " +
-                     "Script calls while processing a single client request. This number should not " +
-                     "be too high, otherwise StackOverflowErrors may occurr in case of erroneous " +
-                     "scripts and servlets. The default value is 50. ")
-        int sling_max_inclusions() default RequestData.DEFAULT_MAX_INCLUSION_COUNTER;
-
-        @AttributeDefinition(name = "Allow the HTTP TRACE method",
-                description = "If set to true, the HTTP TRACE method will be " +
-                     "enabled. By default the HTTP TRACE methods is disabled as it can be used in " +
-                     "Cross Site Scripting attacks on HTTP servers.")
-        boolean sling_trace_allow() default false;
-
-        @AttributeDefinition(name = "Number of Requests to Record",
-                description = "Defines the number of requests that " +
-                     "internally recorded for display on the \"Recent Requests\" Web Console page. If " +
-                     "this value is less than or equal to zero, no requests are internally kept. The " +
-                     "default value is 20. ")
-        int sling_max_record_requests() default RequestInfoProviderImpl.STORED_REQUESTS_COUNT;
-
-        @AttributeDefinition(name = "Recorded Request Path Patterns",
-                description = "One or more regular expressions which " +
-                            "limit the requests which are stored by the \"Recent Requests\" Web Console page.")
-        String[] sling_store_pattern_requests();
-
-        @AttributeDefinition(name = "Server Info",
-                description = "The server info returned by Sling. If this field is left empty, Sling generates a default into.")
-        String sling_serverinfo();
-
-        @AttributeDefinition(name = "Additional response headers",
-                description = "Provides mappings for additional response headers "
-                    + "Each entry is of the form 'bundleId [ \":\" responseHeaderName ] \"=\" responseHeaderValue'")
-        String[] sling_additional_response_headers() default {"X-Content-Type-Options=nosniff", "X-Frame-Options=SAMEORIGIN"};
-
-        @AttributeDefinition(name = "Servlet Name", description = "Optional name for the Sling main servlet registered by this component")
-        String servlet_name();
-    }
 
     @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
     private volatile RequestListenerManager requestListenerManager;

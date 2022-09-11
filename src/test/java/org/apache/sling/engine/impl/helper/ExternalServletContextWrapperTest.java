@@ -18,6 +18,8 @@ package org.apache.sling.engine.impl.helper;
 
 import static org.junit.Assert.*;
 
+import java.util.Collections;
+
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletRequest;
@@ -31,18 +33,25 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.helper.ExternalServletContextWrapper.RequestDispatcherWrapper;
+import org.apache.sling.engine.impl.request.RequestData;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.integration.junit4.JMock;
 import org.jmock.integration.junit4.JUnit4Mockery;
+import org.jmock.lib.legacy.ClassImposteriser;
+import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-@RunWith(JMock.class)
 public class ExternalServletContextWrapperTest {
+
     Mockery context = new JUnit4Mockery();
-    
+
+    @Before
+    public void setup() {
+        context.setImposteriser(ClassImposteriser.INSTANCE);
+    }
+
     /**
      * Tests that the RequestDispatcher is wrapped.
      */
@@ -201,7 +210,16 @@ public class ExternalServletContextWrapperTest {
         final HttpServletResponse resp = context.mock(HttpServletResponse.class);
         final HttpServletResponseWrapper wrapper = new HttpServletResponseWrapper(resp);
         final HttpServletResponseWrapper wrapper2 = new HttpServletResponseWrapper(wrapper);
-        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(null, wrapper2);
+        final RequestData rd = this.context.mock(RequestData.class);
+        final SlingRequestProcessorImpl processor = this.context.mock(SlingRequestProcessorImpl.class);
+        context.checking(new Expectations() {{
+            allowing(rd).getSlingRequestProcessor();
+            will(returnValue(processor));
+            allowing(processor).getAdditionalResponseHeaders();
+            will(returnValue(Collections.emptyList()));
+        }});
+
+        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(rd, wrapper2);
         
         ServletResponse unwrapped = ExternalServletContextWrapper.
             RequestDispatcherWrapper.unwrapServletResponse(slingResponse);
@@ -218,7 +236,17 @@ public class ExternalServletContextWrapperTest {
         final HttpServletResponse resp = context.mock(HttpServletResponse.class);
         final HttpServletResponseWrapper wrapper = new HttpServletResponseWrapper(resp);
         final HttpServletResponseWrapper wrapper2 = new HttpServletResponseWrapper(wrapper);
-        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(null, wrapper2);
+        final RequestData rd = this.context.mock(RequestData.class);
+        final SlingRequestProcessorImpl processor = this.context.mock(SlingRequestProcessorImpl.class);
+        context.checking(new Expectations() {{
+            allowing(rd).getSlingRequestProcessor();
+            will(returnValue(processor));
+            allowing(processor).getAdditionalResponseHeaders();
+            will(returnValue(Collections.emptyList()));
+        }});
+
+
+        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(rd, wrapper2);
         final HttpServletResponseWrapper slingWrapper = new HttpServletResponseWrapper(slingResponse);
         
         ServletResponse unwrapped = ExternalServletContextWrapper.

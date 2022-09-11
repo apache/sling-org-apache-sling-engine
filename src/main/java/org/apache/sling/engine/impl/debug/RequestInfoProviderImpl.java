@@ -32,7 +32,7 @@ import java.util.regex.Pattern;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.engine.RequestInfo;
 import org.apache.sling.engine.RequestInfoProvider;
-import org.apache.sling.engine.impl.SlingMainServlet;
+import org.apache.sling.engine.impl.Config;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.osgi.service.component.annotations.Activate;
@@ -45,11 +45,8 @@ import org.osgi.service.component.annotations.Modified;
  */
 @Component(service = {RequestInfoProvider.class},
         immediate=true, // track requests from the start
-        configurationPid = SlingMainServlet.PID)
+        configurationPid = Config.PID)
 public class RequestInfoProviderImpl implements RequestInfoProvider {
-
-    /** Default for stored requests */
-    public static final int STORED_REQUESTS_COUNT = 20;
 
     private volatile ConcurrentNavigableMap<String, RequestInfo> requests;
 
@@ -60,13 +57,13 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
     private static volatile RequestInfoProviderImpl INSTANCE;
 
     @Activate
-    public RequestInfoProviderImpl(final SlingMainServlet.Config config) {
+    public RequestInfoProviderImpl(final Config config) {
         update(config);
         INSTANCE = this;
     }
 
     @Modified
-    protected void update(final SlingMainServlet.Config config) {
+    protected void update(final Config config) {
         this.maxSize = config.sling_max_record_requests();
         if ( this.maxSize < 0 ) {
             this.maxSize = 0;

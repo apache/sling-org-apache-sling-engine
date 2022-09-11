@@ -81,7 +81,7 @@ class ExternalServletContextWrapper implements ServletContext {
     }
 
     @Override
-    public Set getResourcePaths(String s) {
+    public Set<String> getResourcePaths(String s) {
         return getServletContext().getResourcePaths(s);
     }
 
@@ -105,18 +105,21 @@ class ExternalServletContextWrapper implements ServletContext {
         return new RequestDispatcherWrapper(getServletContext().getNamedDispatcher(s));
     }
 
+    @Deprecated
     @Override
     public Servlet getServlet(String s) throws ServletException {
         return getServletContext().getServlet(s);
     }
 
+    @Deprecated
     @Override
-    public Enumeration getServlets() {
+    public Enumeration<Servlet> getServlets() {
         return getServletContext().getServlets();
     }
 
+    @Deprecated
     @Override
-    public Enumeration getServletNames() {
+    public Enumeration<String> getServletNames() {
         return getServletContext().getServletNames();
     }
 
@@ -125,6 +128,7 @@ class ExternalServletContextWrapper implements ServletContext {
         getServletContext().log(s);
     }
 
+    @Deprecated
     @Override
     public void log(Exception exception, String s) {
         getServletContext().log(exception, s);
@@ -151,7 +155,7 @@ class ExternalServletContextWrapper implements ServletContext {
     }
 
     @Override
-    public Enumeration getInitParameterNames() {
+    public Enumeration<String> getInitParameterNames() {
         return getServletContext().getInitParameterNames();
     }
 
@@ -161,7 +165,7 @@ class ExternalServletContextWrapper implements ServletContext {
     }
 
     @Override
-    public Enumeration getAttributeNames() {
+    public Enumeration<String> getAttributeNames() {
         return getServletContext().getAttributeNames();
     }
 

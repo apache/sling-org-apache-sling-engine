@@ -18,14 +18,17 @@ package org.apache.sling.engine.impl.request;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -72,11 +75,14 @@ public class InitResourceTest {
 
     @Before
     public void setup() throws Exception {
-        context = new Mockery();
+        context = new Mockery() {{
+            setImposteriser(ClassImposteriser.INSTANCE);
+        }};
 
         req = context.mock(HttpServletRequest.class);
         resp = context.mock(HttpServletResponse.class);
         resourceResolver = context.mock(ResourceResolver.class);
+        final SlingRequestProcessorImpl processor = context.mock(SlingRequestProcessorImpl.class);
 
         context.checking(new Expectations() {{
             allowing(req).getRequestURL();
@@ -105,9 +111,14 @@ public class InitResourceTest {
 
             // Verify that the ResourceResolver is called with the expected path
             allowing(resourceResolver).resolve(with(any(HttpServletRequest.class)),with(equal(expectedResolvePath)));
+
+            allowing(processor).getMaxCallCounter();
+            will(returnValue(2));
+            allowing(processor).getAdditionalResponseHeaders();
+            will(returnValue(Collections.emptyList()));
         }});
 
-        requestData = new RequestData(null, req, resp);
+        requestData = new RequestData(processor, req, resp);
     }
 
     @Test

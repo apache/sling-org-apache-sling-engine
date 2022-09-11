@@ -18,7 +18,8 @@
  */
 package org.apache.sling.engine.impl;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.util.Random;
 
@@ -26,21 +27,11 @@ import javax.management.NotCompliantMBeanException;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.integration.junit4.JMock;
-import org.jmock.integration.junit4.JUnit4Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.mockito.Mockito;
 
-@RunWith(JMock.class)
 public class RequestProcessorMBeanImplTest {
     
-    private Mockery context = new JUnit4Mockery() {{
-        setImposteriser(ClassImposteriser.INSTANCE);
-    }};
-
     /**
      * Asserts that the simple standard deviation algorithm used by the
      * RequestProcessorMBeanImpl is equivalent to the Commons Math
@@ -85,19 +76,11 @@ public class RequestProcessorMBeanImplTest {
             servletCallCountStats.addValue(callCountValue);
             peakRecursionDepthStats.addValue(peakRecursionDepthValue);
             
-            final RequestData requestData = context.mock(RequestData.class, "requestData" + i);
-            context.checking(new Expectations() {{
-                one(requestData).getElapsedTimeMsec();
-                will(returnValue(durationValue));
-                
-                one(requestData).getServletCallCount();
-                will(returnValue(callCountValue));
-                
-                one(requestData).getPeakRecusionDepth();
-                will(returnValue(peakRecursionDepthValue));
-            }});
-            
-            
+            final RequestData requestData = Mockito.mock(RequestData.class, "requestData" + i);
+            Mockito.when(requestData.getElapsedTimeMsec()).thenReturn(durationValue);
+            Mockito.when(requestData.getServletCallCount()).thenReturn(callCountValue);
+            Mockito.when(requestData.getPeakRecusionDepth()).thenReturn(peakRecursionDepthValue);
+
             bean.addRequestData(requestData);
         }
 
@@ -124,27 +107,19 @@ public class RequestProcessorMBeanImplTest {
         //check method resetStatistics 
         //In the previous test, some requests have been processed, now we reset the statistics so everything statistic is reinitialized
         bean.resetStatistics();
-        
+
         //Simulate a single request 
         final long durationValue = min + random.nextInt(max - min);
         final int callCountValue = min + random.nextInt(max - min);
         final int peakRecursionDepthValue = min + random.nextInt(max - min);
-        
-        final RequestData requestData = context.mock(RequestData.class, "requestDataAfterReset");
-        context.checking(new Expectations() {{
-            one(requestData).getElapsedTimeMsec();
-            will(returnValue(durationValue));
-            
-            one(requestData).getServletCallCount();
-            will(returnValue(callCountValue));
-            
-            one(requestData).getPeakRecusionDepth();
-            will(returnValue(peakRecursionDepthValue));
-        }});
-            
-            
+
+        final RequestData requestData = Mockito.mock(RequestData.class, "requestDataAfterReset");
+        Mockito.when(requestData.getElapsedTimeMsec()).thenReturn(durationValue);
+        Mockito.when(requestData.getServletCallCount()).thenReturn(callCountValue);
+        Mockito.when(requestData.getPeakRecusionDepth()).thenReturn(peakRecursionDepthValue);
+
         bean.addRequestData(requestData);
-        
+
         //As only one request has been simulated since resetStatiscts: min, max and mean statistics should be equals to the request data
         assertEquals("After resetStatistics Number of requests must be one",1, bean.getRequestsCount());
         assertEquals("After resetStatistics Min Duration must be equal", bean.getMinRequestDurationMsec(), (long) durationValue);

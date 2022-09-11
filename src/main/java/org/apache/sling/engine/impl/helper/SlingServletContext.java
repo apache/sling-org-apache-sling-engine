@@ -42,6 +42,7 @@ import javax.servlet.SessionCookieConfig;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.descriptor.JspConfigDescriptor;
 
+import org.apache.sling.engine.impl.Config;
 import org.apache.sling.engine.impl.ProductInfoProvider;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.SlingMainServlet;
@@ -88,7 +89,7 @@ import org.slf4j.LoggerFactory;
  * This class implements the Servlet API 3.0 {@code ServletContext} interface.
  */
 @Component(service = ServletContextListener.class,
-    configurationPid = SlingMainServlet.PID)
+    configurationPid = Config.PID)
 @HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
 @HttpWhiteboardListener
 public class SlingServletContext implements ServletContext, ServletContextListener {
@@ -120,7 +121,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     private volatile ServiceRegistration<ServletContext> registration;
 
     @Activate
-    public SlingServletContext(final SlingMainServlet.Config config, 
+    public SlingServletContext(final Config config, 
         final BundleContext bundleContext,
         @Reference final ProductInfoProvider infoProvider) {
         this.bundleContext = bundleContext;
@@ -129,11 +130,11 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     @Modified
-    protected void modified(final SlingMainServlet.Config config) {
+    protected void modified(final Config config) {
         setup(config);
     }
 
-    private void setup(final SlingMainServlet.Config config) {
+    private void setup(final Config config) {
         if (config.sling_serverinfo() != null && !config.sling_serverinfo().isEmpty()) {
             this.configuredServerInfo = config.sling_serverinfo();
         } else {
@@ -195,11 +196,13 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
-        this.servletContext = null;
-        this.setServerInfo();
-        if ( this.registration != null ) {
-            this.registration.unregister();
-            this.registration = null;    
+        synchronized ( this ) {
+            this.servletContext = null;
+            this.setServerInfo();
+            if ( this.registration != null ) {
+                this.registration.unregister();
+                this.registration = null;    
+            }
         }
     }
 
@@ -211,9 +214,13 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         final Thread thread = new Thread("SlingServletContext registration") {
             @Override
             public void run() {
-                final Dictionary<String, Object> props = new Hashtable<String, Object>();
-                props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
-                registration = bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);
+                synchronized (SlingServletContext.this) {
+                    if ( servletContext != null ) {
+                        final Dictionary<String, Object> props = new Hashtable<String, Object>();
+                        props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
+                        registration = bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);        
+                    }
+                }
             }
         };
         thread.setDaemon(true);
@@ -504,7 +511,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     /** Logs the message and optional exception at error level to the logger */
-    @SuppressWarnings("deprecation")
     @Override
     @Deprecated
     public void log(Exception exception, String message) {
@@ -532,7 +538,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     /** Returns <code>null</code> as defined in Servlet API 2.4 */
-    @SuppressWarnings("deprecation")
     @Override
     @Deprecated
     public Servlet getServlet(String name) {
@@ -540,7 +545,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     /** Returns an empty enumeration as defined in Servlet API 2.4 */
-    @SuppressWarnings("deprecation")
     @Override
     @Deprecated
     public Enumeration<String> getServletNames() {
@@ -548,7 +552,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     /** Returns an empty enumeration as defined in Servlet API 2.4 */
-    @SuppressWarnings("deprecation")
     @Override
     @Deprecated
     public Enumeration<Servlet> getServlets() {

@@ -27,6 +27,8 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.security.AccessControlException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 
 import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
@@ -72,7 +74,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 @Component(service = {SlingRequestProcessor.class, SlingRequestProcessorImpl.class},
-    configurationPid = SlingMainServlet.PID)
+    configurationPid = Config.PID)
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     /** default log */
@@ -90,17 +92,26 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     @Reference(target = SlingServletContext.TARGET)
     private ServletContext slingServletContext;
 
+    @Reference(cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    private volatile AdapterManager adapterManager;
+
     private final DefaultErrorHandler errorHandler = new DefaultErrorHandler();
 
+    private volatile int maxCallCounter = Config.DEFAULT_MAX_CALL_COUNTER;
+
+    private volatile int maxInclusionCounter = Config.DEFAULT_MAX_INCLUSION_COUNTER;
+
+    private volatile List<StaticResponseHeader> additionalResponseHeaders = Collections.emptyList();
+
     @Activate
-    public void activate(final SlingMainServlet.Config config) {
+    public void activate(final Config config) {
         this.errorHandler.setServerInfo(this.slingServletContext.getServerInfo());
         this.modified(config);
     }
 
     @Modified
-    public void modified(final SlingMainServlet.Config config) {
-        final ArrayList<StaticResponseHeader> mappings = new ArrayList<>();
+    public void modified(final Config config) {
+        final List<StaticResponseHeader> mappings = new ArrayList<>();
         final String[] props = config.sling_additional_response_headers();
         if ( props != null ) {
             for (final String prop : props) {
@@ -114,11 +125,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 }
             }
         }
-        RequestData.setAdditionalResponseHeaders(mappings);
+        this.additionalResponseHeaders = mappings;
 
         // configure the request limits
-        RequestData.setMaxIncludeCounter(config.sling_max_inclusions());
-        RequestData.setMaxCallCounter(config.sling_max_calls());
+        this.maxInclusionCounter = config.sling_max_inclusions();
+        this.maxCallCounter = config.sling_max_calls();
     }
 
     @Reference(name = "ErrorHandler", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetErrorHandler")
@@ -129,14 +140,27 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     void unsetErrorHandler(final ErrorHandler errorHandler) {
         this.errorHandler.setDelegate(null);
     }
-
-    @Reference(name = "AdapterManager", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetAdapterManager")
-    void setAdapterManager(final AdapterManager manager) {
-        RequestData.setAdapterManager(manager);
+    
+    public int getMaxCallCounter() {
+        return maxCallCounter;
     }
 
-    void unsetAdapterManager(final AdapterManager manager) {
-        RequestData.setAdapterManager(null);
+    public int getMaxIncludeCounter() {
+        return maxInclusionCounter;
+    }
+
+    public List<StaticResponseHeader> getAdditionalResponseHeaders() {
+        return this.additionalResponseHeaders;
+    }
+
+    public <Type> Type adaptTo(Object object, Class<Type> type) {
+        final AdapterManager adapterManager = this.adapterManager;
+        if (adapterManager != null) {
+            return adapterManager.getAdapter(object, type);
+        }
+
+        // no adapter manager, nothing to adapt to
+        return null;
     }
 
     /**

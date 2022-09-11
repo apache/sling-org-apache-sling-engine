@@ -26,6 +26,7 @@ import org.slf4j.LoggerFactory;
  * The <code>LoggerRequestLog</code> class implements the
  * <code>RequestLog</code> interface writing log messages to an SLF4J logger.
  */
+@Deprecated
 class LoggerRequestLog implements RequestLog {
 
     private Logger logger;
