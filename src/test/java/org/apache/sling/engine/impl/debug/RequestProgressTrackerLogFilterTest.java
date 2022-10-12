@@ -71,9 +71,18 @@ public class RequestProgressTrackerLogFilterTest {
         final long startMsec = System.currentTimeMillis();
         final RequestProgressTracker rpt = Builders.newRequestProgressTracker();
         Thread.sleep(10);
-        final long rptElapsed = rpt.getDuration();
         final long elapsedMsec = System.currentTimeMillis() - startMsec;
+        final long rptElapsed = rpt.getDuration();
         assertTrue("Expecting non-zero duration", rptElapsed > 0);
+        
+        /**
+         * there must be a certain ratio between the time we know in milis and the recorded time in nanos; 
+         * in the exact case it would be exactly 1_000_000, but we relax it to 500_000.
+         * 
+         * The order in which we captured the timings above even favors the rptElpased, so it will be always
+         * bigger than 10 milis, and the ratio will be larger than 500_000 for sure.
+         */
+        
         final float ratio = rptElapsed / elapsedMsec;
         final int minExpectedRatio = RequestProgressTrackerLogFilter.NANOSEC_TO_MSEC / 2;
         assertTrue("Expecting min ratio of " + minExpectedRatio + ", got " + ratio, ratio > minExpectedRatio);
