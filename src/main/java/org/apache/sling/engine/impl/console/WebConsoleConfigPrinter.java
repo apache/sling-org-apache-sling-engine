@@ -52,7 +52,7 @@ public class WebConsoleConfigPrinter {
      */
     private void printFilterChain(final PrintWriter pw, final FilterHandle[] entries) {
         for(final FilterHandle entry : entries) {
-            pw.printf("%d : %s (id: %d, property: %s); called: %d; time: %dµs; time/call: %dµs%n",
+            pw.printf("%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
                 entry.getOrder(), entry.getFilter().getClass(), entry.getFilterId(), entry.getOrderSource(),
                 entry.getCalls(), entry.getTime(), entry.getTimePerCall());
         }

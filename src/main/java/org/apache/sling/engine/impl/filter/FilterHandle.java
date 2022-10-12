@@ -50,7 +50,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
         this.order = order;
         this.orderSource = orderSource;
         this.calls = new AtomicLong();
-        this.time = new AtomicLong();
+        this.time = new AtomicLong(); // unit is microseconds
         this.mbean = mbean;
     }
 
@@ -81,11 +81,18 @@ public class FilterHandle implements Comparable<FilterHandle> {
         return calls.get();
     }
 
+    /**
+     * get the total duration to process this filter
+     * @return duration in miliseconds
+     */
     public long getTime() {
-        return time.get();
+        return time.get()/1000 ;
     }
 
-    // timing unit is in microseconds
+    /**
+     * get the average duration per call of this filter
+     * @return the average duration in microseconds
+     */
     public long getTimePerCall() {
         return (getCalls() > 0) ? (getTime() / getCalls()) : -1;
     }
@@ -94,7 +101,10 @@ public class FilterHandle implements Comparable<FilterHandle> {
         calls.incrementAndGet();
     }
 
-    // time is tracked in microseconds
+    /**
+     * record timing
+     * @param time in microseconds
+     */
     void trackTime(long time) {
         this.time.addAndGet(time);
         if (mbean != null) {
