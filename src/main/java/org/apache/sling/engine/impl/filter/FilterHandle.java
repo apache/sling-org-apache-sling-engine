@@ -85,14 +85,16 @@ public class FilterHandle implements Comparable<FilterHandle> {
         return time.get();
     }
 
+    // timing unit is in microseconds
     public long getTimePerCall() {
-        return (getCalls() > 0) ? (1000L * getTime() / getCalls()) : -1;
+        return (getCalls() > 0) ? (getTime() / getCalls()) : -1;
     }
 
     void track() {
         calls.incrementAndGet();
     }
 
+    // time is tracked in microseconds
     void trackTime(long time) {
         this.time.addAndGet(time);
         if (mbean != null) {
