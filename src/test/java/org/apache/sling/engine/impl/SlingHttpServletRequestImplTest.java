@@ -19,9 +19,12 @@
 package org.apache.sling.engine.impl;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.security.Principal;
+import java.util.Enumeration;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -36,7 +39,6 @@ import org.jmock.integration.junit4.JUnit4Mockery;
 import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Assert;
 import org.junit.Test;
-import org.junit.runner.Request;
 import org.mockito.Mockito;
 
 public class SlingHttpServletRequestImplTest {
@@ -127,6 +129,16 @@ public class SlingHttpServletRequestImplTest {
         Assert.assertEquals(principal, slingHttpServletRequestImpl.getUserPrincipal());
     }
 
+    private void assertEmptyEnumerator(final Enumeration<String> e) {
+        assertFalse(e.hasMoreElements());
+    }
+
+    private void assertSingletonEnumerator(final Enumeration<String> e, final String value) {
+        assertTrue(e.hasMoreElements());
+        assertEquals(value, e.nextElement());
+        assertFalse(e.hasMoreElements());
+    }
+
     @Test
     public void testGetResponseContentType() {
         final HttpServletRequest baseRequest = Mockito.mock(HttpServletRequest.class);
@@ -141,23 +153,32 @@ public class SlingHttpServletRequestImplTest {
 
         // first tests - processor returning null
         Mockito.when(processor.getMimeType(Mockito.anyString())).thenReturn(null);
+        
         Mockito.when(rpi.getExtension()).thenReturn(null);
         SlingHttpServletRequest request = new SlingHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
+        assertEmptyEnumerator(request.getResponseContentTypes());
+    
         Mockito.when(rpi.getExtension()).thenReturn("jpg");
         request = new SlingHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
-
+        assertEmptyEnumerator(request.getResponseContentTypes());
+    
         // second tests - processor returning footype for jpg
         Mockito.when(processor.getMimeType("dummy.jpg")).thenReturn("footype");
         Mockito.when(rpi.getExtension()).thenReturn(null);
         request = new SlingHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
+        assertEmptyEnumerator(request.getResponseContentTypes());
+    
         Mockito.when(rpi.getExtension()).thenReturn("jpg");
         request = new SlingHttpServletRequestImpl(rd, baseRequest);
         assertEquals("footype", request.getResponseContentType());
+        assertSingletonEnumerator(request.getResponseContentTypes(), "footype");
+    
         Mockito.when(rpi.getExtension()).thenReturn("pdf");
         request = new SlingHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
+        assertEmptyEnumerator(request.getResponseContentTypes());
     }
 }

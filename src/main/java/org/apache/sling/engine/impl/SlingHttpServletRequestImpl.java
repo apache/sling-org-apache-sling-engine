@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
@@ -261,7 +260,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      */
     @Override
     public String getResponseContentType() {
-        if(responseContentType == null) {
+        if (responseContentType == null) {
             final String ext = getRequestPathInfo().getExtension();
             responseContentType = this.requestData.getSlingRequestProcessor().getMimeType("dummy." + ext);
         }
@@ -273,15 +272,12 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      */
     @Override
     public Enumeration<String> getResponseContentTypes() {
-        List<String> result = new ArrayList<String>();
-
-        // TODO for now this returns a single value
         final String singleType = getResponseContentType();
-        if(singleType!=null) {
-            result.add(singleType);
+        if (singleType != null) {
+            return Collections.enumeration(Collections.singleton(singleType));
         }
 
-        return Collections.enumeration(result);
+        return Collections.emptyEnumeration();
     }
 
     /**
