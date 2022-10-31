@@ -50,6 +50,7 @@ import org.apache.sling.api.resource.ResourceNotFoundException;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
+import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
 import org.apache.sling.engine.impl.filter.ErrorFilterChainStatus;
@@ -94,6 +95,14 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     @Reference(cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
+
+    /**
+     * Resolves MIME types
+     *
+     * @see #getMimeType(String)
+     */
+    @Reference(policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.OPTIONAL)
+    private volatile MimeTypeService mimeTypeService;
 
     private final DefaultErrorHandler errorHandler = new DefaultErrorHandler();
 
@@ -454,5 +463,21 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             }
             super.flushBuffer();
         }
+    }
+
+    /**
+     * Returns the MIME type as resolved by the <code>MimeTypeService</code> or
+     * <code>null</code> if the service is not available.
+     */
+    public String getMimeType(final String name) {
+        MimeTypeService mtservice = mimeTypeService;
+        if (mtservice != null) {
+            return mtservice.getMimeType(name);
+        }
+
+        log.debug(
+            "getMimeType: MimeTypeService not available, cannot resolve mime type for {}",
+            name);
+        return null;
     }
 }
