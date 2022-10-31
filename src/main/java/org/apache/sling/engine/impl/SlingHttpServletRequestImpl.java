@@ -263,7 +263,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     public String getResponseContentType() {
         if(responseContentType == null) {
             final String ext = getRequestPathInfo().getExtension();
-            responseContentType = this.requestData.getSlingRequestProcessor().getMimeType("dummy.".concat(ext));
+            responseContentType = this.requestData.getSlingRequestProcessor().getMimeType("dummy." + ext);
         }
         return responseContentType;
     }
