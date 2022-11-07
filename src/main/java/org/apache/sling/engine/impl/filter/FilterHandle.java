@@ -94,7 +94,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
      * @return the average duration in microseconds
      */
     public long getTimePerCall() {
-        return (getCalls() > 0) ? (getTime() / getCalls()) : -1;
+        return (getCalls() > 0) ? (time.get() / getCalls()) : -1;
     }
 
     void track() {
