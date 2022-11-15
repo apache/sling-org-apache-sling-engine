@@ -35,6 +35,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.propertytypes.ServiceRanking;
 import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
 import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContext;
@@ -48,6 +49,14 @@ import org.slf4j.LoggerFactory;
 @RequireHttpWhiteboard
 @Component(service = ServletContextHelper.class)
 @HttpWhiteboardContext(name = SlingHttpContext.SERVLET_CONTEXT_NAME, path = "/")
+/**
+ * This context must have a lower ranking than all other contexts, particularly the default
+ * context used by OSGi HTTP Whiteboard (compare with https://issues.apache.org/jira/browse/SLING-11677)
+ * Otherwise the Sling main servlet always takes precedence!
+ * @see <a href="https://docs.osgi.org/specification/osgi.cmpn/7.0.0/service.http.whiteboard.html#service.http.whiteboard.servletcontext">
+ * OSGi Compendium R7, HTTP Whiteboard, The Servlet Context<a/>
+ */
+@ServiceRanking(Integer.MIN_VALUE)
 public class SlingHttpContext extends ServletContextHelper {
 
     /**
