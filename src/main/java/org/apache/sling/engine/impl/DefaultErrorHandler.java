@@ -68,6 +68,15 @@ public class DefaultErrorHandler implements ErrorHandler {
         // don't include Throwable in the response, gives too much information
         final String m = "Error handler failed:" + t.getClass().getName();
         log.error(m, t);
+
+        if (response.isCommitted()) {
+            log.error(
+                "handleError: Response already committed; cannot send error "
+                    + originalStatus + " : " + originalMessage);
+            return;
+        }
+        // reset the response to clear headers and body
+        response.reset();
         sendError(originalStatus, originalMessage, null, request, response);
     }
 
@@ -90,9 +99,17 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
+        if (response.isCommitted()) {
+            log.error(
+                "handleError: Response already committed; cannot send error "
+                    + status + " : " + message);
+            return;
+        }
+        // reset the response to clear headers and body
+        response.reset();
 
         // If we have a delegate let it handle the error
-        if(delegate != null) {
+        if (delegate != null) {
             try {
                 delegate.handleError(status, message, request, response);
             } catch(Exception e) {
@@ -128,9 +145,18 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
+        if (response.isCommitted()) {
+            log.error(
+                "handleError: Response already committed; cannot send error "
+                    + throwable.getMessage(), throwable);
+            return;
+        }
+        // reset the response to clear headers and body
+        response.reset();
+
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
-        if(delegate != null) {
+        if (delegate != null) {
             try {
                 delegate.handleError(throwable, request, response);
             } catch(Exception e) {
@@ -151,74 +177,63 @@ public class DefaultErrorHandler implements ErrorHandler {
             final HttpServletRequest request,
             final HttpServletResponse response)
     throws IOException {
-
-        if (response.isCommitted()) {
-            log.error(
-                "handleError: Response already committed; cannot send error "
-                    + status + message, throwable);
-        } else {
-
-            // error situation
-            final String servletName = (String) request.getAttribute(ERROR_SERVLET_NAME);
-            String requestURI = (String) request.getAttribute(ERROR_REQUEST_URI);
-            if (requestURI == null) {
-                requestURI = request.getRequestURI();
-            }
-
-            // reset anything in the response first
-            response.reset();
-
-            // set the status, content type and encoding
-            response.setStatus(status);
-            response.setContentType("text/html; charset=UTF-8");
-
-            final PrintWriter pw = response.getWriter();
-            pw.println("<html><head><title>");
-            pw.println(ResponseUtil.escapeXml(message));
-            pw.println("</title></head><body><h1>");
-            if (throwable != null) {
-                pw.println(ResponseUtil.escapeXml(throwable.toString()));
-            } else if (message != null) {
-                pw.println(ResponseUtil.escapeXml(message));
-            } else {
-                pw.println("Internal error (no Exception to report)");
-            }
-            pw.println("</h1><p>");
-            pw.print("RequestURI=");
-            pw.println(ResponseUtil.escapeXml(request.getRequestURI()));
-            if (servletName != null) {
-                pw.println("</p><p>Servlet=");
-                pw.println(ResponseUtil.escapeXml(servletName));
-            }
-            pw.println("</p>");
-
-            if (throwable != null) {
-                final PrintWriter escapingWriter = new PrintWriter(
-                        ResponseUtil.getXmlEscapingWriter(pw));
-                pw.println("<h3>Exception stacktrace:</h3>");
-                pw.println("<pre>");
-                pw.flush();
-                throwable.printStackTrace(escapingWriter);
-                escapingWriter.flush();
-                pw.println("</pre>");
-
-                final RequestProgressTracker tracker = ((SlingHttpServletRequest) request).getRequestProgressTracker();
-                pw.println("<h3>Request Progress:</h3>");
-                pw.println("<pre>");
-                pw.flush();
-                tracker.dump(new PrintWriter(escapingWriter));
-                escapingWriter.flush();
-                pw.println("</pre>");
-            }
-
-            pw.println("<hr /><address>");
-            pw.println(ResponseUtil.escapeXml(serverInfo));
-            pw.println("</address></body></html>");
-
-            // commit the response
-            response.flushBuffer();
-            // close the response (SLING-2724)
-            pw.close();
+        // error situation
+        final String servletName = (String) request.getAttribute(ERROR_SERVLET_NAME);
+        String requestURI = (String) request.getAttribute(ERROR_REQUEST_URI);
+        if (requestURI == null) {
+            requestURI = request.getRequestURI();
         }
+
+        // set the status, content type and encoding
+        response.setStatus(status);
+        response.setContentType("text/html; charset=UTF-8");
+
+        final PrintWriter pw = response.getWriter();
+        pw.println("<html><head><title>");
+        pw.println(ResponseUtil.escapeXml(message));
+        pw.println("</title></head><body><h1>");
+        if (throwable != null) {
+            pw.println(ResponseUtil.escapeXml(throwable.toString()));
+        } else if (message != null) {
+            pw.println(ResponseUtil.escapeXml(message));
+        } else {
+            pw.println("Internal error (no Exception to report)");
+        }
+        pw.println("</h1><p>");
+        pw.print("RequestURI=");
+        pw.println(ResponseUtil.escapeXml(request.getRequestURI()));
+        if (servletName != null) {
+            pw.println("</p><p>Servlet=");
+            pw.println(ResponseUtil.escapeXml(servletName));
+        }
+        pw.println("</p>");
+
+        if (throwable != null) {
+            final PrintWriter escapingWriter = new PrintWriter(
+                    ResponseUtil.getXmlEscapingWriter(pw));
+            pw.println("<h3>Exception stacktrace:</h3>");
+            pw.println("<pre>");
+            pw.flush();
+            throwable.printStackTrace(escapingWriter);
+            escapingWriter.flush();
+            pw.println("</pre>");
+
+            final RequestProgressTracker tracker = ((SlingHttpServletRequest) request).getRequestProgressTracker();
+            pw.println("<h3>Request Progress:</h3>");
+            pw.println("<pre>");
+            pw.flush();
+            tracker.dump(new PrintWriter(escapingWriter));
+            escapingWriter.flush();
+            pw.println("</pre>");
+        }
+
+        pw.println("<hr /><address>");
+        pw.println(ResponseUtil.escapeXml(serverInfo));
+        pw.println("</address></body></html>");
+
+        // commit the response
+        response.flushBuffer();
+        // close the response (SLING-2724)
+        pw.close();
     }
 }

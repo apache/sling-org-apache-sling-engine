@@ -39,6 +39,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -207,6 +208,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
+        final boolean isInclude = request.getAttribute(SlingConstants.ATTR_INCLUDE_CONTEXT_PATH) != null;
         try {
             // initialize the request data - resolve resource and servlet
             final Resource resource = requestData.initResource(resourceResolver);
@@ -227,11 +229,16 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // send this exception as a 404 status
             log.debug("service: Resource {} not found", rnfe.getResource());
 
-            handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(),
-                request, response);
+            if ( isInclude ) {
+                throw rnfe;
+            }
+            handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(), request, response);
 
         } catch (final SlingException se) {
 
+            if ( isInclude ) {
+                throw se;
+            }
             // if we have request data and a non-null active servlet name
             // we assume, that this is the name of the causing servlet
             if (requestData.getActiveServletName() != null) {
@@ -250,6 +257,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         } catch (final AccessControlException ace) {
 
+            if ( isInclude ) {
+                throw ace;
+            }
             // SLING-319 if anything goes wrong, send 403/FORBIDDEN
             log.debug(
                 "service: Authenticated user {} does not have enough rights to executed requested action",
@@ -263,6 +273,16 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             throw ioe;
 
         } catch (final Throwable t) {
+
+            if ( isInclude ) {
+                if ( t instanceof RuntimeException ) {
+                    throw (RuntimeException)t;
+                }
+                if ( t instanceof Error ) {
+                    throw (Error)t;
+                }
+                throw new SlingException(t.getMessage(), t);
+            }
 
             // if we have request data and a non-null active servlet name
             // we assume, that this is the name of the causing servlet
@@ -379,45 +399,35 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     // ---------- Error Handling with Filters
 
-    void handleError(final int status, final String message,
+    private void handleError(final FilterChain errorFilterChain,
             final SlingHttpServletRequest request,
-            SlingHttpServletResponse response) throws IOException {
-
-        // wrap the response ensuring getWriter will fall back to wrapping
-        // the response output stream if reset does not reset this
-        response = new ErrorResponseWrapper(response);
-
-        final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        FilterChain processor = new ErrorFilterChainStatus(filters, errorHandler, status, message);
-        request.getRequestProgressTracker().log(
-            "Applying " + FilterChainType.ERROR + " filters");
+            final SlingHttpServletResponse response) 
+    throws IOException {
+        request.getRequestProgressTracker().log("Applying " + FilterChainType.ERROR + " filters");
 
         try {
-            processor.doFilter(request, response);
-        } catch (ServletException se) {
+            // wrap the response ensuring getWriter will fall back to wrapping
+            // the response output stream if reset does not reset this
+            errorFilterChain.doFilter(request, new ErrorResponseWrapper(response));
+        } catch (final ServletException se) {
             throw new SlingServletException(se);
         }
     }
 
-    // just rethrow the exception as explained in the class comment
+    void handleError(final int status, final String message,
+            final SlingHttpServletRequest request,
+            final SlingHttpServletResponse response) throws IOException {
+        final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
+        final FilterChain processor = new ErrorFilterChainStatus(filters, errorHandler, status, message);
+        this.handleError(processor, request, response);
+    }
+
     private void handleError(final Throwable throwable,
             final SlingHttpServletRequest request,
-            SlingHttpServletResponse response) throws IOException {
-
-        // wrap the response ensuring getWriter will fall back to wrapping
-        // the response output stream if reset does not reset this
-        response = new ErrorResponseWrapper(response);
-
+            final SlingHttpServletResponse response) throws IOException {
         final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        FilterChain processor = new ErrorFilterChainThrowable(filters, errorHandler, throwable);
-        request.getRequestProgressTracker().log(
-            "Applying " + FilterChainType.ERROR + " filters");
-
-        try {
-            processor.doFilter(request, response);
-        } catch (ServletException se) {
-            throw new SlingServletException(se);
-        }
+        final FilterChain processor = new ErrorFilterChainThrowable(filters, errorHandler, throwable);
+        this.handleError(processor, request, response);
     }
 
     private static class ErrorResponseWrapper extends
