@@ -70,7 +70,7 @@ public class DefaultErrorHandler implements ErrorHandler {
         log.error(m, t);
 
         if (response.isCommitted()) {
-            log.error(
+            log.warn(
                 "handleError: Response already committed; cannot send error "
                     + originalStatus + " : " + originalMessage);
             return;
@@ -100,7 +100,7 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletResponse response)
     throws IOException {
         if (response.isCommitted()) {
-            log.error(
+            log.warn(
                 "handleError: Response already committed; cannot send error "
                     + status + " : " + message);
             return;
@@ -146,7 +146,7 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletResponse response)
     throws IOException {
         if (response.isCommitted()) {
-            log.error(
+            log.warn(
                 "handleError: Response already committed; cannot send error "
                     + throwable.getMessage(), throwable);
             return;
