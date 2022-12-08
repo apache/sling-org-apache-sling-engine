@@ -91,4 +91,17 @@ public @interface Config {
 
     @AttributeDefinition(name = "Servlet Name", description = "Optional name for the Sling main servlet registered by this component")
     String servlet_name();
+
+    @AttributeDefinition(name = "Protect Headers on Includes",
+            description = "When enabled, servlets included via the RequestDispatcher will not be able to change the " +
+                    "response status code or set headers. Any attempt to make a change is ignored. This behaviour can " +
+                    "be overridden per include via the 'protectHeadersOnInclude' RequestDispatcherOptions key.")
+    boolean sling_includes_protectheaders() default false;
+
+    @AttributeDefinition(name = "Check Content-Type overwrites",
+            description = "When enabled, in addition to not allowing servlets included via the RequestDispatcher to " +
+                    "change the response status code or set headers, it will also check explicit overrides of the " +
+                    "Content-Type header and will make the Sling Engine throw a RuntimeException when such an " +
+                    "override is detected.")
+    boolean sling_includes_checkcontenttype() default false;
 }

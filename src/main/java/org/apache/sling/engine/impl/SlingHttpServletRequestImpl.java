@@ -124,7 +124,14 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     @Override
     public RequestDispatcher getRequestDispatcher(Resource resource,
             RequestDispatcherOptions options) {
-        return (resource != null) ? new SlingRequestDispatcher(resource, options) : null;
+        return (resource != null) ?
+                new SlingRequestDispatcher(
+                        resource,
+                        options,
+                        requestData.protectHeadersOnInclude(),
+                        requestData.checkContentTypeOnInclude()
+                )
+                : null;
     }
 
     /**
@@ -141,7 +148,14 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     @Override
     public RequestDispatcher getRequestDispatcher(String path,
             RequestDispatcherOptions options) {
-        return (path != null) ? new SlingRequestDispatcher(path, options) : null;
+        return (path != null) ?
+                new SlingRequestDispatcher(
+                        path,
+                        options,
+                        requestData.protectHeadersOnInclude(),
+                        requestData.checkContentTypeOnInclude()
+                )
+                : null;
     }
 
     /**

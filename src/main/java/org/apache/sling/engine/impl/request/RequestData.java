@@ -107,6 +107,10 @@ public class RequestData {
     /** The original servlet Servlet Response object */
     private final SlingHttpServletResponse slingResponse;
 
+    private final boolean protectHeadersOnInclude;
+
+    private final boolean checkContentTypeOnInclude;
+
     /** The parameter support class */
     private ParameterSupport parameterSupport;
 
@@ -151,13 +155,17 @@ public class RequestData {
     }
 
     public RequestData(SlingRequestProcessorImpl slingRequestProcessor,
-            HttpServletRequest request, HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse response,
+                       boolean protectHeadersOnInclude,
+                       boolean checkContentTypeOnInclude) {
         this.startTimestamp = System.currentTimeMillis();
 
         this.slingRequestProcessor = slingRequestProcessor;
 
         this.servletRequest = request;
         this.servletResponse = response;
+        this.protectHeadersOnInclude = protectHeadersOnInclude;
+        this.checkContentTypeOnInclude = checkContentTypeOnInclude;
 
         this.slingRequest = new SlingHttpServletRequestImpl(this, this.servletRequest);
 
@@ -580,6 +588,14 @@ public class RequestData {
 
     public int getServletCallCount() {
         return servletCallCounter;
+    }
+
+    public boolean protectHeadersOnInclude() {
+        return protectHeadersOnInclude;
+    }
+
+    public boolean checkContentTypeOnInclude() {
+        return checkContentTypeOnInclude;
     }
 
     /**
