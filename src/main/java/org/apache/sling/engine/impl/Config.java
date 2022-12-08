@@ -98,7 +98,7 @@ public @interface Config {
                     "be overridden per include via the 'protectHeadersOnInclude' RequestDispatcherOptions key.")
     boolean sling_includes_protectheaders() default false;
 
-    @AttributeDefinition(name = "Check Content-Type overwrites",
+    @AttributeDefinition(name = "Check Content-Type overrides",
             description = "When enabled, in addition to not allowing servlets included via the RequestDispatcher to " +
                     "change the response status code or set headers, it will also check explicit overrides of the " +
                     "Content-Type header and will make the Sling Engine throw a RuntimeException when such an " +
