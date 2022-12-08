@@ -33,9 +33,12 @@ public class IncludeNoContentTypeOverrideResponseWrapper extends IncludeResponse
 
     /**
      * Wraps a response object and throws a {@link RuntimeException} if {@link #setContentType(String)} is called with
-     * a value that would override the response's previous set value.
+     * a value that would override the response's previously set value.
      *
-     * @param wrappedResponse the response to be wrapped
+     * @param requestProgressTracker the {@code RequestProgressTracker} used to log when an override of the {@code
+     *                               Content-Type} header is detected
+     * @param activeServletName      the name of the active servlet, used for logging
+     * @param wrappedResponse        the response to be wrapped
      */
     public IncludeNoContentTypeOverrideResponseWrapper(@NotNull RequestProgressTracker requestProgressTracker,
                                                        @NotNull String activeServletName,
