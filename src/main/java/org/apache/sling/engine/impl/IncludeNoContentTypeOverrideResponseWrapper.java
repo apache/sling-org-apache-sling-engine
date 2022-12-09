@@ -18,34 +18,29 @@
  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
 package org.apache.sling.engine.impl;
 
-import org.apache.sling.api.SlingException;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.request.RequestProgressTracker;
-import org.jetbrains.annotations.NotNull;
-
 import java.util.Arrays;
 import java.util.Optional;
 
+import org.apache.sling.api.SlingException;
+import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.engine.impl.request.RequestData;
+import org.jetbrains.annotations.NotNull;
+
 public class IncludeNoContentTypeOverrideResponseWrapper extends IncludeResponseWrapper {
 
-    private final RequestProgressTracker requestProgressTracker;
-    private final String activeServletName;
+    private final RequestData requestData;
 
     /**
      * Wraps a response object and throws a {@link RuntimeException} if {@link #setContentType(String)} is called with
      * a value that would override the response's previously set value.
      *
-     * @param requestProgressTracker the {@code RequestProgressTracker} used to log when an override of the {@code
-     *                               Content-Type} header is detected
-     * @param activeServletName      the name of the active servlet, used for logging
-     * @param wrappedResponse        the response to be wrapped
+     * @param requestData     the request data object
+     * @param wrappedResponse the response to be wrapped
      */
-    public IncludeNoContentTypeOverrideResponseWrapper(@NotNull RequestProgressTracker requestProgressTracker,
-                                                       @NotNull String activeServletName,
+    public IncludeNoContentTypeOverrideResponseWrapper(@NotNull RequestData requestData,
                                                        @NotNull SlingHttpServletResponse wrappedResponse) {
         super(wrappedResponse);
-        this.requestProgressTracker = requestProgressTracker;
-        this.activeServletName = activeServletName;
+        this.requestData = requestData;
     }
 
     @Override
@@ -56,14 +51,15 @@ public class IncludeNoContentTypeOverrideResponseWrapper extends IncludeResponse
             Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
             if (currentMime.isPresent() && setMime.isPresent() && !currentMime.get().equals(setMime.get())) {
                 String message = String.format(
-                        "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the %s forbids this via the %s configuration property.",
-                        activeServletName,
+                        "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the" +
+                                " %s forbids this via the %s configuration property.",
+                        requestData.getActiveServletName(),
                         currentMime.get(),
                         setMime.get(),
                         Config.PID,
                         "sling.includes.checkcontenttype"
                 );
-                requestProgressTracker.log(message);
+                requestData.getRequestProgressTracker().log("ERROR: " + message);
                 throw new ContentTypeChangeException(message);
             }
         }

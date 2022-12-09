@@ -21,12 +21,12 @@ package org.apache.sling.engine.impl;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
+import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
 
-import javax.servlet.ServletException;
-import java.io.IOException;
-
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -35,14 +35,17 @@ public class IncludeNoContentTypeOverrideResponseWrapperTest {
     private static final String ACTIVE_SERVLET_NAME = "activeServlet";
 
     @Test
-    public void testContentTypeOverrideThrows() throws ServletException, IOException {
+    public void testContentTypeOverrideThrows() {
+        RequestData requestData = mock(RequestData.class);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
         when(response.getContentType()).thenReturn("text/html");
 
 
-        IncludeNoContentTypeOverrideResponseWrapper wrapper = new IncludeNoContentTypeOverrideResponseWrapper(
-                requestProgressTracker, ACTIVE_SERVLET_NAME, response
+        IncludeNoContentTypeOverrideResponseWrapper wrapper = new IncludeNoContentTypeOverrideResponseWrapper(requestData,
+                response
         );
 
         Throwable throwable = null;
@@ -58,14 +61,17 @@ public class IncludeNoContentTypeOverrideResponseWrapperTest {
     }
 
     @Test
-    public void testContentTypeOverrideLenient() throws ServletException, IOException {
+    public void testContentTypeOverrideLenient() {
+        RequestData requestData = mock(RequestData.class);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
         when(response.getContentType()).thenReturn("text/html");
 
 
-        IncludeNoContentTypeOverrideResponseWrapper wrapper = new IncludeNoContentTypeOverrideResponseWrapper(
-                requestProgressTracker, ACTIVE_SERVLET_NAME, response
+        IncludeNoContentTypeOverrideResponseWrapper wrapper = new IncludeNoContentTypeOverrideResponseWrapper(requestData,
+                response
         );
 
         Throwable throwable = null;

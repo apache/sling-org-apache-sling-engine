@@ -402,10 +402,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                     cResponse = new IncludeResponseWrapper(cResponse);
                 }
                 if (checkContentTypeOnInclude) {
-                    cResponse = new IncludeNoContentTypeOverrideResponseWrapper(
-                                    requestData.getRequestProgressTracker(),
-                                    requestData.getActiveServletName(),
-                                    cResponse
+                    cResponse = new IncludeNoContentTypeOverrideResponseWrapper(requestData, cResponse
                     );
                 }
             }
