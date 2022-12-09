@@ -118,7 +118,7 @@ public class InitResourceTest {
             will(returnValue(Collections.emptyList()));
         }});
 
-        requestData = new RequestData(processor, req, resp);
+        requestData = new RequestData(processor, req, resp, false, false);
     }
 
     @Test

@@ -43,22 +43,31 @@ public class SlingRequestDispatcher implements RequestDispatcher {
 
     private Resource resource;
 
-    private RequestDispatcherOptions options;
+    private final RequestDispatcherOptions options;
 
-    private String path;
+    private final String path;
 
-    public SlingRequestDispatcher(String path, RequestDispatcherOptions options) {
+    private final boolean protectHeadersOnInclude;
+    private final boolean checkContentTypeOnInclude;
+
+    public SlingRequestDispatcher(String path, RequestDispatcherOptions options,
+                                  boolean protectHeadersOnInclude,
+                                  boolean checkContentTypeOnInclude) {
         this.path = path;
         this.options = options;
         this.resource = null;
+        this.protectHeadersOnInclude = protectHeadersOnInclude;
+        this.checkContentTypeOnInclude = checkContentTypeOnInclude;
     }
 
-    public SlingRequestDispatcher(Resource resource,
-            RequestDispatcherOptions options) {
-
+    public SlingRequestDispatcher(Resource resource, RequestDispatcherOptions options,
+                                  boolean protectHeadersOnInclude,
+                                  boolean checkContentTypeOnInclude) {
         this.resource = resource;
         this.options = options;
         this.path = resource.getPath();
+        this.protectHeadersOnInclude = protectHeadersOnInclude;
+        this.checkContentTypeOnInclude = checkContentTypeOnInclude;
     }
 
     @Override
@@ -214,9 +223,11 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
         requestProgressTracker.log(
             "Including resource {0} ({1})", resource, info);
-        final boolean protectHeaders = this.options != null ? this.options.isProtectHeadersOnInclude() : false;
+        boolean protectHeaders = this.options != null ?
+                Boolean.parseBoolean(this.options.getOrDefault(RequestDispatcherOptions.OPT_PROTECT_HEADERS_ON_INCLUDE, String.valueOf(this.protectHeadersOnInclude)))
+                : this.protectHeadersOnInclude;
         rd.getSlingRequestProcessor().dispatchRequest(request, response, resource,
-            info, include, protectHeaders);
+            info, include, protectHeaders, this.checkContentTypeOnInclude);
     }
 
     /**
