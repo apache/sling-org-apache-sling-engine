@@ -23,10 +23,11 @@ import java.util.Optional;
 
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jetbrains.annotations.NotNull;
 
-public class IncludeNoContentTypeOverrideResponseWrapper extends IncludeResponseWrapper {
+public class IncludeNoContentTypeOverrideResponseWrapper extends SlingHttpServletResponseWrapper {
 
     private final RequestData requestData;
 
@@ -47,22 +48,32 @@ public class IncludeNoContentTypeOverrideResponseWrapper extends IncludeResponse
     public void setContentType(String type) {
         String contentTypeString = getContentType();
         if (contentTypeString != null) {
-            Optional<String> currentMime = Arrays.stream(contentTypeString.split(";")).findFirst();
-            Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
-            if (currentMime.isPresent() && setMime.isPresent() && !currentMime.get().equals(setMime.get())) {
-                String message = String.format(
-                        "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the" +
-                                " %s forbids this via the %s configuration property.",
-                        requestData.getActiveServletName(),
-                        currentMime.get(),
-                        setMime.get(),
-                        Config.PID,
-                        "sling.includes.checkcontenttype"
-                );
+            if (type == null) {
+                String message = getMessage(contentTypeString, "null");
                 requestData.getRequestProgressTracker().log("ERROR: " + message);
                 throw new ContentTypeChangeException(message);
             }
+            Optional<String> currentMime = Arrays.stream(contentTypeString.split(";")).findFirst();
+            Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
+            if (currentMime.isPresent() && setMime.isPresent() && !currentMime.get().equals(setMime.get())) {
+                String message = getMessage(contentTypeString, type);
+                requestData.getRequestProgressTracker().log("ERROR: " + message);
+                throw new ContentTypeChangeException(message);
+            }
+            getResponse().setContentType(type);
         }
+    }
+
+    private String getMessage(String currentContentType, String setContentType) {
+        return String.format(
+                "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the" +
+                        " %s forbids this via the %s configuration property.",
+                requestData.getActiveServletName(),
+                currentContentType,
+                setContentType,
+                Config.PID,
+                "sling.includes.checkcontenttype"
+        );
     }
 
     private static class ContentTypeChangeException extends SlingException {

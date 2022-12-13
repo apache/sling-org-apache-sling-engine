@@ -26,7 +26,8 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -61,13 +62,18 @@ public class IncludeNoContentTypeOverrideResponseWrapperTest {
     }
 
     @Test
-    public void testContentTypeOverrideLenient() {
+    public void testContentTypeOverrideLenient() throws Throwable {
         RequestData requestData = mock(RequestData.class);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
         when(response.getContentType()).thenReturn("text/html");
+        doAnswer(invocationOnMock -> {
+            String setContentType = invocationOnMock.getArgument(0);
+            when(response.getContentType()).thenReturn(setContentType);
+            return null;
+        }).when(response).setContentType(anyString());
 
 
         IncludeNoContentTypeOverrideResponseWrapper wrapper = new IncludeNoContentTypeOverrideResponseWrapper(requestData,
@@ -80,8 +86,21 @@ public class IncludeNoContentTypeOverrideResponseWrapperTest {
         } catch (Throwable t) {
             throwable = t;
         }
-        assertNull(throwable);
-        assertEquals("text/html", wrapper.getContentType());
+        if (throwable != null) {
+            throw throwable;
+        }
+        assertEquals("text/html;utf-8", wrapper.getContentType());
+
+        try {
+            wrapper.setContentType(null);
+        } catch (Throwable t) {
+            throwable = t;
+        }
+        assertNotNull(throwable);
+        assertEquals("Servlet activeServlet tried to override the 'Content-Type' header from 'text/html;utf-8' to " +
+                "'null', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the sling" +
+                ".includes.checkcontenttype configuration property.", throwable.getMessage());
+        assertEquals("text/html;utf-8", wrapper.getContentType());
     }
 
 }
