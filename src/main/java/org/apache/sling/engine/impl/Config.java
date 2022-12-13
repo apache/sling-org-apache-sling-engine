@@ -18,6 +18,8 @@
  */
 package org.apache.sling.engine.impl;
 
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 
@@ -99,9 +101,7 @@ public @interface Config {
     boolean sling_includes_protectheaders() default false;
 
     @AttributeDefinition(name = "Check Content-Type overrides",
-            description = "When enabled, in addition to not allowing servlets included via the RequestDispatcher to " +
-                    "change the response status code or set headers, it will also check explicit overrides of the " +
-                    "Content-Type header and will make the Sling Engine throw a RuntimeException when such an " +
-                    "override is detected.")
+            description = "When enabled, it will check explicit overrides of the Content-Type header and will make the " +
+                    "Sling Engine throw a RuntimeException when such an override is detected.")
     boolean sling_includes_checkcontenttype() default false;
 }
