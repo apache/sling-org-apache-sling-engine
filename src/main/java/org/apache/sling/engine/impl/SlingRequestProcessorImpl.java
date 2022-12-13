@@ -65,7 +65,7 @@ import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.apache.sling.engine.servlets.ErrorHandler;
+import org.apache.sling.api.servlets.ErrorHandler;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;

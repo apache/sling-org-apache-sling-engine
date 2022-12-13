@@ -227,7 +227,7 @@ public class EngineConstants {
      * Filter scope value identifying an error level filter.
      * <p>
      * Error level filters are called before calling the
-     * {@link org.apache.sling.engine.servlets.ErrorHandler} due to either a
+     * {@link org.apache.sling.api.servlets.ErrorHandler} due to either a
      * <code>HttpServletResponse.sendError</code> call or due to an uncaught
      * <code>Throwable</code>. The order of calling the filters is defined by
      * the <code>service.ranking</code> (or {@link #FILTER_ORDER}) property and
