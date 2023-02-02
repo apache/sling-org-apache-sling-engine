@@ -39,7 +39,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -213,7 +212,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
-        final boolean isInclude = request.getAttribute(SlingConstants.ATTR_INCLUDE_CONTEXT_PATH) != null;
         try {
             // initialize the request data - resolve resource and servlet
             final Resource resource = requestData.initResource(resourceResolver);
@@ -233,17 +231,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         } catch (final ResourceNotFoundException rnfe) {
             // send this exception as a 404 status
             log.debug("service: Resource {} not found", rnfe.getResource());
-
-            if ( isInclude ) {
-                throw rnfe;
-            }
             handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(), request, response);
 
         } catch (final SlingException se) {
-
-            if ( isInclude ) {
-                throw se;
-            }
             // if we have request data and a non-null active servlet name
             // we assume, that this is the name of the causing servlet
             if (requestData.getActiveServletName() != null) {
@@ -261,10 +251,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             handleError(t, request, response);
 
         } catch (final AccessControlException ace) {
-
-            if ( isInclude ) {
-                throw ace;
-            }
             // SLING-319 if anything goes wrong, send 403/FORBIDDEN
             log.debug(
                 "service: Authenticated user {} does not have enough rights to executed requested action",
@@ -273,23 +259,10 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 response);
 
         } catch (final IOException ioe) {
-
             // forward IOException up the call chain to properly handle it
             throw ioe;
 
         } catch (final Throwable t) {
-
-            if ( isInclude ) {
-                if ( t instanceof RuntimeException ) {
-                    throw (RuntimeException)t;
-                }
-                if ( t instanceof Error ) {
-                    throw (Error)t;
-                }
-                throw new SlingException(t.getMessage(), t);
-            }
-
-            // if we have request data and a non-null active servlet name
             // we assume, that this is the name of the causing servlet
             if (requestData.getActiveServletName() != null) {
                 request.setAttribute(ERROR_SERVLET_NAME,
