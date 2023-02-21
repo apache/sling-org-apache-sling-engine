@@ -111,6 +111,11 @@ public class ParameterSupport {
      */
     private static boolean checkForAdditionalParameters = false;
 
+    /**
+     * The maximum number of files allowed in a single request.
+     */
+    private static long maxFileCount = 50;
+
     private final HttpServletRequest servletRequest;
 
     private ParameterMap postParameterMap;
@@ -153,12 +158,14 @@ public class ParameterSupport {
 
     static void configure(final long maxRequestSize, final String location, final long maxFileSize,
             final int fileSizeThreshold,
-            final boolean checkForAdditionalParameters) {
+            final boolean checkForAdditionalParameters,
+            final long maxFileCount) {
         ParameterSupport.maxRequestSize = (maxRequestSize > 0) ? maxRequestSize : -1;
         ParameterSupport.location = (location != null) ? new File(location) : null;
         ParameterSupport.maxFileSize = (maxFileSize > 0) ? maxFileSize : -1;
         ParameterSupport.fileSizeThreshold = (fileSizeThreshold > 0) ? fileSizeThreshold : 256000;
         ParameterSupport.checkForAdditionalParameters = checkForAdditionalParameters;
+        ParameterSupport.maxFileCount = (maxFileCount > 0) ? maxFileCount : 50;
     }
 
     private ParameterSupport(HttpServletRequest servletRequest) {
@@ -382,7 +389,7 @@ public class ParameterSupport {
         upload.setFileSizeMax(ParameterSupport.maxFileSize);
         upload.setFileItemFactory(new DiskFileItemFactory(ParameterSupport.fileSizeThreshold,
             ParameterSupport.location));
-
+        upload.setFileCountMax(ParameterSupport.maxFileCount);
         RequestContext rc = new ServletRequestContext(this.getServletRequest()) {
             @Override
             public String getCharacterEncoding() {

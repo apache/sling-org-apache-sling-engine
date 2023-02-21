@@ -123,6 +123,11 @@ public class RequestParameterSupportConfigurer implements Filter {
                 name = "Check Additional Parameters",
                 description = "Enable this if you want to include request parameters added through the container, e.g through a valve.")
         boolean sling_default_parameter_checkForAdditionalContainerParameters() default false;
+
+        @AttributeDefinition(
+                name = "Maximum File Count",
+                description = "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
+        long request_max_file_count() default 50;
     }
     static final String PID = "org.apache.sling.engine.parameters";
 
@@ -152,12 +157,13 @@ public class RequestParameterSupportConfigurer implements Filter {
             log.info("Maximum File Size: {}", maxFileSize);
             log.info("Tempory File Creation Threshold: {}", fileSizeThreshold);
             log.info("Check for additional container parameters: {}", checkAddParameters);
+            log.info("Maximum File Count: {}", config.request_max_file_count());
         }
 
         Util.setDefaultFixEncoding(fixEncoding);
         ParameterMap.setMaxParameters(maxParams);
         ParameterSupport.configure(maxRequestSize, fileLocation, maxFileSize,
-                fileSizeThreshold, checkAddParameters);
+                fileSizeThreshold, checkAddParameters, config.request_max_file_count());
     }
 
     private String getFileLocation(String fileLocation) {

@@ -54,6 +54,7 @@ public class RequestPartsIterator implements Iterator<Part> {
      */
     public RequestPartsIterator(HttpServletRequest servletRequest) throws IOException, FileUploadException {
         ServletFileUpload upload = new ServletFileUpload();
+        upload.setFileCountMax(50);
         itemIterator = upload.getItemIterator(servletRequest);
     }
 
