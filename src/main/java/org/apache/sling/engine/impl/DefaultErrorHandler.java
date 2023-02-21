@@ -114,8 +114,6 @@ public class DefaultErrorHandler implements ErrorHandler {
                 delegate.handleError(status, message, request, response);
             } catch(Exception e) {
                 delegateFailed(status, message, e, request, response);
-            } catch(Error r) {
-                delegateFailed(status, message, r, request, response);
             }
             return;
         }
@@ -161,8 +159,6 @@ public class DefaultErrorHandler implements ErrorHandler {
                 delegate.handleError(throwable, request, response);
             } catch(Exception e) {
                 delegateFailed(status, throwable.toString(), e, request, response);
-            } catch(Error r) {
-                delegateFailed(status, throwable.toString(), r, request, response);
             }
             return;
         }
