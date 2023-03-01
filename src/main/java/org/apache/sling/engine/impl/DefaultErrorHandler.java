@@ -31,7 +31,7 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.ResponseUtil;
-import org.apache.sling.engine.servlets.ErrorHandler;
+import org.apache.sling.api.servlets.ErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

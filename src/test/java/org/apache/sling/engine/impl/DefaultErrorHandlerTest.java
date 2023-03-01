@@ -27,7 +27,7 @@ import static org.mockito.Mockito.times;
 import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.servlets.ErrorHandler;
+import org.apache.sling.api.servlets.ErrorHandler;
 import org.junit.Test;
 import org.mockito.Mockito;
 

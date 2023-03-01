@@ -18,55 +18,13 @@
  */
 package org.apache.sling.engine.servlets;
 
-import java.io.IOException;
-
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
 import org.osgi.annotation.versioning.ConsumerType;
 
 /**
- * The <code>ErrorHandler</code> defines the interface of the service used by
- * the Sling to handle calls to <code>HttpServletResponse.sendError</code> and
- * to handle uncaught <code>Throwable</code>s.
+ * @deprecated Please use {@link org.apache.sling.api.servlets.ErrorHandler} instead.
  */
 @ConsumerType
-public interface ErrorHandler {
-
-    /**
-     * Called to render a response for a HTTP status code. This method should
-     * set the response status and print the status code and optional message.
-     * <p>
-     * If the response has already been committed, an error message should be
-     * logged but no further processing should take place.
-     *
-     * @param status The HTTP status code to set
-     * @param message An optional message to write to the response. This message
-     *            may be <code>null</code>.
-     * @param request The request object providing more information on the
-     *            request.
-     * @param response The response object used to send the status and message.
-     * @throws IOException May be thrown if an error occurrs sending the
-     *             response.
-     */
-    void handleError(int status, String message,
-            SlingHttpServletRequest request, SlingHttpServletResponse response)
-            throws IOException;
-
-    /**
-     * Called to render a response for an uncaught <code>Throwable</code>.
-     * <p>
-     * If the response has already been committed, an error message should be
-     * logged but no further processing should take place.
-     *
-     * @param throwable The <code>Throwable</code> causing this method to be
-     *            called.
-     * @param request The request object providing more information on the
-     *            request.
-     * @param response The response object used to send the status and message.
-     * @throws IOException May be thrown if an error occurrs sending the
-     *             response.
-     */
-    void handleError(Throwable throwable, SlingHttpServletRequest request,
-            SlingHttpServletResponse response) throws IOException;
+@Deprecated
+public interface ErrorHandler extends org.apache.sling.api.servlets.ErrorHandler {
 
 }
