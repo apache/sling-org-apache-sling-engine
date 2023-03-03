@@ -71,6 +71,7 @@ import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
+import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -146,15 +147,40 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
     }
 
-    @Reference(name = "ErrorHandler", cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, unbind = "unsetErrorHandler")
-    void setErrorHandler(final ErrorHandler errorHandler) {
-        this.errorHandler.setDelegate(errorHandler);
+    private volatile ErrorHandler newErrorHandler;
+    private volatile org.apache.sling.engine.servlets.ErrorHandler oldErrorHandler;
+
+    @Reference(name = "ErrorHandler",
+               cardinality=ReferenceCardinality.OPTIONAL,
+               policy = ReferencePolicy.DYNAMIC,
+               policyOption = ReferencePolicyOption.GREEDY)
+    void setErrorHandler(final ErrorHandler handler) {
+        this.newErrorHandler = handler;
+        this.errorHandler.setDelegate(handler);
     }
 
-    void unsetErrorHandler(final ErrorHandler errorHandler) {
-        this.errorHandler.setDelegate(null);
+    void unsetErrorHandler(final ErrorHandler handler) {
+        this.newErrorHandler = null;
+        this.errorHandler.setDelegate(this.oldErrorHandler);
     }
-    
+
+
+    @Reference(name = "OldErrorHandler",
+               cardinality=ReferenceCardinality.OPTIONAL,
+               policy = ReferencePolicy.DYNAMIC,
+               policyOption = ReferencePolicyOption.GREEDY)
+    void setOldErrorHandler(final org.apache.sling.engine.servlets.ErrorHandler handler) {
+        this.oldErrorHandler = handler;
+        if ( this.newErrorHandler == null) {
+            this.errorHandler.setDelegate(handler);
+        }
+    }
+
+    void unsetOldErrorHandler(final org.apache.sling.engine.servlets.ErrorHandler handler) {
+        this.oldErrorHandler = null;
+        this.errorHandler.setDelegate(this.newErrorHandler);
+    }
+
     public int getMaxCallCounter() {
         return maxCallCounter;
     }
