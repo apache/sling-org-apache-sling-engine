@@ -270,9 +270,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
         if ( reg != null ) {
             // async unregistration
-            this.runAsync(() -> {
-                unregisterServletContext(reg);
-            });
+            this.runAsync(() -> unregisterServletContext(reg));
         }
     }
 
