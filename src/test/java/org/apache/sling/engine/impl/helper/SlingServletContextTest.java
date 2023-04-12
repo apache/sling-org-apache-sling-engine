@@ -16,6 +16,7 @@
  */
 package org.apache.sling.engine.impl.helper;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
 import static org.mockito.ArgumentMatchers.any;
@@ -36,6 +37,15 @@ import org.mockito.stubbing.Answer;
 import org.osgi.framework.BundleContext;
 
 public class SlingServletContextTest {
+
+    @Test public void testConfiguredServerInfo() {
+        final Config cfg = Mockito.mock(Config.class);
+        Mockito.when(cfg.sling_serverinfo()).thenReturn("Apache Sling/1.0");
+        final ProductInfoProvider pip = Mockito.mock(ProductInfoProvider.class);
+        final BundleContext bundleContext = Mockito.mock(BundleContext.class);
+        final SlingServletContext ctx = new SlingServletContext(cfg, bundleContext, pip);
+        assertEquals("Apache Sling/1.0", ctx.getServerInfo());
+    }
 
     @Test public void testServletContextListener() {
         final Config cfg = Mockito.mock(Config.class);
