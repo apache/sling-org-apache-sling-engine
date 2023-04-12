@@ -202,8 +202,8 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
     }
 
-    private void runAsync(final Runnable r) {
-        final Thread thread = new Thread(r, "SlingServletContext registration");
+    private void runAsync(final Runnable r, final String action) {
+        final Thread thread = new Thread(r, this.getClass().getSimpleName() + "-" + action);
         thread.setDaemon(true);
         thread.start();
     }
@@ -254,7 +254,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
                         unregisterServletContext(reg);
                     }
                 }
-            });
+            }, "registration");
         }
     }
 
@@ -270,7 +270,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
         if ( reg != null ) {
             // async unregistration
-            this.runAsync(() -> unregisterServletContext(reg));
+            this.runAsync(() -> unregisterServletContext(reg), "unregistration");
         }
     }
 
