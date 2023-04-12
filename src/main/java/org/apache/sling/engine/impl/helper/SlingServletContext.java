@@ -116,6 +116,9 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     private volatile String configuredServerInfo;
 
+    // counter to synchronize the init and destroy methods
+    private volatile long initCounter;
+
     private volatile ServletContext servletContext;
 
     private volatile ServiceRegistration<ServletContext> registration;
@@ -199,37 +202,76 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
     }
 
-    @Override
-    public void contextDestroyed(final ServletContextEvent sce) {
-        synchronized ( this ) {
-            this.servletContext = null;
-            this.setServerInfo();
-            if ( this.registration != null ) {
-                this.registration.unregister();
-                this.registration = null;    
-            }
+    private void runAsync(final Runnable r, final String action) {
+        final Thread thread = new Thread(r, this.getClass().getSimpleName() + "-" + action);
+        thread.setDaemon(true);
+        thread.start();
+    }
+
+    private ServiceRegistration<ServletContext> registerServletContext() {
+        final Dictionary<String, Object> props = new Hashtable<String, Object>();
+        props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
+        return bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);
+    }
+
+    private void unregisterServletContext(final ServiceRegistration<ServletContext> reg) {
+        try {
+            reg.unregister();
+        } catch (final IllegalStateException ise) {
+            // ignore
         }
     }
 
     @Override
     public void contextInitialized(final ServletContextEvent sce) {
-        this.servletContext = sce.getServletContext();
-        this.setServerInfo();
-        // async registreation
-        final Thread thread = new Thread("SlingServletContext registration") {
-            @Override
-            public void run() {
-                synchronized (SlingServletContext.this) {
-                    if ( servletContext != null ) {
-                        final Dictionary<String, Object> props = new Hashtable<String, Object>();
-                        props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
-                        registration = bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);        
+        final ServletContext delegatee;
+        final long counter;
+        synchronized ( this ) {
+            this.servletContext = sce.getServletContext();
+            this.setServerInfo();
+            delegatee = this.servletContext;
+            this.initCounter++;
+            counter = this.initCounter;
+        }
+        if ( delegatee != null ) {
+            // async registration
+            this.runAsync(() -> {
+                final boolean register;
+                synchronized ( SlingServletContext.this ) {
+                    register = SlingServletContext.this.servletContext == delegatee;
+                }
+                if ( register ) {
+                    final ServiceRegistration<ServletContext> reg = registerServletContext();
+                    boolean immediatelyUnregister = false;
+                    synchronized ( SlingServletContext.this ) {
+                        if ( SlingServletContext.this.initCounter == counter ) {
+                            SlingServletContext.this.registration = reg;
+                        } else {
+                            immediatelyUnregister = true;
+                        }
+                    }
+                    if ( immediatelyUnregister ) {
+                        unregisterServletContext(reg);
                     }
                 }
-            }
-        };
-        thread.setDaemon(true);
-        thread.start();
+            }, "registration");
+        }
+    }
+
+    @Override
+    public void contextDestroyed(final ServletContextEvent sce) {
+        final ServiceRegistration<ServletContext> reg;
+        synchronized ( this ) {
+            this.initCounter++;
+            reg = this.registration;
+            this.registration = null;
+            this.servletContext = null;
+            this.setServerInfo();
+        }
+        if ( reg != null ) {
+            // async unregistration
+            this.runAsync(() -> unregisterServletContext(reg), "unregistration");
+        }
     }
 
     /**
