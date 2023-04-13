@@ -50,7 +50,7 @@ public class SlingHttpServletRequestImplTest {
     }};
     
     @Test
-    public void getUserPrincipal_test() {
+    public void getUserPrincipal_testWithRemoteUserFallback() {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
@@ -77,7 +77,7 @@ public class SlingHttpServletRequestImplTest {
     }
 
     @Test
-    public void getUserPrincipal_test2() {
+    public void getUserPrincipal_testUnauthenticated() {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
@@ -91,12 +91,13 @@ public class SlingHttpServletRequestImplTest {
         
         final RequestData requestData = context.mock(RequestData.class, "requestData");        
         final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
+        final Principal principal = context.mock(Principal.class);
         
         context.checking(new Expectations() {{
             allowing(requestData).getResourceResolver();
             will(returnValue(resourceResolver));
             allowing(resourceResolver).adaptTo(Principal.class);
-            will(returnValue(null));
+            will(returnValue(principal));
         }});
         
         slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
@@ -104,7 +105,7 @@ public class SlingHttpServletRequestImplTest {
     }
     
     @Test
-    public void getUserPrincipal_test3() {
+    public void getUserPrincipal_testWithPrincipal() {
         final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
         
         context.checking(new Expectations() {{
@@ -112,6 +113,8 @@ public class SlingHttpServletRequestImplTest {
             will(returnValue("/path"));
             allowing(servletRequest).getPathInfo();
             will(returnValue("/path"));
+            allowing(servletRequest).getRemoteUser();
+            will(returnValue("remoteUser"));
         }});
         
         final RequestData requestData = context.mock(RequestData.class, "requestData");        
