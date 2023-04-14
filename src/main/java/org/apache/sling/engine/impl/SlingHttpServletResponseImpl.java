@@ -170,7 +170,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     public void sendError(int status, String message) throws IOException {
         checkCommitted();
 
-        SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
+        final SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
         eh.handleError(status, message, requestData.getSlingRequest(), this);
     }
 

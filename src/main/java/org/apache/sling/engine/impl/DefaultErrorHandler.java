@@ -37,8 +37,9 @@ import org.slf4j.LoggerFactory;
 
 /**
  * The <code>DefaultErrorHandler</code> is used by the
- * {@link SlingRequestProcessorImpl} as long as no {@link ErrorHandler} service
- * is registered.
+ * {@link SlingRequestProcessorImpl} for error handling. It works
+ * in combination with the error filter chain. If a {@link ErrorHandler} service
+ * is registered, the actual response generated is delegated to that service.
  */
 public class DefaultErrorHandler implements ErrorHandler {
 
@@ -48,7 +49,7 @@ public class DefaultErrorHandler implements ErrorHandler {
     private volatile String serverInfo = ProductInfoProvider.PRODUCT_NAME;
 
     /** Use this if not null, and if that fails output a report about that failure */
-    private ErrorHandler delegate;
+    private volatile ErrorHandler delegate;
 
     void setServerInfo(final String serverInfo) {
         this.serverInfo = (serverInfo != null)
@@ -56,12 +57,8 @@ public class DefaultErrorHandler implements ErrorHandler {
                 : ProductInfoProvider.PRODUCT_NAME;
     }
 
-    public void setDelegate(ErrorHandler eh) {
+    public void setDelegate(final ErrorHandler eh) {
         delegate = eh;
-    }
-
-    public ErrorHandler getDelegate() {
-        return delegate;
     }
 
     private void delegateFailed(int originalStatus, String originalMessage, Throwable t, HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -76,6 +73,7 @@ public class DefaultErrorHandler implements ErrorHandler {
             return;
         }
         // reset the response to clear headers and body
+        // the error filters are NOT called in this edge case
         response.reset();
         sendError(originalStatus, originalMessage, null, request, response);
     }
@@ -99,20 +97,11 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
-        if (response.isCommitted()) {
-            log.warn(
-                "handleError: Response already committed; cannot send error "
-                    + status + " : " + message);
-            return;
-        }
-        // reset the response to clear headers and body
-        response.reset();
-
         // If we have a delegate let it handle the error
         if (delegate != null) {
             try {
                 delegate.handleError(status, message, request, response);
-            } catch(Exception e) {
+            } catch (final Exception e) {
                 delegateFailed(status, message, e, request, response);
             }
             return;
@@ -143,21 +132,12 @@ public class DefaultErrorHandler implements ErrorHandler {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
     throws IOException {
-        if (response.isCommitted()) {
-            log.warn(
-                "handleError: Response already committed; cannot send error "
-                    + throwable.getMessage(), throwable);
-            return;
-        }
-        // reset the response to clear headers and body
-        response.reset();
-
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
         if (delegate != null) {
             try {
                 delegate.handleError(throwable, request, response);
-            } catch(Exception e) {
+            } catch (final Exception e) {
                 delegateFailed(status, throwable.toString(), e, request, response);
             }
             return;
@@ -185,8 +165,12 @@ public class DefaultErrorHandler implements ErrorHandler {
         response.setContentType("text/html; charset=UTF-8");
 
         final PrintWriter pw = response.getWriter();
-        pw.println("<html><head><title>");
-        pw.println(ResponseUtil.escapeXml(message));
+        pw.print("<html><head><title>");
+        if ( message == null ) {
+            pw.print("Internal error");
+        } else {
+            pw.print(ResponseUtil.escapeXml(message));
+        }
         pw.println("</title></head><body><h1>");
         if (throwable != null) {
             pw.println(ResponseUtil.escapeXml(throwable.toString()));

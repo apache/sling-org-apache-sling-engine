@@ -53,8 +53,7 @@ import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.commons.mime.MimeTypeService;
 import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.debug.RequestInfoProviderImpl;
-import org.apache.sling.engine.impl.filter.ErrorFilterChainStatus;
-import org.apache.sling.engine.impl.filter.ErrorFilterChainThrowable;
+import org.apache.sling.engine.impl.filter.ErrorFilterChain;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
@@ -410,7 +409,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response) throws IOException {
         final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        final FilterChain processor = new ErrorFilterChainStatus(filters, errorHandler, status, message);
+        final FilterChain processor = new ErrorFilterChain(filters, errorHandler, status, message);
         this.handleError(processor, request, response);
     }
 
@@ -418,7 +417,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response) throws IOException {
         final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
-        final FilterChain processor = new ErrorFilterChainThrowable(filters, errorHandler, throwable);
+        final FilterChain processor = new ErrorFilterChain(filters, errorHandler, throwable);
         this.handleError(processor, request, response);
     }
 

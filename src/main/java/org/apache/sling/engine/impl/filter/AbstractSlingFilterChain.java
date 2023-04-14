@@ -33,7 +33,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public abstract class AbstractSlingFilterChain implements FilterChain {
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractSlingFilterChain.class);
+    protected static final Logger LOG = LoggerFactory.getLogger(AbstractSlingFilterChain.class);
 
     private FilterHandle[] filters;
 
@@ -105,7 +105,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
     // ---------- internal helper
 
     private void trackFilter(ServletRequest request, FilterHandle filter) {
-        RequestData data = RequestData.getRequestData(request);
+        final RequestData data = RequestData.getRequestData(request);
         if (data != null) {
             RequestProgressTracker tracker = data.getRequestProgressTracker();
             tracker.log("Calling filter: {0}",
@@ -115,9 +115,9 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
     }
 
     private void consolidateFilterTimings(ServletRequest request) {
-        if (filters != null) {
-            RequestData data = RequestData.getRequestData(request);
-            RequestProgressTracker tracker = (data != null) ? data.getRequestProgressTracker() : null;
+        if (filters.length > 0) {
+            final RequestData data = RequestData.getRequestData(request);
+            final RequestProgressTracker tracker = (data != null) ? data.getRequestProgressTracker() : null;
 
             for (int i = filters.length - 1; i > 0; i--) {
                 filters[i].trackTime(times[i] - times[i + 1]);
