@@ -30,6 +30,12 @@ import org.apache.sling.api.servlets.ErrorHandler;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
 
+    private static final String RECURSION_ATTRIBUTE = ErrorFilterChain.class.getName() + ".RECURSION";
+
+    private static final String PREFIX_COMMITTED = "handleError: Response already committed; cannot send error ";
+
+    private static final String PREFIX_RECURSION = "handleError: Recursive invocation. Not further handling status ";
+
     private enum Mode {
         THROWABLE,
         STATUS
@@ -65,25 +71,40 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
         this.errorHandler = errorHandler;
     }
 
-    private static final String PREFIX = "handleError: Response already committed; cannot send error ";
-
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response) throws ServletException, IOException {
         if ( firstCall ) {
+            if (request.getAttribute(RECURSION_ATTRIBUTE) != null) {
+                if ( this.mode == Mode.STATUS ) {
+                    if ( message == null) {
+                        LOG.warn(PREFIX_RECURSION.concat(String.valueOf(status)));
+                    } else {
+                        LOG.warn(PREFIX_RECURSION.concat(String.valueOf(status)).concat(" : ").concat(message));
+                    }
+                } else {
+                    if ( throwable.getMessage() != null ) {
+                        LOG.warn(PREFIX_RECURSION.concat(throwable.getMessage()), throwable);
+                    } else {
+                        LOG.warn(PREFIX_RECURSION.concat(throwable.getClass().getName()), throwable);
+                    }
+                }
+                return;
+            }
+            request.setAttribute(RECURSION_ATTRIBUTE, "true");
             firstCall = false;
             // do nothing if response is already committed
             if (response.isCommitted()) {
                 if ( this.mode == Mode.STATUS ) {
                     if ( message == null) {
-                        LOG.warn(PREFIX.concat(String.valueOf(status)));
+                        LOG.warn(PREFIX_COMMITTED.concat(String.valueOf(status)));
                     } else {
-                        LOG.warn(PREFIX.concat(String.valueOf(status)).concat(" : ").concat(message));
+                        LOG.warn(PREFIX_COMMITTED.concat(String.valueOf(status)).concat(" : ").concat(message));
                     }
                 } else {
                     if ( throwable.getMessage() != null ) {
-                        LOG.warn(PREFIX.concat(throwable.getMessage()), throwable);
+                        LOG.warn(PREFIX_COMMITTED.concat(throwable.getMessage()), throwable);
                     } else {
-                        LOG.warn(PREFIX.concat(throwable.getClass().getName()), throwable);
+                        LOG.warn(PREFIX_COMMITTED.concat(throwable.getClass().getName()), throwable);
                     }
                 }
                 return;
