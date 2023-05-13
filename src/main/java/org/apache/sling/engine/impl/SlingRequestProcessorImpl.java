@@ -30,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.FilterChain;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -62,6 +63,8 @@ import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
+import org.apache.sling.engine.impl.request.DispatcherRequestWrapper;
+import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.osgi.service.component.annotations.Activate;
@@ -351,13 +354,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     public void dispatchRequest(final ServletRequest request,
             final ServletResponse response, final Resource resource,
             final RequestPathInfo resolvedURL, 
-            final boolean include,
-            final boolean protectHeadersOnInclude,
-            final boolean checkContentTypeOnInclude) throws IOException, ServletException {
+            final DispatchingInfo dispatchingInfo)
+    throws IOException, ServletException {
 
         // we need a SlingHttpServletRequest/SlingHttpServletResponse tupel
         // to continue
-        final SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
+        SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
         SlingHttpServletResponse cResponse = RequestData.toSlingHttpServletResponse(response);
 
         // get the request data (and btw check the correct type)
@@ -370,14 +372,15 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             Servlet servlet = servletResolver.resolveServlet(cRequest);
             contentData.setServlet(servlet);
 
-            FilterChainType type = include
+            cRequest = new DispatcherRequestWrapper(cRequest, dispatchingInfo);
+            final FilterChainType type = dispatchingInfo.getType() == DispatcherType.INCLUDE
                     ? FilterChainType.INCLUDE
                     : FilterChainType.FORWARD;
-            if (include) {
-                if (protectHeadersOnInclude) {
+            if (dispatchingInfo.getType() == DispatcherType.INCLUDE) {
+                if (dispatchingInfo.isProtectHeadersOnInclude()) {
                     cResponse = new IncludeResponseWrapper(cResponse);
                 }
-                if (checkContentTypeOnInclude) {
+                if (dispatchingInfo.isCheckContentTypeOnInclude()) {
                     cResponse = new IncludeNoContentTypeOverrideResponseWrapper(requestData, cResponse
                     );
                 }

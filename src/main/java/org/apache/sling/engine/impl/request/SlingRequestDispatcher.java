@@ -20,6 +20,7 @@ package org.apache.sling.engine.impl.request;
 
 import java.io.IOException;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -27,7 +28,6 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -89,42 +89,17 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         // code uses a ServletRequestWrapper rather than an
         // HttpServletRequestWrapper ...)
         final HttpServletRequest hRequest = (HttpServletRequest) request;
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        info.setRequestContent(cd.getResource());
+        info.setRequestServlet(cd.getServlet());
+        info.setRequestPathInfo(cd.getRequestPathInfo());
+        info.setContextPath(hRequest.getContextPath());
+        info.setPathInfo(hRequest.getPathInfo());
+        info.setQueryString(hRequest.getQueryString());
+        info.setRequestUri(hRequest.getRequestURI());
+        info.setServletPath(hRequest.getServletPath());
 
-        // set the inclusion request attributes from the current request
-        final Object v1 = setAttribute(request,
-            SlingConstants.ATTR_REQUEST_CONTENT, cd.getResource());
-        final Object v2 = setAttribute(request,
-            SlingConstants.ATTR_REQUEST_SERVLET, cd.getServlet());
-        final Object v3 = setAttribute(request,
-            SlingConstants.ATTR_REQUEST_PATH_INFO, cd.getRequestPathInfo());
-        final Object v4 = setAttribute(request,
-            SlingConstants.ATTR_INCLUDE_CONTEXT_PATH, hRequest.getContextPath());
-        final Object v5 = setAttribute(request,
-            SlingConstants.ATTR_INCLUDE_PATH_INFO, hRequest.getPathInfo());
-        final Object v6 = setAttribute(request,
-            SlingConstants.ATTR_INCLUDE_QUERY_STRING, hRequest.getQueryString());
-        final Object v7 = setAttribute(request,
-            SlingConstants.ATTR_INCLUDE_REQUEST_URI, hRequest.getRequestURI());
-        final Object v8 = setAttribute(request,
-            SlingConstants.ATTR_INCLUDE_SERVLET_PATH, hRequest.getServletPath());
-
-        try {
-
-            dispatch(request, sResponse, true);
-
-        } finally {
-
-            // reset inclusion request attributes to previous values
-            request.setAttribute(SlingConstants.ATTR_REQUEST_CONTENT, v1);
-            request.setAttribute(SlingConstants.ATTR_REQUEST_SERVLET, v2);
-            request.setAttribute(SlingConstants.ATTR_REQUEST_PATH_INFO, v3);
-            request.setAttribute(SlingConstants.ATTR_INCLUDE_CONTEXT_PATH, v4);
-            request.setAttribute(SlingConstants.ATTR_INCLUDE_PATH_INFO, v5);
-            request.setAttribute(SlingConstants.ATTR_INCLUDE_QUERY_STRING, v6);
-            request.setAttribute(SlingConstants.ATTR_INCLUDE_REQUEST_URI, v7);
-            request.setAttribute(SlingConstants.ATTR_INCLUDE_SERVLET_PATH, v8);
-
-        }
+        dispatch(request, sResponse, info);
     }
 
     @Override
@@ -142,17 +117,10 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         response.resetBuffer();
 
         // ensure inclusion information attributes are not set
-        request.removeAttribute(SlingConstants.ATTR_REQUEST_CONTENT);
-        request.removeAttribute(SlingConstants.ATTR_REQUEST_SERVLET);
-        request.removeAttribute(SlingConstants.ATTR_REQUEST_PATH_INFO);
-        request.removeAttribute(SlingConstants.ATTR_INCLUDE_CONTEXT_PATH);
-        request.removeAttribute(SlingConstants.ATTR_INCLUDE_PATH_INFO);
-        request.removeAttribute(SlingConstants.ATTR_INCLUDE_QUERY_STRING);
-        request.removeAttribute(SlingConstants.ATTR_INCLUDE_REQUEST_URI);
-        request.removeAttribute(SlingConstants.ATTR_INCLUDE_SERVLET_PATH);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
 
         // now just include as normal
-        dispatch(request, response, false);
+        dispatch(request, response, info);
 
         // finally, we would have to ensure the response is committed
         // and closed. Let's just flush the buffer and thus commit the
@@ -181,10 +149,10 @@ public class SlingRequestDispatcher implements RequestDispatcher {
      * Dispatch the request
      * @param request The request
      * @param response The response
-     * @param include Is this an include (or forward)
+     * @param dispatchingInfo Is this an include (or forward)
      */
     private void dispatch(final ServletRequest request, final ServletResponse response,
-            final boolean include) throws ServletException, IOException {
+            final DispatchingInfo dispatchingInfo) throws ServletException, IOException {
         SlingHttpServletRequest cRequest = RequestData.unwrap(request);
         RequestData rd = RequestData.getRequestData(cRequest);
         String absPath = getAbsolutePath(cRequest, path);
@@ -223,11 +191,13 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
         requestProgressTracker.log(
             "Including resource {0} ({1})", resource, info);
-        boolean protectHeaders = this.options != null ?
+        final boolean protectHeaders = this.options != null ?
                 Boolean.parseBoolean(this.options.getOrDefault(RequestDispatcherOptions.OPT_PROTECT_HEADERS_ON_INCLUDE, String.valueOf(this.protectHeadersOnInclude)))
                 : this.protectHeadersOnInclude;
-        rd.getSlingRequestProcessor().dispatchRequest(request, response, resource,
-            info, include, protectHeaders, this.checkContentTypeOnInclude);
+        dispatchingInfo.setProtectHeadersOnInclude(protectHeaders);
+        dispatchingInfo.setCheckContentTypeOnInclude(this.checkContentTypeOnInclude);
+
+        rd.getSlingRequestProcessor().dispatchRequest(request, response, resource, info, dispatchingInfo);
     }
 
     /**
@@ -258,13 +228,6 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         }
 
         return info;
-    }
-
-    private Object setAttribute(final ServletRequest request,
-            final String name, final Object value) {
-        final Object oldValue = request.getAttribute(name);
-        request.setAttribute(name, value);
-        return oldValue;
     }
 
     private static class TypeOverwritingResourceWrapper extends ResourceWrapper {
