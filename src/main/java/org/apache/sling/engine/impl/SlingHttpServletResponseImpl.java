@@ -276,9 +276,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (this.isProtectHeadersOnInclude()) {
-            return;
-        } else if ( this.requestData.getDispatchingInfo() != null && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() ) {
+        if ( this.requestData.getDispatchingInfo() != null && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() ) {
             String contentTypeString = getContentType();
             if (contentTypeString != null) {
                 if (type == null) {
@@ -293,11 +291,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                     requestData.getRequestProgressTracker().log("ERROR: " + message);
                     throw new ContentTypeChangeException(message);
                 }
-                getResponse().setContentType(type);
+                if (!this.isProtectHeadersOnInclude()) {
+                    getResponse().setContentType(type);
+                }
             }
             return;
         }
-        super.setContentType(type);
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setContentType(type);
+        }
     }
 
     private String getMessage(String currentContentType, String setContentType) {
