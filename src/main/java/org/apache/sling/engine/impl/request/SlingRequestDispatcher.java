@@ -191,11 +191,13 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
         requestProgressTracker.log(
             "Including resource {0} ({1})", resource, info);
-        final boolean protectHeaders = this.options != null ?
+        if (dispatchingInfo.getType() == DispatcherType.INCLUDE) {
+            final boolean protectHeaders = this.options != null ?
                 Boolean.parseBoolean(this.options.getOrDefault(RequestDispatcherOptions.OPT_PROTECT_HEADERS_ON_INCLUDE, String.valueOf(this.protectHeadersOnInclude)))
                 : this.protectHeadersOnInclude;
-        dispatchingInfo.setProtectHeadersOnInclude(protectHeaders);
-        dispatchingInfo.setCheckContentTypeOnInclude(this.checkContentTypeOnInclude);
+            dispatchingInfo.setProtectHeadersOnInclude(protectHeaders);
+            dispatchingInfo.setCheckContentTypeOnInclude(this.checkContentTypeOnInclude);
+        }
 
         rd.getSlingRequestProcessor().dispatchRequest(request, response, resource, info, dispatchingInfo);
     }

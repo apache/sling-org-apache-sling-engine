@@ -84,7 +84,6 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     private final RequestData requestData;
     private final String pathInfo;
     private String responseContentType;
-    private DispatchingInfo dispatchingInfo;
 
     public SlingHttpServletRequestImpl(RequestData requestData,
             HttpServletRequest servletRequest) {
@@ -398,45 +397,25 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     // ---------- Attribute handling -----------------------------------	
 
     @Override
-    public void setAttribute(final String name, final Object value) {
-        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
-            this.dispatchingInfo = (DispatchingInfo)value;
-            return;
-        }
-        super.setAttribute(name, value);
-    }
-
-    @Override
-    public void removeAttribute(String name) {
-        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
-            this.dispatchingInfo = null;
-            return;
-        }
-        super.removeAttribute(name);
-    }
-
-    @Override
     public Object getAttribute(final String name) {
-        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
-            return this.dispatchingInfo;
-        }
-        if (this.dispatchingInfo != null && this.dispatchingInfo.getType() == DispatcherType.INCLUDE) {
+        final DispatchingInfo dispatchingInfo = this.requestData.getDispatchingInfo();
+        if (dispatchingInfo != null && dispatchingInfo.getType() == DispatcherType.INCLUDE) {
             if (SlingConstants.ATTR_REQUEST_CONTENT.equals(name)) {
-                return this.dispatchingInfo.getRequestContent();
+                return dispatchingInfo.getRequestContent();
             } else if (SlingConstants.ATTR_REQUEST_SERVLET.equals(name)) {
-                return this.dispatchingInfo.getRequestServlet();
+                return dispatchingInfo.getRequestServlet();
             } else if (SlingConstants.ATTR_REQUEST_PATH_INFO.equals(name)) {
-                return this.dispatchingInfo.getRequestPathInfo();
+                return dispatchingInfo.getRequestPathInfo();
             } else if (INCLUDE_CONTEXT_PATH.equals(name)) {
-                return this.dispatchingInfo.getContextPath();
+                return dispatchingInfo.getContextPath();
             } else if (INCLUDE_PATH_INFO.equals(name)) {
-                return this.dispatchingInfo.getPathInfo();
+                return dispatchingInfo.getPathInfo();
             } else if (INCLUDE_QUERY_STRING.equals(name)) {
-                return this.dispatchingInfo.getQueryString();
+                return dispatchingInfo.getQueryString();
             } else if (INCLUDE_REQUEST_URI.equals(name)) {
-                return this.dispatchingInfo.getRequestUri();
+                return dispatchingInfo.getRequestUri();
             } else if (INCLUDE_SERVLET_PATH.equals(name)) {
-                return this.dispatchingInfo.getServletPath();
+                return dispatchingInfo.getServletPath();
             } else if (FORWARD_ATTRIBUTES.contains(name) ) {
                 // include might be contained within a forward, allow forward attributes
                 return super.getAttribute(name);
@@ -451,7 +430,8 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     
     @Override
     public Enumeration<String> getAttributeNames() {
-        if ( this.dispatchingInfo != null && this.dispatchingInfo.getType() == DispatcherType.INCLUDE ) {
+        final DispatchingInfo dispatchingInfo = this.requestData.getDispatchingInfo();
+        if ( dispatchingInfo != null && dispatchingInfo.getType() == DispatcherType.INCLUDE ) {
             final Set<String> allNames = new HashSet<>(Collections.list(super.getAttributeNames()));
             allNames.addAll(INCLUDE_ATTRIBUTES);
             return Collections.enumeration(allNames);

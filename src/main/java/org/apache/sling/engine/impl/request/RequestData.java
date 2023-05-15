@@ -146,6 +146,11 @@ public class RequestData {
     private int peakRecusionDepth;
 
     /**
+     * Current dispatching info
+     */
+    private DispatchingInfo dispatchingInfo;
+
+    /**
      * Prevent traversal using '/../' or '/..' even if '[' or '}' is used in-between
      */
     private static final Set<Character> SKIPPED_TRAVERSAL_CHARS = new HashSet<>();
@@ -255,6 +260,14 @@ public class RequestData {
 
     public SlingHttpServletResponse getSlingResponse() {
         return slingResponse;
+    }
+
+    public DispatchingInfo getDispatchingInfo() {
+        return dispatchingInfo;
+    }
+
+    public void setDispatchingInfo(final DispatchingInfo dispatchingInfo) {
+        this.dispatchingInfo = dispatchingInfo;
     }
 
     // ---------- Request Helper

@@ -20,13 +20,17 @@ package org.apache.sling.engine.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Arrays;
 import java.util.Locale;
+import java.util.Optional;
 
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
 
+import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.slf4j.Logger;
@@ -132,13 +136,27 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
+    private boolean isProtectHeadersOnInclude() {
+        return this.requestData.getDispatchingInfo() != null
+               && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
+    }
+
     @Override
     public void setStatus(final int sc) {
+        if (this.isProtectHeadersOnInclude()) {
+            // ignore
+            return;
+        }
         setStatus(sc, null);
     }
 
     @Override
     public void setStatus(final int sc, final String msg) {
+        if (this.isProtectHeadersOnInclude()) {
+            // ignore
+            return;
+        }
+
         if (isCommitted()) {
             if (flusherStacktrace != null && flusherStacktrace != FLUSHER_STACK_DUMMY) {
                 LOG.warn("Response already committed. Failed to set status code from {} to {}.",
@@ -159,19 +177,164 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
+    @Override
+    public void reset() {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.reset();
+        } else {
+            // ignore if not committed
+            if (getResponse().isCommitted()) {
+                getResponse().reset();
+            }
+        }
+    }
+
+    @Override
+    public void setContentLength(final int len) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setContentLength(len);
+        }
+    }
+
+    @Override
+    public void setContentLengthLong(final long len) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setContentLengthLong(len);
+        }
+    }
+
+    @Override
+    public void setLocale(final Locale loc) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setLocale(loc);
+        }
+    }
+
+    @Override
+    public void setBufferSize(final int size) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setBufferSize(size);
+        }
+    }
+
+    @Override
+    public void addCookie(final Cookie cookie) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.addCookie(cookie);
+        }
+    }
+
+
+    @Override
+    public void addDateHeader(final String name, final long value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.addDateHeader(name, value);
+        }
+    }
+
+    @Override
+    public void addHeader(final String name, final String value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.addHeader(name, value);
+        }
+    }
+
+    @Override
+    public void addIntHeader(final String name, final int value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.addIntHeader(name, value);
+        }
+    }
+
+    @Override
+    public void sendRedirect(final String location) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.sendRedirect(location);
+        }
+    }
+
+    @Override
+    public void setDateHeader(final String name, final long value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setDateHeader(name, value);
+        }
+    }
+
+    @Override
+    public void setHeader(final String name, final String value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setHeader(name, value);
+        }
+    }
+
+    @Override
+    public void setIntHeader(final String name, final int value) {
+        if (!this.isProtectHeadersOnInclude()) {
+            super.setIntHeader(name, value);
+        }
+    }
+
+    @Override
+    public void setContentType(final String type) {
+        if (this.isProtectHeadersOnInclude()) {
+            return;
+        } else if ( this.requestData.getDispatchingInfo() != null && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() ) {
+            String contentTypeString = getContentType();
+            if (contentTypeString != null) {
+                if (type == null) {
+                    String message = getMessage(contentTypeString, "null");
+                    requestData.getRequestProgressTracker().log("ERROR: " + message);
+                    throw new ContentTypeChangeException(message);
+                }
+                Optional<String> currentMime = Arrays.stream(contentTypeString.split(";")).findFirst();
+                Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
+                if (currentMime.isPresent() && setMime.isPresent() && !currentMime.get().equals(setMime.get())) {
+                    String message = getMessage(contentTypeString, type);
+                    requestData.getRequestProgressTracker().log("ERROR: " + message);
+                    throw new ContentTypeChangeException(message);
+                }
+                getResponse().setContentType(type);
+            }
+            return;
+        }
+        super.setContentType(type);
+    }
+
+    private String getMessage(String currentContentType, String setContentType) {
+        return String.format(
+                "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the" +
+                        " %s forbids this via the %s configuration property.",
+                requestData.getActiveServletName(),
+                currentContentType,
+                setContentType,
+                Config.PID,
+                "sling.includes.checkcontenttype"
+        );
+    }
+
+    private static class ContentTypeChangeException extends SlingException {
+        protected ContentTypeChangeException(String text) {
+            super(text);
+        }
+    }
+
     // ---------- Error handling through Sling Error Resolver -----------------
 
     @Override
     public void sendError(int status) throws IOException {
-        sendError(status, null);
+        if (!this.isProtectHeadersOnInclude()) {
+            sendError(status, null);
+        }
     }
 
     @Override
     public void sendError(int status, String message) throws IOException {
-        checkCommitted();
+        if (!this.isProtectHeadersOnInclude()) {
+            checkCommitted();
 
-        final SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
-        eh.handleError(status, message, requestData.getSlingRequest(), this);
+            final SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
+            eh.handleError(status, message, requestData.getSlingRequest(), this);
+        }
     }
 
 
