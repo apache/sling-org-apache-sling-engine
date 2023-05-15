@@ -18,19 +18,34 @@
  */
 package org.apache.sling.engine.impl;
 
+import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
+import static javax.servlet.RequestDispatcher.FORWARD_PATH_INFO;
+import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
+import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
+import static javax.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
+import static javax.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
+import static javax.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
+import static javax.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
+import static javax.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
+import static javax.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
 import java.security.Principal;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Enumeration;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
+import java.util.Set;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletInputStream;
 import javax.servlet.http.Cookie;
@@ -38,6 +53,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.Part;
 
+import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.request.RequestParameter;
@@ -49,6 +65,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.impl.helper.NullResourceBundle;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
+import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
 import org.osgi.service.http.HttpContext;
@@ -57,9 +74,17 @@ import org.osgi.service.useradmin.Authorization;
 public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper implements
         SlingHttpServletRequest {
 
+    private static final List<String> FORWARD_ATTRIBUTES = Arrays.asList(FORWARD_CONTEXT_PATH,
+            FORWARD_PATH_INFO, FORWARD_QUERY_STRING, FORWARD_REQUEST_URI, FORWARD_SERVLET_PATH);
+    
+    private static final List<String> INCLUDE_ATTRIBUTES = Arrays.asList(
+            SlingConstants.ATTR_REQUEST_CONTENT, SlingConstants.ATTR_REQUEST_SERVLET, SlingConstants.ATTR_REQUEST_PATH_INFO,
+            INCLUDE_CONTEXT_PATH, INCLUDE_PATH_INFO, INCLUDE_QUERY_STRING, INCLUDE_REQUEST_URI, INCLUDE_SERVLET_PATH);
+
     private final RequestData requestData;
     private final String pathInfo;
     private String responseContentType;
+    private DispatchingInfo dispatchingInfo;
 
     public SlingHttpServletRequestImpl(RequestData requestData,
             HttpServletRequest servletRequest) {
@@ -370,6 +395,71 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
         return (Collection<Part>) this.getParameterSupport().getParts();
     }
 
+    // ---------- Attribute handling -----------------------------------	
+
+    @Override
+    public void setAttribute(final String name, final Object value) {
+        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
+            this.dispatchingInfo = (DispatchingInfo)value;
+            return;
+        }
+        super.setAttribute(name, value);
+    }
+
+    @Override
+    public void removeAttribute(String name) {
+        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
+            this.dispatchingInfo = null;
+            return;
+        }
+        super.removeAttribute(name);
+    }
+
+    @Override
+    public Object getAttribute(final String name) {
+        if (DispatchingInfo.ATTR_NAME.equals(name) ) {
+            return this.dispatchingInfo;
+        }
+        if (this.dispatchingInfo != null && this.dispatchingInfo.getType() == DispatcherType.INCLUDE) {
+            if (SlingConstants.ATTR_REQUEST_CONTENT.equals(name)) {
+                return this.dispatchingInfo.getRequestContent();
+            } else if (SlingConstants.ATTR_REQUEST_SERVLET.equals(name)) {
+                return this.dispatchingInfo.getRequestServlet();
+            } else if (SlingConstants.ATTR_REQUEST_PATH_INFO.equals(name)) {
+                return this.dispatchingInfo.getRequestPathInfo();
+            } else if (INCLUDE_CONTEXT_PATH.equals(name)) {
+                return this.dispatchingInfo.getContextPath();
+            } else if (INCLUDE_PATH_INFO.equals(name)) {
+                return this.dispatchingInfo.getPathInfo();
+            } else if (INCLUDE_QUERY_STRING.equals(name)) {
+                return this.dispatchingInfo.getQueryString();
+            } else if (INCLUDE_REQUEST_URI.equals(name)) {
+                return this.dispatchingInfo.getRequestUri();
+            } else if (INCLUDE_SERVLET_PATH.equals(name)) {
+                return this.dispatchingInfo.getServletPath();
+            } else if (FORWARD_ATTRIBUTES.contains(name) ) {
+                // include might be contained within a forward, allow forward attributes
+                return super.getAttribute(name);
+            }
+        }
+        // block all special attributes
+        if (INCLUDE_ATTRIBUTES.contains(name) || FORWARD_ATTRIBUTES.contains(name)) {
+            return null;
+        }
+        return super.getAttribute(name);
+    }
+    
+    @Override
+    public Enumeration<String> getAttributeNames() {
+        if ( this.dispatchingInfo != null && this.dispatchingInfo.getType() == DispatcherType.INCLUDE ) {
+            final Set<String> allNames = new HashSet<>(Collections.list(super.getAttributeNames()));
+            allNames.addAll(INCLUDE_ATTRIBUTES);
+            return Collections.enumeration(allNames);
+        }
+        return super.getAttributeNames();
+    }
+    
+    
     /**
      * A <code>UserPrincipal</code> ...
      */

@@ -63,7 +63,6 @@ import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
-import org.apache.sling.engine.impl.request.DispatcherRequestWrapper;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.api.servlets.ErrorHandler;
@@ -359,7 +358,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         // we need a SlingHttpServletRequest/SlingHttpServletResponse tupel
         // to continue
-        SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
+        final SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
         SlingHttpServletResponse cResponse = RequestData.toSlingHttpServletResponse(response);
 
         // get the request data (and btw check the correct type)
@@ -367,12 +366,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final ContentData oldContentData = requestData.getContentData();
         final ContentData contentData = requestData.setContent(resource, resolvedURL);
 
+        final Object oldDispatchingInfo = cRequest.getAttribute(DispatchingInfo.ATTR_NAME);
+        cRequest.setAttribute(DispatchingInfo.ATTR_NAME, dispatchingInfo);
         try {
             // resolve the servlet
             Servlet servlet = servletResolver.resolveServlet(cRequest);
             contentData.setServlet(servlet);
 
-            cRequest = new DispatcherRequestWrapper(cRequest, dispatchingInfo);
             final FilterChainType type = dispatchingInfo.getType() == DispatcherType.INCLUDE
                     ? FilterChainType.INCLUDE
                     : FilterChainType.FORWARD;
@@ -388,6 +388,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             processComponent(cRequest, cResponse, type);
         } finally {
             requestData.resetContent(oldContentData);
+            cRequest.setAttribute(DispatchingInfo.ATTR_NAME, oldDispatchingInfo);
         }
     }
 

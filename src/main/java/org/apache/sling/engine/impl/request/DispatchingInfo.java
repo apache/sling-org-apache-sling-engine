@@ -24,6 +24,8 @@ import org.apache.sling.api.resource.Resource;
 
 public class DispatchingInfo {
 
+    public static final String ATTR_NAME = DispatchingInfo.class.getName();
+
     private final DispatcherType type;
     private Resource requestContent;
     private Servlet requestServlet;
