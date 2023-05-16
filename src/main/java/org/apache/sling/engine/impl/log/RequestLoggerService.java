@@ -61,7 +61,7 @@ public class RequestLoggerService {
                      "output. Depending on the output type this is a file name (absolute or "+
                      "relative), a SLF4J logger name or the name under which a RequestLog service "+
                      "has been registered.")
-        String request_log_service_output() default "reuest.log";
+        String request_log_service_output() default "request.log";
 
         @AttributeDefinition(name = "Logger Type",
                 description = "Type of log destination. Select "+
