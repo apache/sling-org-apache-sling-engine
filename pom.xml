@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>org.apache.sling.engine</artifactId>
-    <version>2.15.0-SNAPSHOT</version>
+    <version>2.15.1-SNAPSHOT</version>
 
     <name>Apache Sling Engine</name>
     <description>
@@ -39,12 +39,13 @@
         <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</connection>
         <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</developerConnection>
         <url>https://gitbox.apache.org/repos/asf?p=sling-org-apache-sling-engine.git</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
 
     <properties>
         <site.jira.version.id>12314287</site.jira.version.id>
         <site.javadoc.exclude>**.impl.**</site.javadoc.exclude>
-        <project.build.outputTimestamp>1676986138</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1684748921</project.build.outputTimestamp>
     </properties>
 
     <build>
