@@ -70,14 +70,16 @@ public class RequestLogger {
         int request_log_outputtype() default 0;
 
         @AttributeDefinition(name = "Request Log Entry Format",
-            description = "The format of the request log. The request entry is "+
-                "logged with the format \"%t [%R] -> %m %U%q %H\" by default."
+            description = "The format of the request log. This is a format string as defined at "+
+                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
+                "The request entry is logged with the format \"%t [%R] -> %m %U%q %H\" by default."
         )
         String request_log_entry_format() default REQUEST_LOG_ENTRY_FORMAT;
 
         @AttributeDefinition(name = "Request Log Exit Format",
-            description = "The format of the request log. The request exit is logged "+
-                "with the format \"%{end}t [%R] <- %s %{Content-Type}o %Dms\" by default."
+            description = "The format of the request log. This is a format string as defined at "+
+                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
+                "The request exit is logged with the format \"%{end}t [%R] <- %s %{Content-Type}o %Dms\" by default."
         )
         String request_log_exit_format() default REQUEST_LOG_EXIT_FORMAT;
 
@@ -106,7 +108,9 @@ public class RequestLogger {
         int access_log_outputtype() default 0;
 
         @AttributeDefinition(name = "Access Log Format",
-            description = "The default format for the access log is using the NCSA extended/combined log "+
+            description = "This is a format string as defined at "+
+                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
+                "The default format for the access log is using the NCSA extended/combined log "+
                 "format. In terms of Request Logger Service formats the access log is written with the format "+
                 "\"%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"\"."
         )
