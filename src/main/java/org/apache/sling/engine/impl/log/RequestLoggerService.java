@@ -53,7 +53,7 @@ public class RequestLoggerService {
 
         @AttributeDefinition(name = "Log Format",
                 description="The format for log entries. This is "+
-                    "a format string as defined at http://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification.")
+                    "a format string as defined at https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification.")
         String request_log_service_format();
 
         @AttributeDefinition(name = "Logger Name",
