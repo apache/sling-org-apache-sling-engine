@@ -34,7 +34,7 @@ import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
+import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -55,7 +55,7 @@ public class RequestDataTest {
     @Before
     public void setup() throws ServletException, IOException {
         context = new Mockery() {{
-            setImposteriser(ClassImposteriser.INSTANCE);
+            setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
         }};
 
         req = context.mock(HttpServletRequest.class);
