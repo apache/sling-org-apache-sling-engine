@@ -38,8 +38,8 @@ import org.apache.sling.engine.impl.helper.ExternalServletContextWrapper.Request
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
+import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.jmock.integration.junit4.JUnit4Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -49,7 +49,7 @@ public class ExternalServletContextWrapperTest {
 
     @Before
     public void setup() {
-        context.setImposteriser(ClassImposteriser.INSTANCE);
+        context.setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
     }
 
     /**

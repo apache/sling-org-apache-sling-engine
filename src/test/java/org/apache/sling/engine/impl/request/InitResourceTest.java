@@ -28,7 +28,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
-import org.jmock.lib.legacy.ClassImposteriser;
+import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,7 +76,7 @@ public class InitResourceTest {
     @Before
     public void setup() throws Exception {
         context = new Mockery() {{
-            setImposteriser(ClassImposteriser.INSTANCE);
+            setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
         }};
 
         req = context.mock(HttpServletRequest.class);
