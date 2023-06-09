@@ -27,8 +27,13 @@ import java.io.PrintWriter;
 import java.io.Writer;
 import java.security.AccessControlException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.servlet.DispatcherType;
 import javax.servlet.FilterChain;
@@ -36,6 +41,8 @@ import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
+import javax.servlet.ServletRequestEvent;
+import javax.servlet.ServletRequestListener;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -46,9 +53,11 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingServletException;
 import org.apache.sling.api.adapter.AdapterManager;
 import org.apache.sling.api.request.RequestPathInfo;
+import org.apache.sling.api.request.builder.impl.ServletContextImpl;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceNotFoundException;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.commons.mime.MimeTypeService;
@@ -59,13 +68,15 @@ import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
-import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
+import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.apache.sling.api.servlets.ErrorHandler;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
@@ -73,6 +84,8 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
+import org.osgi.service.http.runtime.HttpServiceRuntime;
+import org.osgi.service.http.runtime.dto.ServletContextDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,6 +104,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     @Reference
     private RequestProcessorMBeanImpl mbean;
+
+    @Reference
+    private HttpServiceRuntime httpServiceRuntime;
 
     @Reference(target = SlingServletContext.TARGET)
     private ServletContext slingServletContext;
@@ -117,10 +133,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private volatile boolean protectHeadersOnInclude;
     private volatile boolean checkContentTypeOnInclude;
 
+    private BundleContext bundleContext;
     @Activate
-    public void activate(final Config config) {
+    public void activate(final BundleContext context, final Config config) {
         this.errorHandler.setServerInfo(this.slingServletContext.getServerInfo());
         this.modified(config);
+        this.bundleContext = context;
     }
 
     @Modified
@@ -299,7 +317,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         // set the marker for the parameter support
         final Object oldValue = servletRequest.getAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING);
         servletRequest.setAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING, Boolean.TRUE);
+        Collection<ServiceReference<ServletRequestListener>> requestListenerServiceReferencesForSyntheticRequest = getRequestListenersForSyntheticRequest(servletRequest);
+        Set<ServletRequestListener> requestListenersForSyntheticRequest = requestListenerServiceReferencesForSyntheticRequest.stream().map(bundleContext::getService).collect(Collectors.toSet());
+        ServletRequestEvent event = new ServletRequestEvent(slingServletContext, servletRequest);
         try {
+            requestListenersForSyntheticRequest.forEach(l -> l.requestInitialized(event));
             this.doProcessRequest(servletRequest, servletResponse, resourceResolver);
         } finally {
             // restore the old value
@@ -308,9 +330,37 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             } else {
                 servletRequest.removeAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING);
             }
+            requestListenersForSyntheticRequest.forEach(l -> l.requestDestroyed(event));
+            requestListenerServiceReferencesForSyntheticRequest.forEach(bundleContext::ungetService);
         }
     }
 
+    private Collection<ServiceReference<ServletRequestListener>> getRequestListenersForSyntheticRequest(HttpServletRequest servletRequest) {
+        if (!isSyntheticRequest(servletRequest)) {
+            return Collections.emptyList();
+        } else {
+            return Stream.of(getSlingServletContextDTO().listenerDTOs)
+                .filter(l -> Arrays.stream(l.types).anyMatch(ServletRequestListener.class.getName()::equals))
+                .map(l -> {
+                    try {
+                        return bundleContext.getServiceReferences(ServletRequestListener.class, "(service.id=" + l.serviceId + ")").iterator().next();
+                    } catch (InvalidSyntaxException e) {
+                        // should not happen
+                        throw new IllegalStateException(e);
+                    }
+                })
+                .collect(Collectors.toSet());
+        }
+    }
+
+    private boolean isSyntheticRequest(HttpServletRequest servletRequest) {
+        return servletRequest.getServletContext().getClass().getName().equals(ServletContextImpl.class.getName());
+    }
+
+    private ServletContextDTO getSlingServletContextDTO() {
+        return Stream.of(httpServiceRuntime.getRuntimeDTO().servletContextDTOs).filter(c -> c.name.equals(SlingHttpContext.SERVLET_CONTEXT_NAME)).findFirst().orElseThrow(() -> new IllegalStateException("Could not retrieve Sling Servlet Context from OSGi HTTP Whiteboard"));
+    }
+    
     /**
      * Renders the component defined by the RequestData's current ComponentData
      * instance after calling all filters of the given
