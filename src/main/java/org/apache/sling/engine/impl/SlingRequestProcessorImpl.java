@@ -84,16 +84,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private final Logger log = LoggerFactory.getLogger(SlingRequestProcessorImpl.class);
 
     @Reference
-    private ServletResolver servletResolver;
+    private volatile ServletResolver servletResolver;
 
     @Reference
-    private ServletFilterManager filterManager;
+    private volatile ServletFilterManager filterManager;
 
     @Reference
-    private RequestProcessorMBeanImpl mbean;
-
-    @Reference(target = SlingServletContext.TARGET)
-    private ServletContext slingServletContext;
+    private volatile RequestProcessorMBeanImpl mbean;
 
     @Reference(cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
@@ -119,7 +116,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     @Activate
     public void activate(final Config config) {
-        this.errorHandler.setServerInfo(this.slingServletContext.getServerInfo());
         this.modified(config);
     }
 
@@ -146,6 +142,15 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.maxCallCounter = config.sling_max_calls();
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
+    }
+
+    @Reference(target = SlingServletContext.TARGET, policy = ReferencePolicy.DYNAMIC, updated = "bindServletContext")
+    void bindServletContext(final ServletContext servletContext) {
+        this.errorHandler.setServerInfo(servletContext.getServerInfo());
+    }
+
+    void unbindServletContext(final ServletContext servletContext) {
+        // nothing to do here, but DS requires this method
     }
 
     @Reference(name = "ErrorHandler",
@@ -281,8 +286,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // record the request for the web console and info provider
             RequestInfoProviderImpl.recordRequest(request);
 
-            if (mbean != null) {
-                mbean.addRequestData(requestData);
+            final RequestProcessorMBeanImpl localBean = this.mbean;
+            if (localBean != null) {
+                localBean.addRequestData(requestData);
             }
         }
     }
@@ -355,11 +361,21 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             final RequestPathInfo resolvedURL, 
             final DispatchingInfo dispatchingInfo)
     throws IOException, ServletException {
-
         // we need a SlingHttpServletRequest/SlingHttpServletResponse tupel
         // to continue
         final SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
         final SlingHttpServletResponse cResponse = RequestData.toSlingHttpServletResponse(response);
+
+        // check that we have all required services
+        final ServletResolver sr = this.servletResolver;
+        if (sr == null) {
+            final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
+            String errorMessage = "Required service missing (ServletResolver)";
+            log.debug("{}), cannot dispatch requests, sending status {}", errorMessage, status);
+            cResponse.sendError(status, errorMessage);
+            return;
+        }
+
 
         // get the request data (and btw check the correct type)
         final RequestData requestData = RequestData.getRequestData(cRequest);
@@ -370,7 +386,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         requestData.setDispatchingInfo(dispatchingInfo);
         try {
             // resolve the servlet
-            Servlet servlet = servletResolver.resolveServlet(cRequest);
+            Servlet servlet = sr.resolveServlet(cRequest);
             contentData.setServlet(servlet);
 
             final FilterChainType type = dispatchingInfo.getType() == DispatcherType.INCLUDE
