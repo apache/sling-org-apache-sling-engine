@@ -371,7 +371,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         if (sr == null) {
             final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
             String errorMessage = "Required service missing (ServletResolver)";
-            log.debug("{}), cannot dispatch requests, sending status {}", errorMessage, status);
+            log.debug("{}, cannot dispatch requests, sending status {}", errorMessage, status);
             cResponse.sendError(status, errorMessage);
             return;
         }
