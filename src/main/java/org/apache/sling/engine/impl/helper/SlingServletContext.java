@@ -99,7 +99,8 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private final ProductInfoProvider productInfoProvider;
+    @Reference
+    volatile ProductInfoProvider productInfoProvider;
 
     private final BundleContext bundleContext;
 
@@ -128,17 +129,15 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     @Activate
     public SlingServletContext(final Config config, 
-        final BundleContext bundleContext,
-        @Reference final ProductInfoProvider infoProvider) {
+        final BundleContext bundleContext) {
         this.bundleContext = bundleContext;
-        this.productInfoProvider = infoProvider;
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
-        this.setup(config);
     }
 
+    @Activate
     @Modified
-    protected void modified(final Config config) {
+    void modified(final Config config) {
         setup(config);
     }
 

@@ -43,7 +43,9 @@ public class SlingServletContextTest {
         Mockito.when(cfg.sling_serverinfo()).thenReturn("Apache Sling/1.0");
         final ProductInfoProvider pip = Mockito.mock(ProductInfoProvider.class);
         final BundleContext bundleContext = Mockito.mock(BundleContext.class);
-        final SlingServletContext ctx = new SlingServletContext(cfg, bundleContext, pip);
+        final SlingServletContext ctx = new SlingServletContext(cfg, bundleContext);
+        ctx.productInfoProvider = pip;
+        ctx.modified(cfg);
         assertEquals("Apache Sling/1.0", ctx.getServerInfo());
     }
 
@@ -60,7 +62,9 @@ public class SlingServletContextTest {
                 return null;
             }
         }).when(bundleContext).registerService(Mockito.eq(ServletContext.class), any(SlingServletContext.class), any(Dictionary.class));
-        final SlingServletContext ctx = new SlingServletContext(cfg, bundleContext, pip);
+        final SlingServletContext ctx = new SlingServletContext(cfg, bundleContext);
+        ctx.productInfoProvider = pip;
+        ctx.modified(cfg);
         final ServletContext source = Mockito.mock(ServletContext.class);
         final ServletContextEvent event = new ServletContextEvent(source);
         ctx.contextInitialized(event);
