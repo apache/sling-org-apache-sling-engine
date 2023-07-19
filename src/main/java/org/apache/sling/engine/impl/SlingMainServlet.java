@@ -77,7 +77,7 @@ public class SlingMainServlet extends GenericServlet {
      * The product info provider
      */
     @Reference
-    private volatile ProductInfoProvider productInfoProvider;
+    private ProductInfoProvider productInfoProvider;
 
     /**
      * The Sling http context
@@ -194,8 +194,7 @@ public class SlingMainServlet extends GenericServlet {
 
         String servletName = config.servlet_name();
         if (servletName == null || servletName.isEmpty()) {
-            final ProductInfoProvider localProvider = this.productInfoProvider;
-            servletName = localProvider != null ? localProvider.getProductInfo() : null;
+            servletName = this.productInfoProvider.getProductInfo();
         }
         if (this.servletRegistration == null) {
             this.servletRegistration = bundleContext.registerService(Servlet.class, this,

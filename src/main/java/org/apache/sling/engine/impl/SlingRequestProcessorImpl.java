@@ -212,7 +212,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if ( sr == null ) {
                 errorMessage = errorMessage.concat("ServletResolver");
             }
-            log.debug("{}), cannot service requests, sending status {}", errorMessage, status);
+            log.debug("{}, cannot service requests, sending status {}", errorMessage, status);
             servletResponse.sendError(status, errorMessage);
             return;
         }

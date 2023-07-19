@@ -99,8 +99,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    @Reference
-    volatile ProductInfoProvider productInfoProvider;
+    private final ProductInfoProvider productInfoProvider;
 
     private final BundleContext bundleContext;
 
@@ -129,13 +128,15 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     @Activate
     public SlingServletContext(final Config config, 
-        final BundleContext bundleContext) {
+        final BundleContext bundleContext,
+        final @Reference ProductInfoProvider productInfoProvider) {
         this.bundleContext = bundleContext;
+        this.productInfoProvider = productInfoProvider;
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
+        setup(config);
     }
 
-    @Activate
     @Modified
     void modified(final Config config) {
         setup(config);
@@ -223,6 +224,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     @Override
     public void contextInitialized(final ServletContextEvent sce) {
+        log.info("Context initialized", new Exception());
         final ServletContext delegatee;
         final long counter;
         synchronized ( this ) {
@@ -259,6 +261,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
+        log.info("Context destroyed", new Exception());
         final ServiceRegistration<ServletContext> reg;
         synchronized ( this ) {
             this.initCounter++;
