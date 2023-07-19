@@ -20,6 +20,7 @@ package org.apache.sling.engine.impl;
 
 import java.util.Dictionary;
 import java.util.Hashtable;
+import java.util.Objects;
 
 import javax.servlet.GenericServlet;
 import javax.servlet.Servlet;
@@ -82,10 +83,10 @@ public class SlingMainServlet extends GenericServlet {
      * The Sling http context
      */
     @Reference(target = SlingServletContext.TARGET)
-    private ServletContext slingServletContext;
+    private volatile ServletContext slingServletContext;
 
     @Reference
-    private SlingRequestProcessorImpl requestProcessorImpl;
+    private volatile SlingRequestProcessorImpl requestProcessorImpl;
 
     private volatile boolean allowTrace;
 
@@ -125,6 +126,7 @@ public class SlingMainServlet extends GenericServlet {
                         : null;
 
                 // real request handling for HTTP requests
+                // we don't check for null of requestProcessorImpl as we would throw an exception anyway in that case
                 requestProcessorImpl.doProcessRequest(request, (HttpServletResponse) res,
                     resolver);
 
@@ -177,7 +179,9 @@ public class SlingMainServlet extends GenericServlet {
         servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT,
                 "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")");
         servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_PATTERN, "/");
-        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME, servletName);
+        if (servletName != null) {
+            servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME, servletName);
+        }
         servletConfig.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Main Servlet");
         servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
 
@@ -197,7 +201,7 @@ public class SlingMainServlet extends GenericServlet {
                     getServletContextRegistrationProps(servletName));
         } else {
             // check if the servlet name has changed and update properties
-            if (!servletName.equals(this.servletRegistration.getReference()
+            if (!Objects.equals(servletName, this.servletRegistration.getReference()
                     .getProperty(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME))) {
                 this.servletRegistration.setProperties(getServletContextRegistrationProps(servletName));
             }
@@ -212,7 +216,8 @@ public class SlingMainServlet extends GenericServlet {
 
     @Override
     public void init() throws ServletException {
-        log.info("{} ready to serve requests", this.slingServletContext.getServerInfo());
+        final ServletContext localContext = this.slingServletContext;
+        log.info("{} ready to serve requests", localContext != null ? localContext.getServerInfo() : "Sling");
     }
 
     @Deactivate
@@ -223,7 +228,8 @@ public class SlingMainServlet extends GenericServlet {
         }
 
         this.bundleContext = null;
-        log.info("{} shut down", this.slingServletContext.getServerInfo());
+        final ServletContext localContext = this.slingServletContext;
+        log.info("{} shut down", localContext != null ? localContext.getServerInfo() : "Sling");
     }
 
     /**
