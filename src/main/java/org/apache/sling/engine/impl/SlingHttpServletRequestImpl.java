@@ -342,10 +342,6 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      */
     @Override
     public Principal getUserPrincipal() {
-        // always return null for anonymous user
-        if (this.getRemoteUser() == null) {
-            return null;
-        }
         Principal principal = getResourceResolver().adaptTo(Principal.class);
         if (principal != null) {
             return principal;

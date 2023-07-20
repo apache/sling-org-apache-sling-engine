@@ -101,7 +101,7 @@ public class SlingHttpServletRequestImplTest {
         }});
         
         slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
-        Assert.assertNull(slingHttpServletRequestImpl.getUserPrincipal());
+        Assert.assertSame(principal, slingHttpServletRequestImpl.getUserPrincipal());
     }
     
     @Test
