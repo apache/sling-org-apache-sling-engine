@@ -65,7 +65,7 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
         };
         HttpServletRequest httpReq = whateverRequest();
         final RequestData requestData = new RequestData(new SlingRequestProcessorImpl(), httpReq,
-                context.mock(HttpServletResponse.class), false, false);
+                context.mock(HttpServletResponse.class), false, false, true);
         final SlingHttpServletRequestImpl req = new SlingHttpServletRequestImpl(requestData, httpReq);
         boolean illegalStateCaught = false;
         try {

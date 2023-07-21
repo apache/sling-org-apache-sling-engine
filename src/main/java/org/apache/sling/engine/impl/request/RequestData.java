@@ -150,6 +150,10 @@ public class RequestData {
      */
     private DispatchingInfo dispatchingInfo;
 
+    private final boolean disableCheckCompliantGetUserPrincipal;
+
+    private static volatile boolean loggedNonCompliantGetUserPrincipalWarning = false;
+
     /**
      * Prevent traversal using '/../' or '/..' even if '[' or '}' is used in-between
      */
@@ -162,7 +166,8 @@ public class RequestData {
     public RequestData(SlingRequestProcessorImpl slingRequestProcessor,
             HttpServletRequest request, HttpServletResponse response,
                        boolean protectHeadersOnInclude,
-                       boolean checkContentTypeOnInclude) {
+                       boolean checkContentTypeOnInclude,
+                       boolean disableCheckCompliantGetUserPrincipal) {
         this.startTimestamp = System.currentTimeMillis();
 
         this.slingRequestProcessor = slingRequestProcessor;
@@ -171,6 +176,7 @@ public class RequestData {
         this.servletResponse = response;
         this.protectHeadersOnInclude = protectHeadersOnInclude;
         this.checkContentTypeOnInclude = checkContentTypeOnInclude;
+        this.disableCheckCompliantGetUserPrincipal = disableCheckCompliantGetUserPrincipal;
 
         this.slingRequest = new SlingHttpServletRequestImpl(this, this.servletRequest);
 
@@ -731,4 +737,16 @@ public class RequestData {
         return false;
     }
 
+    public boolean isDisableCheckCompliantGetUserPrincipal() {
+        return disableCheckCompliantGetUserPrincipal;
+    }
+
+    public void logNonCompliantGetUserPrincipalWarning() {
+        if (!loggedNonCompliantGetUserPrincipalWarning) {
+            loggedNonCompliantGetUserPrincipalWarning = true;
+            log.warn("Request.getUserPrincipal() called without a remoteUser set. This is not compliant to the servlet spec " +
+                    "and might return a principal even if the request is not authenticated. Please update your code to use getAuthType() " +
+                    "to check for anonymous requests first.");
+        }
+    }
 }

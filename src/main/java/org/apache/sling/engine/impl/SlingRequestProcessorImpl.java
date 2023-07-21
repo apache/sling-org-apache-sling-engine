@@ -113,6 +113,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     private volatile boolean protectHeadersOnInclude;
     private volatile boolean checkContentTypeOnInclude;
+    private volatile boolean disableCheckCompliantGetUserPrincipal;
 
     @Activate
     public void activate(final Config config) {
@@ -142,6 +143,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.maxCallCounter = config.sling_max_calls();
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
+        this.disableCheckCompliantGetUserPrincipal = config.disable_spec_compliant_getuserprincipal();
     }
 
     @Reference(target = SlingServletContext.TARGET, policy = ReferencePolicy.DYNAMIC, updated = "bindServletContext")
@@ -218,7 +220,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         }
 
         // setting the Sling request and response
-        final RequestData requestData = new RequestData(this, servletRequest, servletResponse, protectHeadersOnInclude, checkContentTypeOnInclude);
+        final RequestData requestData = new RequestData(this, servletRequest, servletResponse,
+            protectHeadersOnInclude, checkContentTypeOnInclude, this.disableCheckCompliantGetUserPrincipal);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
@@ -352,9 +355,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
      * @param response The response
      * @param resource The resource
      * @param resolvedURL Request path info
-     * @param include Is this an include (or forward) ?
-     * @param protectHeadersOnInclude Should the headers be protected on include?
-     * @param checkContentTypeOnInclude Should we prevent changing the Content-Type on include?
+     * @param DispatchingInfo dispatching info
      */
     public void dispatchRequest(final ServletRequest request,
             final ServletResponse response, final Resource resource,
@@ -375,7 +376,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             cResponse.sendError(status, errorMessage);
             return;
         }
-
 
         // get the request data (and btw check the correct type)
         final RequestData requestData = RequestData.getRequestData(cRequest);

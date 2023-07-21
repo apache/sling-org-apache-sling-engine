@@ -342,15 +342,22 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      */
     @Override
     public Principal getUserPrincipal() {
-        // we don't comply fully to the servlet spec here and might return a
-        // principal even if the request is not authenticated. See SLING-11974
-        Principal principal = getResourceResolver().adaptTo(Principal.class);
+        final String remoteUser = getRemoteUser();
+        // spec compliant: always return null if not authenticated
+        if (remoteUser == null && !this.requestData.isDisableCheckCompliantGetUserPrincipal()) {
+            return null;
+        }
+        final Principal principal = getResourceResolver().adaptTo(Principal.class);
         if (principal != null) {
+            // we don't comply fully to the servlet spec here and might return a
+            // principal even if the request is not authenticated. See SLING-11974
+            if (remoteUser == null) {
+                this.requestData.logNonCompliantGetUserPrincipalWarning();
+            }
             return principal;
         }
-        //fallback to the userid
-        String remoteUser = getRemoteUser();
-        return (remoteUser != null) ? new UserPrincipal(remoteUser) : null;
+        // fallback to the userid
+        return remoteUser != null ? new UserPrincipal(remoteUser) : null;
     }
 
     /**

@@ -101,7 +101,7 @@ public class RequestDataTest {
         }});
 
         
-        requestData = new RequestData(processor, req, resp, false, false) {
+        requestData = new RequestData(processor, req, resp, false, false, true) {
             @Override
             public ContentData getContentData() {
                 return contentData;

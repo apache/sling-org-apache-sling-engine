@@ -104,4 +104,9 @@ public @interface Config {
             description = "When enabled, it will check explicit overrides of the Content-Type header and will make the " +
                     "Sling Engine throw a RuntimeException when such an override is detected.")
     boolean sling_includes_checkcontenttype() default false;
+
+    @AttributeDefinition(name = "Disable Spec Compliant GetUserPrincipal",
+            description = "When enabled, the getUserPrincipal method of the request object might even return a principal " +
+                    "in the non authenticated case. This is not spec compliant but might be required for some legacy code.")
+    boolean disable_spec_compliant_getuserprincipal() default true;
 }
