@@ -123,9 +123,10 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         dispatch(request, response, info);
 
         // finally, we would have to ensure the response is committed
-        // and closed. Let's just flush the buffer and thus commit the
-        // response for now
-        response.flushBuffer();
+        // and closed
+        if (!response.isCommitted()) {
+            response.flushBuffer();
+        }
     }
 
     private String getAbsolutePath(SlingHttpServletRequest request, String path) {
