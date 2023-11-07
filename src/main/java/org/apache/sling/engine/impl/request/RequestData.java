@@ -507,7 +507,12 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), request.getRequestPathInfo().getSelectors())) {
+        final String selectorString = request.getRequestPathInfo().getSelectorString();
+        String[] selectors = selectorString == null ?
+                getRawSelectors(request.getResource().getResourceMetadata().getResolutionPathInfo())
+                : request.getRequestPathInfo().getSelectors();
+
+        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), selectors)) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -567,6 +572,30 @@ public class RequestData {
             }
         }
         return resourcePath == null || !traversesParentPath(resourcePath);
+    }
+
+    static String[] getRawSelectors(String pathToParse) {
+        if (pathToParse == null) {
+            pathToParse = "";
+        }
+
+        // separate selectors/ext from the suffix
+        int firstSlash = pathToParse.indexOf('/');
+        String pathToSplit;
+        if (firstSlash < 0) {
+            pathToSplit = pathToParse;
+        } else {
+            pathToSplit = pathToParse.substring(0, firstSlash);
+        }
+
+        int lastDot = pathToSplit.lastIndexOf('.');
+        // No selector if there is only single dot (for extension) or no dot
+        if (lastDot < 1) {
+            return new String[0];
+        }
+        // separate selectors string
+        String tmpSel = pathToSplit.substring(1, lastDot);
+        return tmpSel.split("\\.", -1);
     }
 
     // ---------- Content inclusion stacking -----------------------------------
