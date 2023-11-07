@@ -81,7 +81,7 @@ public class SlingRequestPathInfo implements RequestPathInfo {
 
         int lastDot = pathToSplit.lastIndexOf('.');
 
-        if (lastDot < 1) {
+        if (lastDot <= 1) {
 
             // no selectors if only extension exists or selectors is empty
             selectorString = null;
@@ -89,9 +89,10 @@ public class SlingRequestPathInfo implements RequestPathInfo {
 
         } else {
 
-            // splitting with limit -1 will not give empty array even if selector string is empty
-            selectorString = pathToSplit.substring(1, lastDot);
-            selectors = selectorString.split("\\.", -1);
+            // no selectors if splitting would give an empty array
+            String tmpSel = pathToSplit.substring(1, lastDot);
+            selectors = tmpSel.split("\\.");
+            selectorString = (selectors.length > 0) ? tmpSel : null;
 
         }
 
