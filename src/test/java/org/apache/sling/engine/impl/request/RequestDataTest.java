@@ -220,12 +220,12 @@ public class RequestDataTest {
         assertValidRequest(false, resourcePath, selectors);
 
         selectors = RequestData.getRawSelectors("..html");
-        assertEquals(selectors.length, 1);
+        assertEquals(1, selectors.length);
         assertArrayEquals(new String[]{""}, selectors);
         assertValidRequest(false, resourcePath, selectors);
 
         selectors = RequestData.getRawSelectors(".html");
-        assertEquals(selectors.length, 0);
+        assertEquals(0, selectors.length);
         assertArrayEquals(new String[0], selectors);
         assertValidRequest(true, resourcePath, selectors);
 
