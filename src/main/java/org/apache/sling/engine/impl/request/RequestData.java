@@ -507,12 +507,8 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        final String selectorString = request.getRequestPathInfo().getSelectorString();
-        String[] selectors = selectorString == null ?
-                getRawSelectors(request.getResource().getResourceMetadata().getResolutionPathInfo())
-                : request.getRequestPathInfo().getSelectors();
-
-        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), selectors)) {
+        if (!isValidRequest(request.getRequestPathInfo(), 
+            request.getResource().getResourceMetadata().getResolutionPathInfo())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -565,37 +561,41 @@ public class RequestData {
      * Don't allow path segments that contain only dots or a mix of dots and %5B.
      * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
-    static boolean isValidRequest(String resourcePath, String... selectors) {
-       for (String selector : selectors) {
+    static boolean isValidRequest(final RequestPathInfo info, final String resourcePathInfo) {
+        final String selectorString = info.getSelectorString();
+        if (selectorString == null && pathInfoContainsEmptySelectors(resourcePathInfo)) {
+            return false;
+        }
+
+        for (final String selector : info.getSelectors()) {
             if (selector.trim().isEmpty()) {
                 return false;
             }
         }
-        return resourcePath == null || !traversesParentPath(resourcePath);
+        return info.getResourcePath() == null || !traversesParentPath(info.getResourcePath());
     }
 
-    static String[] getRawSelectors(String pathToParse) {
+    static boolean pathInfoContainsEmptySelectors(final String pathToParse) {
         if (pathToParse == null) {
-            pathToParse = "";
+            return false;
         }
 
         // separate selectors/ext from the suffix
-        int firstSlash = pathToParse.indexOf('/');
-        String pathToSplit;
+        final int firstSlash = pathToParse.indexOf('/');
+        final String pathToSplit;
         if (firstSlash < 0) {
             pathToSplit = pathToParse;
         } else {
             pathToSplit = pathToParse.substring(0, firstSlash);
         }
 
-        int lastDot = pathToSplit.lastIndexOf('.');
+        final int lastDot = pathToSplit.lastIndexOf('.');
         // No selector if there is only single dot (for extension) or no dot
         if (lastDot < 1) {
-            return new String[0];
+            return false;
         }
-        // separate selectors string
-        String tmpSel = pathToSplit.substring(1, lastDot);
-        return tmpSel.split("\\.", -1);
+        // separate selectors string and check for empty selectors
+        return pathToSplit.substring(0, lastDot + 1).contains("..");
     }
 
     // ---------- Content inclusion stacking -----------------------------------
