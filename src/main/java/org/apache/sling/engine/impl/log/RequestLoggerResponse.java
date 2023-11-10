@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
 import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletRequest;
 import javax.servlet.WriteListener;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
@@ -65,11 +66,11 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
     // probably be supported
 
     // the request counter
-    private long requestId;
+    private final long requestId;
 
     // the system time in ms when the request entered the system, this is
     // the time this instance was created
-    private long requestStart;
+    private final long requestStart;
 
     // the system time in ms when the request exited the system, this is
     // the time of the call to the requestEnd() method
@@ -92,11 +93,11 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
     // headers
     private Map<String, Object> headers;
 
-    RequestLoggerResponse(HttpServletResponse response) {
+    RequestLoggerResponse(final ServletRequest request, final HttpServletResponse response) {
         super(response);
 
         this.requestId = requestCounter.getAndIncrement();
-        this.requestStart = System.currentTimeMillis();
+        this.requestStart = RequestLoggerPreprocessor.getRequestStartTime(request);
     }
 
     /**

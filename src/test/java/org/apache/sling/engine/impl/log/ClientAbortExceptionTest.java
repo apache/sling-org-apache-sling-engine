@@ -69,7 +69,7 @@ public class ClientAbortExceptionTest {
             will(returnValue(sos));
         }});
 
-        r = new RequestLoggerResponse(raw);
+        r = new RequestLoggerResponse(null, raw);
     }
 
     @Test(expected=ClientAbortException.class)

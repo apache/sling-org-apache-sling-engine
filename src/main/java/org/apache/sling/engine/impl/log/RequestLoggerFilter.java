@@ -66,7 +66,7 @@ public final class RequestLoggerFilter implements Filter {
             ServletException {
 
         final RequestLoggerRequest rlreq = new RequestLoggerRequest((HttpServletRequest) request);
-        final RequestLoggerResponse rlres = new RequestLoggerResponse((HttpServletResponse) response);
+        final RequestLoggerResponse rlres = new RequestLoggerResponse(request, (HttpServletResponse) response);
 
         log(this.requestEntry, rlreq, rlres);
         try {
