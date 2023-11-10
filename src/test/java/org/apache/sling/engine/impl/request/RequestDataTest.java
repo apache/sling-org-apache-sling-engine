@@ -206,15 +206,51 @@ public class RequestDataTest {
     }
 
     @Test
+    public void testRawSelectors() {
+        String resourcePath = "/path/to/resource";
+
+        String[] selectors = RequestData.getRawSelectors(".....json/a/b/c");
+        assertEquals(4, selectors.length);
+        assertArrayEquals(new String[]{"", "", "", ""}, selectors);
+        assertValidRequest(false, resourcePath, selectors);
+
+        selectors = RequestData.getRawSelectors("..html");
+        assertEquals(1, selectors.length);
+        assertArrayEquals(new String[]{""}, selectors);
+        assertValidRequest(false, resourcePath, selectors);
+
+        selectors = RequestData.getRawSelectors("..html");
+        assertEquals(1, selectors.length);
+        assertArrayEquals(new String[]{""}, selectors);
+        assertValidRequest(false, resourcePath, selectors);
+
+        selectors = RequestData.getRawSelectors(".html");
+        assertEquals(0, selectors.length);
+        assertArrayEquals(new String[0], selectors);
+        assertValidRequest(true, resourcePath, selectors);
+
+        selectors = RequestData.getRawSelectors("..a...html/a/b/c");
+        assertEquals(4, selectors.length);
+        assertArrayEquals(new String[]{"", "a", "", ""}, selectors);
+        assertValidRequest(false, resourcePath, selectors);
+
+        selectors = RequestData.getRawSelectors(".a.b.c.html/a/b/c");
+        assertEquals(3, selectors.length);
+        assertArrayEquals(new String[]{"a", "b", "c"}, selectors);
+        assertValidRequest(true, resourcePath, selectors);
+    }
+
+    @Test
     public void testValidRequest() {
         //HttpRequest with valid path
         assertValidRequest(true, "/path");
     }
 
-    private static void assertValidRequest(boolean expected, String path) {
+    private static void assertValidRequest(boolean expected, String path, String... selectors) {
         assertEquals(
                 "Expected " + expected + " for " + path,
                 expected,
-                RequestData.isValidRequest(path));
+                RequestData.isValidRequest(path, selectors));
     }
+
 }
