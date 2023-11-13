@@ -580,22 +580,23 @@ public class RequestData {
             return false;
         }
 
-        // separate selectors/ext from the suffix
-        final int firstSlash = pathToParse.indexOf('/');
-        final String pathToSplit;
-        if (firstSlash < 0) {
-            pathToSplit = pathToParse;
-        } else {
-            pathToSplit = pathToParse.substring(0, firstSlash);
-        }
-
-        final int lastDot = pathToSplit.lastIndexOf('.');
-        // No selector if there is only single dot (for extension) or no dot
-        if (lastDot < 1) {
+        // look for consecutive dots in the path
+        final int doubleDots = pathToParse.indexOf("..");
+        if (doubleDots == -1) {
             return false;
         }
-        // separate selectors string and check for empty selectors
-        return pathToSplit.substring(0, lastDot + 1).contains("..");
+        // find suffix
+        final String suffixPlusExtension;
+        final int firstSlash = pathToParse.indexOf('/');
+        if (firstSlash == -1) {
+            suffixPlusExtension = pathToParse;
+        } else {
+            suffixPlusExtension = pathToParse.substring(0, firstSlash);
+        }
+        // find extension
+        final int lastDot = suffixPlusExtension.lastIndexOf('.');
+        // double dots before extension?
+        return doubleDots < lastDot;
     }
 
     // ---------- Content inclusion stacking -----------------------------------
