@@ -25,6 +25,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
+import java.net.SocketException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -247,21 +248,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(), request, response);
 
         } catch (final SlingException se) {
-            // if we have request data and a non-null active servlet name
-            // we assume, that this is the name of the causing servlet
-            if (requestData.getActiveServletName() != null) {
-                request.setAttribute(ERROR_SERVLET_NAME,
-                    requestData.getActiveServletName());
-            }
-
             // send this exception as is (albeit unwrapping and wrapped
             // exception.
             Throwable t = se;
             while ( t instanceof SlingException && t.getCause() != null ) {
                 t = t.getCause();
             }
-            log.error("service: Uncaught SlingException ", t);
-            handleError(t, request, response);
+            handleError(requestData, "SlingException", t, request, response);
 
         } catch (final AccessControlException ace) {
             // SLING-319 if anything goes wrong, send 403/FORBIDDEN
@@ -272,18 +265,25 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 response);
 
         } catch (final IOException ioe) {
-            // forward IOException up the call chain to properly handle it
-            throw ioe;
-
-        } catch (final Throwable t) {
-            // we assume, that this is the name of the causing servlet
-            if (requestData.getActiveServletName() != null) {
-                request.setAttribute(ERROR_SERVLET_NAME,
-                    requestData.getActiveServletName());
+            // unwrap any causes (Jetty wraps SocketException in EofException)
+            Throwable cause = ioe;
+            while (cause.getCause() != null) {
+                cause = cause.getCause();
             }
 
-            log.error("service: Uncaught Throwable", t);
-            handleError(t, request, response);
+            if (cause instanceof SocketException) {
+                // if the cause is a SocketException, the client most
+                // probably aborted the request, we do not fill the log with errors
+                log.debug(
+                    "service: Socketexception (Client abort or network problem",
+                    ioe);
+
+            } else {
+                // otherwise call error handler with original exception
+                handleError(requestData, "IOException", ioe, request, response);
+            }
+        } catch (final Throwable t) {
+            handleError(requestData, "Throwable", t, request, response);
 
         } finally {
             // record the request for the web console and info provider
@@ -296,6 +296,21 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         }
     }
 
+    private void handleError(
+        final RequestData requestData,
+        final String identifier,
+        final Throwable throwable,
+        final SlingHttpServletRequest request,
+        final SlingHttpServletResponse response) throws IOException {
+        // we assume, that this is the name of the causing servlet
+        if (requestData.getActiveServletName() != null) {
+            request.setAttribute(ERROR_SERVLET_NAME,
+                requestData.getActiveServletName());
+        }
+
+        log.error("service: Uncaught {}", identifier, throwable);
+        handleError(throwable, request, response);
+    }
     // ---------- SlingRequestProcessor interface
 
     /**
