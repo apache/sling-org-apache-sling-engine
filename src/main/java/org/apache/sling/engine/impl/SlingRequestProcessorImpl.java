@@ -20,6 +20,7 @@ package org.apache.sling.engine.impl;
 
 import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
@@ -263,6 +264,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 request.getRemoteUser());
             handleError(HttpServletResponse.SC_FORBIDDEN, null, request,
                 response);
+
+        } catch (final FileNotFoundException fnfe) {
+            // send this exception as a 404 status
+            log.debug("service: File not found: {}", fnfe.getMessage());
+            handleError(HttpServletResponse.SC_NOT_FOUND, fnfe.getMessage(), request, response);
 
         } catch (final IOException ioe) {
             // unwrap any causes (Jetty wraps SocketException in EofException)
