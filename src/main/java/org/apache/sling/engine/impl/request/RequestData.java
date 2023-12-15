@@ -507,8 +507,7 @@ public class RequestData {
             SlingHttpServletResponse response) throws IOException,
             ServletException {
 
-        if (!isValidRequest(request.getRequestPathInfo(), 
-            request.getResource().getResourceMetadata().getResolutionPathInfo())) {
+        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), request.getRequestPathInfo().getSelectors())) {
             response.sendError(HttpServletResponse.SC_BAD_REQUEST,
                     "Malformed request syntax");
             return;
@@ -561,42 +560,13 @@ public class RequestData {
      * Don't allow path segments that contain only dots or a mix of dots and %5B.
      * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
-    static boolean isValidRequest(final RequestPathInfo info, final String resourcePathInfo) {
-        final String selectorString = info.getSelectorString();
-        if (selectorString == null && pathInfoContainsEmptySelectors(resourcePathInfo)) {
-            return false;
-        }
-
-        for (final String selector : info.getSelectors()) {
+    static boolean isValidRequest(String resourcePath, String... selectors) {
+       for (String selector : selectors) {
             if (selector.trim().isEmpty()) {
                 return false;
             }
         }
-        return info.getResourcePath() == null || !traversesParentPath(info.getResourcePath());
-    }
-
-    static boolean pathInfoContainsEmptySelectors(final String pathToParse) {
-        if (pathToParse == null) {
-            return false;
-        }
-
-        // look for consecutive dots in the path
-        final int doubleDots = pathToParse.indexOf("..");
-        if (doubleDots == -1) {
-            return false;
-        }
-        // find suffix
-        final String suffixPlusExtension;
-        final int firstSlash = pathToParse.indexOf('/');
-        if (firstSlash == -1) {
-            suffixPlusExtension = pathToParse;
-        } else {
-            suffixPlusExtension = pathToParse.substring(0, firstSlash);
-        }
-        // find extension
-        final int lastDot = suffixPlusExtension.lastIndexOf('.');
-        // double dots before extension?
-        return doubleDots < lastDot;
+        return resourcePath == null || !traversesParentPath(resourcePath);
     }
 
     // ---------- Content inclusion stacking -----------------------------------

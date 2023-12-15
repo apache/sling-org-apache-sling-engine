@@ -27,7 +27,6 @@ import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.TooManyCallsException;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
@@ -38,7 +37,6 @@ import org.jmock.Mockery;
 import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -87,7 +85,6 @@ public class RequestDataTest {
             will(returnValue(servletConfig));
 
             allowing(contentData).getRequestPathInfo();
-            allowing(contentData).getResource();
 
             allowing(servlet).service(with(any(ServletRequest.class)), with(any(ServletResponse.class)));
 
@@ -209,51 +206,15 @@ public class RequestDataTest {
     }
 
     @Test
-    public void testRawSelectors() {
-        String resourcePath = "/path/to/resource";
-
-        assertValidRequest(false, resourcePath, ".....json/a/b/c");
-
-        assertValidRequest(false, resourcePath, "..html");
-
-        assertValidRequest(true, resourcePath, ".html");
-
-        assertValidRequest(false, resourcePath, "..a...html/a/b/c", new String[] {"", "a", "", ""});
-
-        assertValidRequest(true, resourcePath, ".a.b.c.html/a/b/c", new String[]{"a", "b", "c"});
-    }
-
-    @Test
     public void testValidRequest() {
         //HttpRequest with valid path
         assertValidRequest(true, "/path");
     }
 
     private static void assertValidRequest(boolean expected, String path) {
-        final RequestPathInfo info = Mockito.mock(RequestPathInfo.class);
-        Mockito.when(info.getResourcePath()).thenReturn(path);
-        Mockito.when(info.getSelectorString()).thenReturn(null);
-        Mockito.when(info.getSelectors()).thenReturn(new String[0]);
         assertEquals(
                 "Expected " + expected + " for " + path,
                 expected,
-                RequestData.isValidRequest(info, null));
-    }
-
-    private static void assertValidRequest(boolean expected, String path, String pathInfo, String... selectors) {
-        final RequestPathInfo info = Mockito.mock(RequestPathInfo.class);
-        Mockito.when(info.getResourcePath()).thenReturn(path);
-        if (selectors == null || selectors.length == 0) {
-            Mockito.when(info.getSelectorString()).thenReturn(null);
-            Mockito.when(info.getSelectors()).thenReturn(new String[0]);
-        } else {
-            Mockito.when(info.getSelectorString()).thenReturn(selectors.toString()); // this is not correct, but doesn't matter for the test
-            Mockito.when(info.getSelectors()).thenReturn(selectors);
-        }
-
-        assertEquals(
-                "Expected " + expected + " for " + path,
-                expected,
-                RequestData.isValidRequest(info, pathInfo));
+                RequestData.isValidRequest(path));
     }
 }
