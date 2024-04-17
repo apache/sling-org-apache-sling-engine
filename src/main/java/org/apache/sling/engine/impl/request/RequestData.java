@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -517,6 +518,11 @@ public class RequestData {
         Servlet servlet = requestData.getContentData().getServlet();
         if (servlet == null) {
 
+            log.warn("Did not find a servlet to handle the request (path=%s,selectors=%,extension=%s,suffix=%s)",
+                    request.getRequestPathInfo().getResourcePath(),
+                    Arrays.toString(request.getRequestPathInfo().getSelectors()),
+                    request.getRequestPathInfo().getExtension(),
+                    request.getRequestPathInfo().getSuffix());
             response.sendError(HttpServletResponse.SC_NOT_FOUND,
                 "No Servlet to handle request");
 
