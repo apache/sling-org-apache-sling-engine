@@ -518,7 +518,7 @@ public class RequestData {
         Servlet servlet = requestData.getContentData().getServlet();
         if (servlet == null) {
 
-            log.warn("Did not find a servlet to handle the request (path=%s,selectors=%,extension=%s,suffix=%s)",
+            log.warn("Did not find a servlet to handle the request (path={},selectors={},extension={},suffix={})",
                     request.getRequestPathInfo().getResourcePath(),
                     Arrays.toString(request.getRequestPathInfo().getSelectors()),
                     request.getRequestPathInfo().getExtension(),
