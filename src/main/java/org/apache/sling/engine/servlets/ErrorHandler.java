@@ -25,6 +25,4 @@ import org.osgi.annotation.versioning.ConsumerType;
  */
 @ConsumerType
 @Deprecated
-public interface ErrorHandler extends org.apache.sling.api.servlets.ErrorHandler {
-
-}
+public interface ErrorHandler extends org.apache.sling.api.servlets.ErrorHandler {}

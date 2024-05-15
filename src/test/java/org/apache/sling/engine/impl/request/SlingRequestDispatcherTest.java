@@ -1,27 +1,22 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.engine.impl.request;
-
-
-import java.io.IOException;
-import java.lang.reflect.Field;
-import java.util.concurrent.atomic.AtomicReference;
 
 import javax.servlet.RequestDispatcher;
 import javax.servlet.Servlet;
@@ -29,6 +24,10 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.lang.reflect.Field;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -60,17 +59,23 @@ public class SlingRequestDispatcherTest {
     @Test
     public void testForwardResponseBufferClosed() throws Exception {
         Servlet forwardedServlet = mock(Servlet.class);
-        doAnswer(
-                invocationOnMock -> {
+        doAnswer(invocationOnMock -> {
                     ServletResponse servletResponse = invocationOnMock.getArgument(1);
                     when(servletResponse.isCommitted()).thenReturn(true);
-                    doThrow(new IOException("Response is committed")).when(servletResponse).getWriter();
-                    doThrow(new IOException("Response is committed")).when(servletResponse).getOutputStream();
-                    doThrow(new IOException("Response is committed")).when(servletResponse).flushBuffer();
+                    doThrow(new IOException("Response is committed"))
+                            .when(servletResponse)
+                            .getWriter();
+                    doThrow(new IOException("Response is committed"))
+                            .when(servletResponse)
+                            .getOutputStream();
+                    doThrow(new IOException("Response is committed"))
+                            .when(servletResponse)
+                            .flushBuffer();
                     verify(servletResponse, never()).flushBuffer();
                     return null;
-                }
-        ).when(forwardedServlet).service(any(ServletRequest.class), any(ServletResponse.class));
+                })
+                .when(forwardedServlet)
+                .service(any(ServletRequest.class), any(ServletResponse.class));
         testForwarding(forwardedServlet);
     }
 
@@ -78,14 +83,14 @@ public class SlingRequestDispatcherTest {
     public void testForwardResponseBufferNotClosed() throws Exception {
         Servlet forwardedServlet = mock(Servlet.class);
         AtomicReference<ServletResponse> outerResponse = new AtomicReference<>();
-        doAnswer(
-                invocationOnMock -> {
+        doAnswer(invocationOnMock -> {
                     ServletResponse servletResponse = invocationOnMock.getArgument(1);
                     when(servletResponse.isCommitted()).thenReturn(false);
                     outerResponse.set(servletResponse);
                     return null;
-                }
-        ).when(forwardedServlet).service(any(ServletRequest.class), any(ServletResponse.class));
+                })
+                .when(forwardedServlet)
+                .service(any(ServletRequest.class), any(ServletResponse.class));
         testForwarding(forwardedServlet);
         assertNotNull(outerResponse.get());
         verify(outerResponse.get(), times(1)).flushBuffer();
@@ -103,15 +108,15 @@ public class SlingRequestDispatcherTest {
     private void testForwarding(@NotNull Servlet servlet) throws Exception {
         Resource forwardResource = getMockedResource("/forward");
 
-        RequestDispatcher requestDispatcher = new SlingRequestDispatcher(forwardResource, new RequestDispatcherOptions(),
-                false, false);
+        RequestDispatcher requestDispatcher =
+                new SlingRequestDispatcher(forwardResource, new RequestDispatcherOptions(), false, false);
         SlingRequestProcessorImpl slingRequestProcessor = new SlingRequestProcessorImpl();
 
         HttpServletRequest httpServletRequest = mock(HttpServletRequest.class);
         HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
 
-        RequestData requestData = new RequestData(slingRequestProcessor, httpServletRequest, httpServletResponse,
-                false, false, false);
+        RequestData requestData =
+                new RequestData(slingRequestProcessor, httpServletRequest, httpServletResponse, false, false, false);
         SlingHttpServletRequest request = spy(new SlingHttpServletRequestImpl(requestData, httpServletRequest));
         SlingHttpServletResponse response = spy(new SlingHttpServletResponseImpl(requestData, httpServletResponse));
         Resource initialResource = getMockedResource("/initial");
@@ -124,7 +129,7 @@ public class SlingRequestDispatcherTest {
         servletResolverField.set(slingRequestProcessor, servletResolver);
 
         ServletFilterManager filterManager = mock(ServletFilterManager.class);
-        when(filterManager.getFilters(any())).thenReturn(new FilterHandle[]{});
+        when(filterManager.getFilters(any())).thenReturn(new FilterHandle[] {});
         Field filterManagerField = slingRequestProcessor.getClass().getDeclaredField("filterManager");
         filterManagerField.setAccessible(true);
         filterManagerField.set(slingRequestProcessor, filterManager);
@@ -134,5 +139,4 @@ public class SlingRequestDispatcherTest {
         requestDispatcher.forward(request, response);
         verify(servlet).service(any(ServletRequest.class), any(ServletResponse.class));
     }
-
 }

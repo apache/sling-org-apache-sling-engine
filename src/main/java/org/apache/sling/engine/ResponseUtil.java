@@ -27,8 +27,8 @@ import java.io.Writer;
 @Deprecated
 public class ResponseUtil {
 
-    /** 
-     * Escape xml text 
+    /**
+     * Escape xml text
      * @param input The text to escape
      * @return The escaped text.
      */
@@ -36,7 +36,7 @@ public class ResponseUtil {
         return org.apache.sling.api.request.ResponseUtil.escapeXml(input);
     }
 
-    /** 
+    /**
      * Return a Writer that writes escaped XML text to target
      * @param target The writer to wrap
      * @return The wrapped writer

@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine.impl;
 
-import java.io.IOException;
-import java.net.URL;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.net.URL;
 
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.builder.Builders;
@@ -89,9 +89,7 @@ public class SlingHttpContext extends ServletContextHelper {
             return mtservice.getMimeType(name);
         }
 
-        log.debug(
-            "getMimeType: MimeTypeService not available, cannot resolve mime type for {}",
-            name);
+        log.debug("getMimeType: MimeTypeService not available, cannot resolve mime type for {}", name);
         return null;
     }
 
@@ -109,8 +107,7 @@ public class SlingHttpContext extends ServletContextHelper {
      * <code>SlingAuthenticator</code>.
      */
     @Override
-    public boolean handleSecurity(HttpServletRequest request,
-            HttpServletResponse response) throws IOException {
+    public boolean handleSecurity(HttpServletRequest request, HttpServletResponse response) throws IOException {
 
         final RequestProgressTracker t = Builders.newRequestProgressTracker();
         t.log("Method={0}, PathInfo={1}", request.getMethod(), request.getPathInfo());
@@ -132,9 +129,8 @@ public class SlingHttpContext extends ServletContextHelper {
         super.finishSecurity(request, response);
         // get ResourceResolver (set by AuthenticationSupport)
         final Object resolverObject = request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
-        final ResourceResolver resolver = (resolverObject instanceof ResourceResolver)
-                ? (ResourceResolver) resolverObject
-                : null;
+        final ResourceResolver resolver =
+                (resolverObject instanceof ResourceResolver) ? (ResourceResolver) resolverObject : null;
         if (resolver != null) {
             // it's safe to call close() several times - checking isLive() can be expensive
             resolver.close();

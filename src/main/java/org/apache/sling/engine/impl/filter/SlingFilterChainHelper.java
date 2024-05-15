@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.servlet.Filter;
+
 import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
-
-import javax.servlet.Filter;
 
 /**
  * The <code>SlingFilterChainHelper</code> class is used by Sling to
@@ -48,14 +48,19 @@ public class SlingFilterChainHelper {
      * @param orderSource The source for the order
      * @param mbean MBean
      */
-    public synchronized void addFilter(final Filter filter,  FilterPredicate pattern,
-            final long filterId, final int order, final String orderSource, FilterProcessorMBeanImpl mbean) {
+    public synchronized void addFilter(
+            final Filter filter,
+            FilterPredicate pattern,
+            final long filterId,
+            final int order,
+            final String orderSource,
+            FilterProcessorMBeanImpl mbean) {
         this.filterList.add(new FilterHandle(filter, pattern, filterId, order, orderSource, mbean));
         this.filters = getFiltersInternal();
     }
 
     public synchronized boolean removeFilterById(final long filterId) {
-        for (Iterator<FilterHandle> fi = filterList.iterator(); fi.hasNext();) {
+        for (Iterator<FilterHandle> fi = filterList.iterator(); fi.hasNext(); ) {
             final FilterHandle test = fi.next();
             if (test.getFilterId() == filterId) {
                 fi.remove();

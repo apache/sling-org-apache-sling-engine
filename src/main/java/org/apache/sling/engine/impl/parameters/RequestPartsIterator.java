@@ -16,18 +16,11 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-
 package org.apache.sling.engine.impl.parameters;
-
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.Part;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -35,6 +28,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+
+import org.apache.commons.fileupload.FileItemIterator;
+import org.apache.commons.fileupload.FileItemStream;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Contains a Lazy iterator of Parts from the request stream loaded as the request is streamed using the Commons FileUpload API.
@@ -121,7 +121,8 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         @Override
         public void write(String s) throws IOException {
-            throw new UnsupportedOperationException("Writing parts directly to disk is not supported by this implementation, use getInputStream instead");
+            throw new UnsupportedOperationException(
+                    "Writing parts directly to disk is not supported by this implementation, use getInputStream instead");
         }
 
         @Override
@@ -139,7 +140,6 @@ public class RequestPartsIterator implements Iterator<Part> {
             return toCollection(fileItem.getHeaders().getHeaders(headerName));
         }
 
-
         @Override
         public Collection<String> getHeaderNames() {
             return toCollection(fileItem.getHeaders().getHeaderNames());
@@ -151,16 +151,15 @@ public class RequestPartsIterator implements Iterator<Part> {
         }
 
         private <T> Collection<T> toCollection(Iterator<T> i) {
-            if ( i == null ) {
+            if (i == null) {
                 return Collections.emptyList();
             } else {
                 List<T> c = new ArrayList<T>();
-                while(i.hasNext()) {
+                while (i.hasNext()) {
                     c.add(i.next());
                 }
                 return c;
             }
         }
-
     }
 }

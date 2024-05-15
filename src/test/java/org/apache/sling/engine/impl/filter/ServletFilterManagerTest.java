@@ -18,12 +18,6 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-import java.util.Hashtable;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -32,6 +26,9 @@ import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+
+import java.io.IOException;
+import java.util.Hashtable;
 
 import org.apache.commons.lang3.ArrayUtils;
 import org.apache.sling.engine.EngineConstants;
@@ -44,6 +41,9 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.osgi.framework.BundleContext;
+
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 public class ServletFilterManagerTest {
 
@@ -59,11 +59,11 @@ public class ServletFilterManagerTest {
         final ServletContextEvent sce = new ServletContextEvent(Mockito.mock(ServletContext.class));
         context.contextInitialized(sce);
         // servlet context is registered async
-        while ( osgiContext.getService(ServletContext.class) == null ) {
+        while (osgiContext.getService(ServletContext.class) == null) {
             try {
                 Thread.sleep(10);
             } catch (InterruptedException e) {
-            }    
+            }
         }
         this.servletFilterManager = osgiContext.registerInjectActivateService(ServletFilterManager.class);
     }
@@ -84,8 +84,12 @@ public class ServletFilterManagerTest {
         TestFilter testFilter = registerFilterForScopes(osgiContext.bundleContext(), FilterChainType.COMPONENT);
 
         // COMPONENT implies INCLUDE ande FORWARD
-        assertFilterInScopes(servletFilterManager, testFilter,
-                FilterChainType.COMPONENT, FilterChainType.INCLUDE, FilterChainType.FORWARD);
+        assertFilterInScopes(
+                servletFilterManager,
+                testFilter,
+                FilterChainType.COMPONENT,
+                FilterChainType.INCLUDE,
+                FilterChainType.FORWARD);
     }
 
     @Test
@@ -97,7 +101,6 @@ public class ServletFilterManagerTest {
 
         assertFilterInScopes(servletFilterManager, testFilter, allScopes);
     }
-
 
     private static TestFilter registerFilterForScopes(BundleContext bundleContext, FilterChainType... scopes) {
         String[] scopeNames = new String[scopes.length];
@@ -112,7 +115,8 @@ public class ServletFilterManagerTest {
         return testFilter;
     }
 
-    private static void assertFilterInScopes(ServletFilterManager mgr, Filter filterInstance, FilterChainType... scopes) {
+    private static void assertFilterInScopes(
+            ServletFilterManager mgr, Filter filterInstance, FilterChainType... scopes) {
         for (FilterChainType scope : FilterChainType.values()) {
             if (ArrayUtils.contains(scopes, scope)) {
                 assertTrue("Expected filter in scope " + scope.name(), hasFilterInScope(mgr, filterInstance, scope));
@@ -132,22 +136,18 @@ public class ServletFilterManagerTest {
         return false;
     }
 
-
     private static class TestFilter implements Filter {
 
         @Override
-        public void init(FilterConfig filterConfig) throws ServletException {
-
-        }
+        public void init(FilterConfig filterConfig) throws ServletException {}
 
         @Override
-        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+        public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                throws IOException, ServletException {
             chain.doFilter(request, response);
         }
 
         @Override
-        public void destroy() {
-
-        }
+        public void destroy() {}
     }
 }

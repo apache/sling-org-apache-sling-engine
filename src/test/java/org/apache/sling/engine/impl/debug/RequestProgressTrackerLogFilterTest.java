@@ -18,14 +18,14 @@
  */
 package org.apache.sling.engine.impl.debug;
 
-import static org.junit.Assert.assertTrue;
-
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Method;
 
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.builder.Builders;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 /** Partial tests of RequestProgressTrackerLogFilter */
 public class RequestProgressTrackerLogFilterTest {
@@ -58,9 +58,11 @@ public class RequestProgressTrackerLogFilterTest {
             public boolean compactLogFormat() {
                 return false;
             }
-        };
+        }
+        ;
 
-        final Method activate = filter.getClass().getDeclaredMethod("activate", RequestProgressTrackerLogFilter.Config.class);
+        final Method activate =
+                filter.getClass().getDeclaredMethod("activate", RequestProgressTrackerLogFilter.Config.class);
         activate.setAccessible(true);
         activate.invoke(filter, new TestConfig());
     }
@@ -74,15 +76,14 @@ public class RequestProgressTrackerLogFilterTest {
         final long elapsedMsec = System.currentTimeMillis() - startMsec;
         final long rptElapsed = rpt.getDuration();
         assertTrue("Expecting non-zero duration", rptElapsed > 0);
-        
+
         /**
-         * there must be a certain ratio between the time we know in milis and the recorded time in nanos; 
+         * there must be a certain ratio between the time we know in milis and the recorded time in nanos;
          * in the exact case it would be exactly 1_000_000, but we relax it to 500_000.
-         * 
+         *
          * The order in which we captured the timings above even favors the rptElpased, so it will be always
          * bigger than 10 milis, and the ratio will be larger than 500_000 for sure.
          */
-        
         final float ratio = rptElapsed / elapsedMsec;
         final int minExpectedRatio = RequestProgressTrackerLogFilter.NANOSEC_TO_MSEC / 2;
         assertTrue("Expecting min ratio of " + minExpectedRatio + ", got " + ratio, ratio > minExpectedRatio);
@@ -100,10 +101,12 @@ public class RequestProgressTrackerLogFilterTest {
         rpt.done();
         final long durationNanos = rpt.getDuration();
         final long durationMsec = durationNanos / 1_000_000;
-        final int minMsec = (int)(durationMsec - delta);
-        final int maxMsec = (int)(durationMsec + delta);
+        final int minMsec = (int) (durationMsec - delta);
+        final int maxMsec = (int) (durationMsec + delta);
         setupMinMaxDuration(filter, minMsec, maxMsec);
-        assertTrue("Expecting duration " + durationNanos + "/" + durationMsec + " to allowed for min=" + minMsec + " max=" + maxMsec,
-            (boolean)allowDuration.invoke(filter, rpt));
+        assertTrue(
+                "Expecting duration " + durationNanos + "/" + durationMsec + " to allowed for min=" + minMsec + " max="
+                        + maxMsec,
+                (boolean) allowDuration.invoke(filter, rpt));
     }
 }

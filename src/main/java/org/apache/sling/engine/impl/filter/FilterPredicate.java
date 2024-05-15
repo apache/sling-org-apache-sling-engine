@@ -18,6 +18,20 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.servlet.Filter;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.regex.Pattern;
+
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.request.RequestPathInfo;
+import org.apache.sling.api.resource.Resource;
+import org.osgi.framework.ServiceReference;
+import org.osgi.util.converter.Converters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import static java.util.Arrays.asList;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_EXTENSIONS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_METHODS;
@@ -27,20 +41,6 @@ import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCETYPES
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_RESOURCE_PATTERN;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SELECTORS;
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_SUFFIX_PATTERN;
-
-import java.util.Collection;
-import java.util.Collections;
-import java.util.regex.Pattern;
-
-import javax.servlet.Filter;
-
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.request.RequestPathInfo;
-import org.apache.sling.api.resource.Resource;
-import org.osgi.framework.ServiceReference;
-import org.osgi.util.converter.Converters;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 /**
  * Contains a set of predicates that helps testing whether to enable a filter for a request or not
@@ -81,7 +81,9 @@ public class FilterPredicate {
      * @return value of the given property, as a collection, or null if it does not exist
      */
     private Collection<String> asCollection(final ServiceReference<Filter> reference, final String propertyName) {
-        final String[] value = Converters.standardConverter().convert(reference.getProperty(propertyName)).to(String[].class);
+        final String[] value = Converters.standardConverter()
+                .convert(reference.getProperty(propertyName))
+                .to(String[].class);
         return value != null && value.length > 0 ? asList(value) : null;
     }
 
@@ -91,7 +93,9 @@ public class FilterPredicate {
      * @return value of the given property, as a compiled pattern, or null if it does not exist
      */
     private Pattern asPattern(final ServiceReference<Filter> reference, String propertyName) {
-        String pattern = Converters.standardConverter().convert(reference.getProperty(propertyName)).to(String.class);
+        String pattern = Converters.standardConverter()
+                .convert(reference.getProperty(propertyName))
+                .to(String.class);
         return pattern != null && pattern.length() > 0 ? Pattern.compile(pattern) : null;
     }
 
@@ -109,7 +113,8 @@ public class FilterPredicate {
      * @param request request that is being tested
      * @return true if the request's resource is of one of the types, or if not or misconfigured
      */
-    private boolean anyResourceTypeMatches(final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
+    private boolean anyResourceTypeMatches(
+            final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
         if (resourceTypes == null) {
             return true;
         }
@@ -128,7 +133,9 @@ public class FilterPredicate {
      * @return true if candidate is matching the given pattern, or if not or misconfigured
      */
     private boolean patternMatches(final Pattern pattern, final String candidate) {
-        return pattern == null || candidate == null || pattern.matcher(candidate).matches();
+        return pattern == null
+                || candidate == null
+                || pattern.matcher(candidate).matches();
     }
 
     /**
@@ -145,9 +152,9 @@ public class FilterPredicate {
                 && anyElementMatches(extensions, requestPathInfo.getExtension())
                 && anyResourceTypeMatches(resourceTypes, req)
                 && (patternMatches(pathRegex, path == null || path.isEmpty() ? "/" : path)
-                || patternMatches(pathRegex, uri == null || uri.isEmpty() ? "/" : uri))
-                && (patternMatches(requestPathRegex,  uri == null || uri.isEmpty() ? "/" : uri))
-                && (patternMatches(resourcePathRegex,  path == null || path.isEmpty() ? "/" : path))
+                        || patternMatches(pathRegex, uri == null || uri.isEmpty() ? "/" : uri))
+                && (patternMatches(requestPathRegex, uri == null || uri.isEmpty() ? "/" : uri))
+                && (patternMatches(resourcePathRegex, path == null || path.isEmpty() ? "/" : path))
                 && patternMatches(suffixRegex, requestPathInfo.getSuffix());
         LOG.debug("selection of {} returned {}", this, select);
         return select;
@@ -155,16 +162,14 @@ public class FilterPredicate {
 
     @Override
     public String toString() {
-        return "FilterPredicate{" +
-                "methods='" + methods + '\'' +
-                ", pathRegex=" + pathRegex +
-                ", requestPathRegex=" + requestPathRegex +
-                ", resourcePathRegex=" + resourcePathRegex +
-                ", suffixRegex=" + suffixRegex +
-                ", selectors='" + selectors + '\'' +
-                ", extensions='" + extensions + '\'' +
-                ", resourceTypes='" + resourceTypes + '\'' +
-                '}';
+        return "FilterPredicate{" + "methods='"
+                + methods + '\'' + ", pathRegex="
+                + pathRegex + ", requestPathRegex="
+                + requestPathRegex + ", resourcePathRegex="
+                + resourcePathRegex + ", suffixRegex="
+                + suffixRegex + ", selectors='"
+                + selectors + '\'' + ", extensions='"
+                + extensions + '\'' + ", resourceTypes='"
+                + resourceTypes + '\'' + '}';
     }
-
 }

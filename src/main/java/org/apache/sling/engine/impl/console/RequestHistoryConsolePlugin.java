@@ -18,16 +18,16 @@
  */
 package org.apache.sling.engine.impl.console;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.ArrayList;
-import java.util.List;
-
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.apache.sling.api.request.ResponseUtil;
 import org.apache.sling.api.resource.ResourceUtil;
@@ -44,12 +44,13 @@ import org.osgi.service.component.propertytypes.ServiceVendor;
  * by Sling. Info about all requests can be found in the logs, but this is
  * useful when testing or explaining things.
  */
-@Component(service = Servlet.class,
-    property = {
+@Component(
+        service = Servlet.class,
+        property = {
             "felix.webconsole.label=" + RequestHistoryConsolePlugin.LABEL,
             "felix.webconsole.title=Recent requests",
             "felix.webconsole.category=Sling"
-    })
+        })
 @ServiceDescription("Web Console Plugin to display information about recent Sling requests")
 @ServiceVendor("The Apache Software Foundation")
 public class RequestHistoryConsolePlugin extends HttpServlet {
@@ -69,7 +70,8 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
         this.infoProvider = provider;
     }
 
-    private void printLinksTable(final PrintWriter pw, final List<RequestInfo> values, final String currentRequestIndex) {
+    private void printLinksTable(
+            final PrintWriter pw, final List<RequestInfo> values, final String currentRequestIndex) {
         final List<String> links = new ArrayList<String>();
         for (final RequestInfo info : values) {
             final String key = ResponseUtil.escapeXml(info.getId());
@@ -123,22 +125,23 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
         final String key = req.getParameter(INDEX);
         final RequestInfo info = key == null ? null : this.infoProvider.getRequestInfo(key);
         final List<RequestInfo> values = new ArrayList<>();
-        for(final RequestInfo i : this.infoProvider.getRequestInfos()) {
+        for (final RequestInfo i : this.infoProvider.getRequestInfos()) {
             values.add(i);
         }
 
         final PrintWriter pw = resp.getWriter();
 
         if (this.infoProvider.isEnabled()) {
-            pw.println("<p class='statline ui-state-highlight'>Recorded "
-                    + values.size() + " requests (max: " + this.infoProvider.getMaxNumberOfInfos() + ")</p>");
+            pw.println("<p class='statline ui-state-highlight'>Recorded " + values.size() + " requests (max: "
+                    + this.infoProvider.getMaxNumberOfInfos() + ")</p>");
         } else {
             pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
         }
 
         pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>");
         pw.println("<span style='float: left; margin-left: 1em'>Recent Requests</span>");
-        pw.println("<form method='POST'><input type='hidden' name='clear' value='clear'><input type='submit' value='Clear' class='ui-state-default ui-corner-all'></form>");
+        pw.println(
+                "<form method='POST'><input type='hidden' name='clear' value='clear'><input type='submit' value='Clear' class='ui-state-default ui-corner-all'></form>");
         pw.println("</div>");
 
         printLinksTable(pw, values, key);
@@ -152,9 +155,11 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
             pw.println("<thead>");
             pw.println("<tr>");
             pw.printf(
-                "<th class='ui-widget-header'>Request %s (%s %s) by %s - RequestProgressTracker Info</th>%n",
-                key, ResponseUtil.escapeXml(info.getMethod()),
-                ResponseUtil.escapeXml(info.getPath()), ResponseUtil.escapeXml(info.getUserId()));
+                    "<th class='ui-widget-header'>Request %s (%s %s) by %s - RequestProgressTracker Info</th>%n",
+                    key,
+                    ResponseUtil.escapeXml(info.getMethod()),
+                    ResponseUtil.escapeXml(info.getPath()),
+                    ResponseUtil.escapeXml(info.getUserId()));
             pw.println("</tr>");
             pw.println("</thead>");
 
@@ -169,8 +174,7 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
     }
 
     @Override
-    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp)
-            throws IOException {
+    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
         if (req.getParameter(CLEAR) != null) {
             this.infoProvider.clear();
             resp.sendRedirect(req.getRequestURI());

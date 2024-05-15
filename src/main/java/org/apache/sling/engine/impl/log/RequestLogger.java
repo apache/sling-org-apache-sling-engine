@@ -41,83 +41,87 @@ import org.osgi.service.metatype.annotations.Option;
 @Designate(ocd = RequestLogger.Config.class)
 public class RequestLogger {
 
-    @ObjectClassDefinition(name = "Apache Sling Request Logger",
-            description="Configures the main loggers of the request logger, " +
-                     "namely the request log and the access log. Further loggers may be configured " +
-                     "by creating configurations for the Request Logger Service.")
+    @ObjectClassDefinition(
+            name = "Apache Sling Request Logger",
+            description = "Configures the main loggers of the request logger, "
+                    + "namely the request log and the access log. Further loggers may be configured "
+                    + "by creating configurations for the Request Logger Service.")
     public @interface Config {
 
-        @AttributeDefinition(name = "Request Log Name",
-                description = "Name of the destination for the request log. "+
-                     "The request log logs the entry and exit of each request into and "+
-                     "out of the system together with the entry time, exit time, time to process "+
-                     "the request, a request counter as well as the final status code and response "+
-                     "content type. The format can be configured with the Request Log Entry/Exit Format setting.")
+        @AttributeDefinition(
+                name = "Request Log Name",
+                description = "Name of the destination for the request log. "
+                        + "The request log logs the entry and exit of each request into and "
+                        + "out of the system together with the entry time, exit time, time to process "
+                        + "the request, a request counter as well as the final status code and response "
+                        + "content type. The format can be configured with the Request Log Entry/Exit Format setting.")
         String request_log_output() default "logs/request.log";
 
-        @AttributeDefinition(name = "Request Log Type",
-                description = "Type of request log destination. Select "+
-                     "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "+
-                     "write the access log to a file (relative paths resolved against sling.home) "+
-                     "or \"RequestLog Service\" to use a named OSGi service registered with the "+
-                     "service interface \"org.apache.sling.engine.RequestLog\" and a service property "+
-                     "\"requestlog.name\" equal to the Logger Name setting.",
+        @AttributeDefinition(
+                name = "Request Log Type",
+                description = "Type of request log destination. Select "
+                        + "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "
+                        + "write the access log to a file (relative paths resolved against sling.home) "
+                        + "or \"RequestLog Service\" to use a named OSGi service registered with the "
+                        + "service interface \"org.apache.sling.engine.RequestLog\" and a service property "
+                        + "\"requestlog.name\" equal to the Logger Name setting.",
                 options = {
                     @Option(label = "Logger Name", value = "0"),
                     @Option(label = "File Name", value = "1"),
                     @Option(label = "RequestLog Service", value = "2")
-        })
+                })
         int request_log_outputtype() default 0;
 
-        @AttributeDefinition(name = "Request Log Entry Format",
-            description = "The format of the request log. This is a format string as defined at "+
-                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
-                "The request entry is logged with the format \"%t [%R] -> %m %U%q %H\" by default."
-        )
+        @AttributeDefinition(
+                name = "Request Log Entry Format",
+                description = "The format of the request log. This is a format string as defined at "
+                        + "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "
+                        + "The request entry is logged with the format \"%t [%R] -> %m %U%q %H\" by default.")
         String request_log_entry_format() default REQUEST_LOG_ENTRY_FORMAT;
 
-        @AttributeDefinition(name = "Request Log Exit Format",
-            description = "The format of the request log. This is a format string as defined at "+
-                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
-                "The request exit is logged with the format \"%{end}t [%R] <- %s %{Content-Type}o %Dms\" by default."
-        )
+        @AttributeDefinition(
+                name = "Request Log Exit Format",
+                description =
+                        "The format of the request log. This is a format string as defined at "
+                                + "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "
+                                + "The request exit is logged with the format \"%{end}t [%R] <- %s %{Content-Type}o %Dms\" by default.")
         String request_log_exit_format() default REQUEST_LOG_EXIT_FORMAT;
 
-        @AttributeDefinition(name = "Enable Request Log",
-                description = "Whether to enable Request logging or not.")
+        @AttributeDefinition(name = "Enable Request Log", description = "Whether to enable Request logging or not.")
         boolean request_log_enabled() default true;
 
-        @AttributeDefinition(name = "Access Log Name",
-                description = "Name of the destination for the request log. "+
-                     "The access log writes an entry for each request as the request terminates. "+
-                     "The format of the access log can be configured by the Access Log Format setting.")
+        @AttributeDefinition(
+                name = "Access Log Name",
+                description = "Name of the destination for the request log. "
+                        + "The access log writes an entry for each request as the request terminates. "
+                        + "The format of the access log can be configured by the Access Log Format setting.")
         String access_log_output() default "logs/access.log";
 
-        @AttributeDefinition(name = "Access Log Type",
-                description = "Type of access log destination. Select "+
-                     "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "+
-                     "write the access log to a file (relative paths resolved against sling.home) "+
-                     "or \"RequestLog Service\" to use a named OSGi service registered with the "+
-                     "service interface \"org.apache.sling.engine.RequestLog\" and a service property "+
-                     "\"requestlog.name\" equal to the Logger Name setting.",
+        @AttributeDefinition(
+                name = "Access Log Type",
+                description = "Type of access log destination. Select "
+                        + "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "
+                        + "write the access log to a file (relative paths resolved against sling.home) "
+                        + "or \"RequestLog Service\" to use a named OSGi service registered with the "
+                        + "service interface \"org.apache.sling.engine.RequestLog\" and a service property "
+                        + "\"requestlog.name\" equal to the Logger Name setting.",
                 options = {
                     @Option(label = "Logger Name", value = "0"),
                     @Option(label = "File Name", value = "1"),
                     @Option(label = "RequestLog Service", value = "2")
-        })
+                })
         int access_log_outputtype() default 0;
 
-        @AttributeDefinition(name = "Access Log Format",
-            description = "This is a format string as defined at "+
-                "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "+
-                "The default format for the access log is using the NCSA extended/combined log "+
-                "format. In terms of Request Logger Service formats the access log is written with the format "+
-                "\"%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"\"."
-        )
+        @AttributeDefinition(
+                name = "Access Log Format",
+                description = "This is a format string as defined at "
+                        + "https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification. "
+                        + "The default format for the access log is using the NCSA extended/combined log "
+                        + "format. In terms of Request Logger Service formats the access log is written with the format "
+                        + "\"%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-Agent}i\"\".")
         String access_log_format() default ACCESS_LOG_FORMAT;
 
-        @AttributeDefinition(name = "Enable Access Log",
-                description = "Whether to enable Access logging or not.")
+        @AttributeDefinition(name = "Enable Access Log", description = "Whether to enable Access logging or not.")
         boolean access_log_enabled() default true;
     }
 
@@ -154,14 +158,32 @@ public class RequestLogger {
         // prepare the request loggers if a name is configured and the
         // request loggers are enabled
         if (config.request_log_output() != null && config.request_log_enabled()) {
-            createRequestLoggerService(services, bundleContext, true, config.request_log_entry_format(), config.request_log_output(), config.request_log_outputtype());
-            createRequestLoggerService(services, bundleContext, false, config.request_log_exit_format(), config.request_log_output(), config.request_log_outputtype());
+            createRequestLoggerService(
+                    services,
+                    bundleContext,
+                    true,
+                    config.request_log_entry_format(),
+                    config.request_log_output(),
+                    config.request_log_outputtype());
+            createRequestLoggerService(
+                    services,
+                    bundleContext,
+                    false,
+                    config.request_log_exit_format(),
+                    config.request_log_output(),
+                    config.request_log_outputtype());
         }
 
         // prepare the access logger if a name is configured and the
         // access logger is enabled
         if (config.access_log_output() != null && config.access_log_enabled()) {
-            createRequestLoggerService(services, bundleContext, false, config.access_log_format(), config.access_log_output(), config.access_log_outputtype());
+            createRequestLoggerService(
+                    services,
+                    bundleContext,
+                    false,
+                    config.access_log_format(),
+                    config.access_log_output(),
+                    config.access_log_outputtype());
         }
     }
 
@@ -174,7 +196,8 @@ public class RequestLogger {
         services.clear();
     }
 
-    private static void createRequestLoggerService(Map<ServiceRegistration, RequestLoggerService> services,
+    private static void createRequestLoggerService(
+            Map<ServiceRegistration, RequestLoggerService> services,
             final BundleContext bundleContext,
             final boolean onEntry,
             final String format,
@@ -184,7 +207,7 @@ public class RequestLogger {
 
             @Override
             public Class<? extends Annotation> annotationType() {
-                return  RequestLoggerService.Config.class;
+                return RequestLoggerService.Config.class;
             }
 
             @Override
@@ -207,7 +230,8 @@ public class RequestLogger {
                 return format;
             }
         });
-        final ServiceRegistration reg = bundleContext.registerService(service.getClass().getName(), service, null);
+        final ServiceRegistration reg =
+                bundleContext.registerService(service.getClass().getName(), service, null);
         services.put(reg, service);
     }
 }

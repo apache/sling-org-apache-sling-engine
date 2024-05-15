@@ -38,12 +38,11 @@ public class NullResourceBundle extends ResourceBundle {
 
     @Override
     public Enumeration<String> getKeys() {
-        return Collections.enumeration(Collections.<String> emptyList());
+        return Collections.enumeration(Collections.<String>emptyList());
     }
 
     @Override
     protected Object handleGetObject(String key) {
         return key;
     }
-
 }

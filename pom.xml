@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="ISO-8859-1"?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!--
   Licensed to the Apache Software Foundation (ASF) under one
   or more contributor license agreements.  See the NOTICE file
@@ -31,38 +31,20 @@
     <version>2.15.15-SNAPSHOT</version>
 
     <name>Apache Sling Engine</name>
-    <description>
-        Bundle implementing the core of Apache Sling.
-    </description>
+    <description>Bundle implementing the core of Apache Sling.</description>
 
     <scm>
         <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</connection>
         <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</developerConnection>
+        <tag>HEAD</tag>
         <url>https://github.com/apache/sling-org-apache-sling-engine.git</url>
-      <tag>HEAD</tag>
-  </scm>
+    </scm>
 
     <properties>
         <site.jira.version.id>12314287</site.jira.version.id>
         <site.javadoc.exclude>**.impl.**</site.javadoc.exclude>
         <project.build.outputTimestamp>1713755769</project.build.outputTimestamp>
     </properties>
-
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>biz.aQute.bnd</groupId>
-                <artifactId>bnd-baseline-maven-plugin</artifactId>
-                <configuration>
-                    <diffpackages>
-                        <!-- Temporarily don't baseline due to https://issues.apache.org/jira/browse/SLING-11728 -->
-                        <diffpackage>!org.apache.sling.engine.servlets</diffpackage>
-                        <diffpackage>*</diffpackage>
-                    </diffpackages>
-                </configuration>
-            </plugin>
-        </plugins>
-    </build>
     <dependencies>
         <dependency>
             <groupId>org.osgi</groupId>
@@ -219,6 +201,22 @@
             <scope>test</scope>
         </dependency>
     </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>biz.aQute.bnd</groupId>
+                <artifactId>bnd-baseline-maven-plugin</artifactId>
+                <configuration>
+                    <diffpackages>
+                        <!-- Temporarily don't baseline due to https://issues.apache.org/jira/browse/SLING-11728 -->
+                        <diffpackage>!org.apache.sling.engine.servlets</diffpackage>
+                        <diffpackage>*</diffpackage>
+                    </diffpackages>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
     <profiles>
         <profile>
             <id>benchmarks</id>
@@ -244,6 +242,13 @@
                         <groupId>com.sun.japex</groupId>
                         <artifactId>japex-maven-plugin</artifactId>
                         <version>1.2.3</version>
+                        <configuration>
+                            <japexConfigFiles>
+                                <file>src/test/resources/japex/hundred_iterations.xml</file>
+                                <file>src/test/resources/japex/thousand_iterations.xml</file>
+                                <file>src/test/resources/japex/million_iterations.xml</file>
+                            </japexConfigFiles>
+                        </configuration>
                         <executions>
                             <execution>
                                 <id>japex</id>
@@ -252,13 +257,6 @@
                                 </goals>
                             </execution>
                         </executions>
-                        <configuration>
-                            <japexConfigFiles>
-                                <file>src/test/resources/japex/hundred_iterations.xml</file>
-                                <file>src/test/resources/japex/thousand_iterations.xml</file>
-                                <file>src/test/resources/japex/million_iterations.xml</file>
-                            </japexConfigFiles>
-                        </configuration>
                     </plugin>
                 </plugins>
             </build>

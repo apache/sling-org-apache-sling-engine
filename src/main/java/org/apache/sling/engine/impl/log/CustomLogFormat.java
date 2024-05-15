@@ -18,6 +18,8 @@
  */
 package org.apache.sling.engine.impl.log;
 
+import javax.servlet.http.Cookie;
+
 import java.text.CharacterIterator;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -28,8 +30,6 @@ import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
-
-import javax.servlet.http.Cookie;
 
 import org.apache.sling.engine.impl.request.RequestData;
 
@@ -525,7 +525,6 @@ class CustomLogFormat {
             // return the encoded string value
             return buf.toString();
         }
-
     }
 
     static class NonImplementedParameter extends BaseParameter {
@@ -907,7 +906,6 @@ class CustomLogFormat {
 
         protected String getValue(RequestLoggerResponse response) {
             return getValue(response.getCookie(this.cookieName));
-
         }
 
         private String getValue(final Cookie cookie) {

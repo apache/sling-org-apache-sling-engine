@@ -35,29 +35,32 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 @Component
 public class EngineErrorHandlerTracker {
 
-    private final Map<Long, ServiceRegistration<org.apache.sling.api.servlets.ErrorHandler>> errorHandlers = new ConcurrentHashMap<>();
+    private final Map<Long, ServiceRegistration<org.apache.sling.api.servlets.ErrorHandler>> errorHandlers =
+            new ConcurrentHashMap<>();
 
     @Reference(policy = ReferencePolicy.DYNAMIC, cardinality = ReferenceCardinality.MULTIPLE)
-    public void bindErrorHandler(final org.apache.sling.engine.servlets.ErrorHandler errorHandler,
+    public void bindErrorHandler(
+            final org.apache.sling.engine.servlets.ErrorHandler errorHandler,
             final ServiceReference<org.apache.sling.engine.servlets.ErrorHandler> reference) {
         final long id = (long) reference.getProperty(Constants.SERVICE_ID);
         final Dictionary<String, Object> properties = new Hashtable<>();
-        if ( reference.getProperty(Constants.SERVICE_RANKING) != null ) {
+        if (reference.getProperty(Constants.SERVICE_RANKING) != null) {
             properties.put(Constants.SERVICE_RANKING, reference.getProperty(Constants.SERVICE_RANKING));
         }
-        errorHandlers.put(id, reference
-            .getBundle()
-            .getBundleContext()
-            .registerService(ErrorHandler.class, errorHandler, properties));
+        errorHandlers.put(
+                id,
+                reference.getBundle().getBundleContext().registerService(ErrorHandler.class, errorHandler, properties));
     }
 
-    public void unbindErrorHandler(final org.apache.sling.engine.servlets.ErrorHandler errorHandler, final ServiceRegistration<org.apache.sling.engine.servlets.ErrorHandler> registration) {
+    public void unbindErrorHandler(
+            final org.apache.sling.engine.servlets.ErrorHandler errorHandler,
+            final ServiceRegistration<org.apache.sling.engine.servlets.ErrorHandler> registration) {
         final long id = (long) registration.getReference().getProperty(Constants.SERVICE_ID);
         final ServiceRegistration<ErrorHandler> reg = errorHandlers.remove(id);
-        if ( reg != null ) {
+        if (reg != null) {
             try {
                 reg.unregister();
-            } catch ( final IllegalStateException ise) {
+            } catch (final IllegalStateException ise) {
                 // ignore
             }
         }

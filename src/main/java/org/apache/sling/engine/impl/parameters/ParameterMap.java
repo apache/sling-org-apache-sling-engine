@@ -18,14 +18,14 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
+import javax.servlet.http.Part;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-
-import javax.servlet.http.Part;
 
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
@@ -34,8 +34,7 @@ import org.slf4j.LoggerFactory;
 /**
  * The <code>ParameterMap</code> TODO
  */
-public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> implements
-        RequestParameterMap {
+public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> implements RequestParameterMap {
 
     private static final long serialVersionUID = -3984737679401682171L;
 
@@ -48,7 +47,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
     private List<RequestParameter> requestParameters = new ArrayList<RequestParameter>();
 
     static void setMaxParameters(final int maxParameters) {
-    ParameterMap.maxParameters = (maxParameters > 0) ? maxParameters : -1;
+        ParameterMap.maxParameters = (maxParameters > 0) ? maxParameters : -1;
     }
 
     public RequestParameter getValue(String name) {
@@ -75,7 +74,8 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         // check number of parameters
         if (this.requestParameters.size() == maxParameters) {
             // TODO: how to handle this situation ?? just ignore or throw or what ??
-            LoggerFactory.getLogger(Util.class).warn("Too many name/value pairs, stopped processing after " + maxParameters + " entries");
+            LoggerFactory.getLogger(Util.class)
+                    .warn("Too many name/value pairs, stopped processing after " + maxParameters + " entries");
             return;
         }
 
@@ -83,7 +83,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         final String name = parameter.getName();
         RequestParameter[] current = this.get(name);
         if (current == null) {
-            super.put(name, new RequestParameter[] { parameter });
+            super.put(name, new RequestParameter[] {parameter});
         } else {
             RequestParameter[] ppn = new RequestParameter[current.length + 1];
             System.arraycopy(current, 0, ppn, prependNew ? 1 : 0, current.length);
@@ -100,7 +100,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         super.put(name, parameters);
     }
 
-    //---------- String parameter support
+    // ---------- String parameter support
 
     public String getStringValue(final String name) {
         final RequestParameter param = getValue(name);
@@ -192,7 +192,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         throw new UnsupportedOperationException("remove");
     }
 
-    //---------- internal
+    // ---------- internal
 
     private static String[] toStringArray(final RequestParameter[] params) {
         if (params == null) {

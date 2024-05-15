@@ -45,31 +45,31 @@ public class Util {
     private static String defaultFixEncoding = ENCODING_DIRECT;
 
     /** Parse state constant */
-    private static final int BEFORE_NAME =  0;
+    private static final int BEFORE_NAME = 0;
 
     /** Parse state constant */
-    private static final int INSIDE_NAME =  BEFORE_NAME + 1;
+    private static final int INSIDE_NAME = BEFORE_NAME + 1;
 
     /** Parse state constant */
-    private static final int ESC_NAME =  INSIDE_NAME + 1;
+    private static final int ESC_NAME = INSIDE_NAME + 1;
 
     /** Parse state constant */
-    private static final int BEFORE_EQU =  ESC_NAME + 1;
+    private static final int BEFORE_EQU = ESC_NAME + 1;
 
     /** Parse state constant */
-    private static final int BEFORE_VALUE =  BEFORE_EQU + 1;
+    private static final int BEFORE_VALUE = BEFORE_EQU + 1;
 
     /** Parse state constant */
-    private static final int INSIDE_VALUE =  BEFORE_VALUE + 1;
+    private static final int INSIDE_VALUE = BEFORE_VALUE + 1;
 
     /** Parse state constant */
-    private static final int ESC_VALUE =  INSIDE_VALUE + 1;
+    private static final int ESC_VALUE = INSIDE_VALUE + 1;
 
     /** Parse state constant */
-    private static final int AFTER_VALUE =  INSIDE_VALUE + 1;
+    private static final int AFTER_VALUE = INSIDE_VALUE + 1;
 
     /** Parse state constant */
-    private static final int BEFORE_SEP =  AFTER_VALUE + 1;
+    private static final int BEFORE_SEP = AFTER_VALUE + 1;
 
     public static void setDefaultFixEncoding(final String encoding) {
         defaultFixEncoding = validateEncoding(encoding);
@@ -229,10 +229,16 @@ public class Util {
      *             supported
      * @throws IOException if an error occurrs reading from {@code data}
      */
-    private static void parseNVPairString(InputStream data, String encoding, ParameterMap map, char separator,
-            boolean allowSpaces, boolean prependNew) throws UnsupportedEncodingException, IOException {
+    private static void parseNVPairString(
+            InputStream data,
+            String encoding,
+            ParameterMap map,
+            char separator,
+            boolean allowSpaces,
+            boolean prependNew)
+            throws UnsupportedEncodingException, IOException {
 
-        ByteArrayOutputStream keyBuffer   = new ByteArrayOutputStream(256);
+        ByteArrayOutputStream keyBuffer = new ByteArrayOutputStream(256);
         ByteArrayOutputStream valueBuffer = new ByteArrayOutputStream(256);
         char[] chCode = new char[2];
 
@@ -279,8 +285,7 @@ public class Util {
                         try {
                             keyBuffer.write(Integer.parseInt(code, 16));
                         } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException(
-                                    "Bad escape sequence: %" + code);
+                            throw new IllegalArgumentException("Bad escape sequence: %" + code);
                         }
                         state = INSIDE_NAME;
                     }
@@ -327,8 +332,7 @@ public class Util {
                         try {
                             valueBuffer.write(Integer.parseInt(code, 16));
                         } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException(
-                                    "Bad escape sequence: %" + code);
+                            throw new IllegalArgumentException("Bad escape sequence: %" + code);
                         }
                         state = INSIDE_VALUE;
                     }
@@ -346,8 +350,13 @@ public class Util {
         }
     }
 
-    private static void addNVPair(ParameterMap map, ByteArrayOutputStream keyBuffer, ByteArrayOutputStream valueBuffer,
-            String encoding, boolean prependNew) throws UnsupportedEncodingException {
+    private static void addNVPair(
+            ParameterMap map,
+            ByteArrayOutputStream keyBuffer,
+            ByteArrayOutputStream valueBuffer,
+            String encoding,
+            boolean prependNew)
+            throws UnsupportedEncodingException {
         final String key = keyBuffer.toString(encoding);
         final String value = valueBuffer.toString(encoding);
         map.addParameter(new ContainerRequestParameter(key, value, encoding), prependNew);

@@ -57,7 +57,7 @@ class RequestLogServiceFacade implements RequestLog {
     /**
      * Creates an instance of this facade class calling request log services
      * with the given <code>serviceName</code>.
-     * 
+     *
      * @param context The <code>BundleContext</code> used to acquire the request
      *            log services.
      * @param serviceName The name of the services used for logging. This value
@@ -66,7 +66,7 @@ class RequestLogServiceFacade implements RequestLog {
      */
     public RequestLogServiceFacade(BundleContext context, String serviceName) {
         String filter = "(&(" + Constants.OBJECTCLASS + "=" + RequestLog.class.getName() + ")("
-            + RequestLog.REQUEST_LOG_NAME + "=" + serviceName + "))";
+                + RequestLog.REQUEST_LOG_NAME + "=" + serviceName + "))";
         this.requestLogTracker = new ServiceTracker(context, filter, null);
         this.requestLogTracker.open();
 

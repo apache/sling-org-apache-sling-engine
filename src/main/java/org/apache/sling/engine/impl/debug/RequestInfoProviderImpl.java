@@ -43,8 +43,9 @@ import org.osgi.service.component.annotations.Modified;
 /**
  * Track requests.
  */
-@Component(service = {RequestInfoProvider.class},
-        immediate=true, // track requests from the start
+@Component(
+        service = {RequestInfoProvider.class},
+        immediate = true, // track requests from the start
         configurationPid = Config.PID)
 public class RequestInfoProviderImpl implements RequestInfoProvider {
 
@@ -65,7 +66,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
     @Modified
     protected void update(final Config config) {
         this.maxSize = config.sling_max_record_requests();
-        if ( this.maxSize < 0 ) {
+        if (this.maxSize < 0) {
             this.maxSize = 0;
         }
         this.requests = (this.maxSize > 0) ? new ConcurrentSkipListMap<>() : null;
@@ -78,7 +79,6 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
             }
         }
         this.patterns = compiledPatterns;
-
     }
 
     @Deactivate
@@ -100,7 +100,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
         if (local != null && isEnabledFor(r.getPathInfo())) {
             final RequestInfo info = new RequestInfoImpl(r);
             synchronized (local) {
-                if ( local.size() == this.maxSize ) {
+                if (local.size() == this.maxSize) {
                     local.remove(local.firstKey());
                 }
                 local.put(info.getId(), info);
@@ -115,7 +115,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
 
     @Override
     public boolean isEnabledFor(final String path) {
-        if ( this.requests != null ) {
+        if (this.requests != null) {
             boolean accept = patterns.isEmpty();
             for (Pattern pattern : patterns) {
                 if (pattern.matcher(path).matches()) {
@@ -149,7 +149,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
     @Override
     public RequestInfo getRequestInfo(final String id) {
         final ConcurrentNavigableMap<String, RequestInfo> local = requests;
-        if ( local != null ) {
+        if (local != null) {
             return local.get(id);
         }
         return null;
@@ -158,7 +158,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
     @Override
     public Iterable<RequestInfo> getRequestInfos() {
         final ConcurrentNavigableMap<String, RequestInfo> local = requests;
-        if ( local != null ) {
+        if (local != null) {
             return local.values();
         }
         return Collections.emptyList();
@@ -179,17 +179,19 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
         private final String log;
 
         RequestInfoImpl(final SlingHttpServletRequest request) {
-            this.id = String.valueOf(System.currentTimeMillis()).concat("-").concat(String.valueOf(requestCounter.incrementAndGet()));
+            this.id = String.valueOf(System.currentTimeMillis())
+                    .concat("-")
+                    .concat(String.valueOf(requestCounter.incrementAndGet()));
             this.method = request.getMethod();
             this.path = request.getPathInfo() == null ? "" : request.getPathInfo();
             this.userId = request.getRemoteUser();
             String text;
-            try ( final StringWriter writer = new StringWriter()) {
+            try (final StringWriter writer = new StringWriter()) {
                 final PrintWriter pw = new PrintWriter(writer);
                 request.getRequestProgressTracker().dump(pw);
                 pw.flush();
                 text = writer.toString();
-            } catch ( final IOException ioe) {
+            } catch (final IOException ioe) {
                 text = "";
             }
             this.log = text;

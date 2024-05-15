@@ -18,13 +18,13 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import java.util.Collection;
-import java.util.Enumeration;
-import java.util.Map;
-
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 import javax.servlet.http.Part;
+
+import java.util.Collection;
+import java.util.Enumeration;
+import java.util.Map;
 
 public class ParameterSupportHttpServletRequestWrapper extends HttpServletRequestWrapper {
     public ParameterSupportHttpServletRequestWrapper(HttpServletRequest request) {

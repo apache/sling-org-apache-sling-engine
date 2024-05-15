@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -53,7 +53,8 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
 
     private boolean firstCall = true;
 
-    public ErrorFilterChain(final FilterHandle[] filters, final ErrorHandler errorHandler, final int status, final String message) {
+    public ErrorFilterChain(
+            final FilterHandle[] filters, final ErrorHandler errorHandler, final int status, final String message) {
         super(filters);
         this.mode = Mode.STATUS;
         this.status = status;
@@ -72,17 +73,21 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
     }
 
     @Override
-    public void doFilter(final ServletRequest request, final ServletResponse response) throws ServletException, IOException {
-        if ( firstCall ) {
+    public void doFilter(final ServletRequest request, final ServletResponse response)
+            throws ServletException, IOException {
+        if (firstCall) {
             if (request.getAttribute(RECURSION_ATTRIBUTE) != null) {
-                if ( this.mode == Mode.STATUS ) {
-                    if ( message == null) {
+                if (this.mode == Mode.STATUS) {
+                    if (message == null) {
                         LOG.warn(PREFIX_RECURSION.concat(String.valueOf(status)));
                     } else {
-                        LOG.warn(PREFIX_RECURSION.concat(String.valueOf(status)).concat(" : ").concat(message));
+                        LOG.warn(PREFIX_RECURSION
+                                .concat(String.valueOf(status))
+                                .concat(" : ")
+                                .concat(message));
                     }
                 } else {
-                    if ( throwable.getMessage() != null ) {
+                    if (throwable.getMessage() != null) {
                         LOG.warn(PREFIX_RECURSION.concat(throwable.getMessage()), throwable);
                     } else {
                         LOG.warn(PREFIX_RECURSION.concat(throwable.getClass().getName()), throwable);
@@ -94,14 +99,17 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
             firstCall = false;
             // do nothing if response is already committed
             if (response.isCommitted()) {
-                if ( this.mode == Mode.STATUS ) {
-                    if ( message == null) {
+                if (this.mode == Mode.STATUS) {
+                    if (message == null) {
                         LOG.warn(PREFIX_COMMITTED.concat(String.valueOf(status)));
                     } else {
-                        LOG.warn(PREFIX_COMMITTED.concat(String.valueOf(status)).concat(" : ").concat(message));
+                        LOG.warn(PREFIX_COMMITTED
+                                .concat(String.valueOf(status))
+                                .concat(" : ")
+                                .concat(message));
                     }
                 } else {
-                    if ( throwable.getMessage() != null ) {
+                    if (throwable.getMessage() != null) {
                         LOG.warn(PREFIX_COMMITTED.concat(throwable.getMessage()), throwable);
                     } else {
                         LOG.warn(PREFIX_COMMITTED.concat(throwable.getClass().getName()), throwable);
@@ -110,14 +118,14 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                 return;
             }
             // reset the response to clear headers and body
-            response.reset();    
+            response.reset();
         }
         super.doFilter(request, response);
     }
 
     protected void render(final SlingHttpServletRequest request, final SlingHttpServletResponse response)
-    throws IOException, ServletException {
-        if ( this.mode == Mode.STATUS ) {
+            throws IOException, ServletException {
+        if (this.mode == Mode.STATUS) {
             this.errorHandler.handleError(this.status, this.message, request, response);
         } else {
             this.errorHandler.handleError(this.throwable, request, response);

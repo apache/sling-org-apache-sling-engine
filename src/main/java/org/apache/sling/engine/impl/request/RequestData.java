@@ -18,17 +18,6 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import static org.apache.sling.api.SlingConstants.SLING_CURRENT_SERVLET_NAME;
-
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-
 import javax.servlet.Servlet;
 import javax.servlet.ServletException;
 import javax.servlet.ServletInputStream;
@@ -38,6 +27,15 @@ import javax.servlet.ServletResponse;
 import javax.servlet.ServletResponseWrapper;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -61,6 +59,8 @@ import org.apache.sling.engine.impl.adapter.SlingServletResponseAdapter;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.sling.api.SlingConstants.SLING_CURRENT_SERVLET_NAME;
 
 /**
  * The <code>RequestData</code> class provides access to objects which are set
@@ -159,16 +159,19 @@ public class RequestData {
      * Prevent traversal using '/../' or '/..' even if '[' or '}' is used in-between
      */
     private static final Set<Character> SKIPPED_TRAVERSAL_CHARS = new HashSet<>();
+
     static {
         SKIPPED_TRAVERSAL_CHARS.add('[');
         SKIPPED_TRAVERSAL_CHARS.add('}');
     }
 
-    public RequestData(SlingRequestProcessorImpl slingRequestProcessor,
-            HttpServletRequest request, HttpServletResponse response,
-                       boolean protectHeadersOnInclude,
-                       boolean checkContentTypeOnInclude,
-                       boolean disableCheckCompliantGetUserPrincipal) {
+    public RequestData(
+            SlingRequestProcessorImpl slingRequestProcessor,
+            HttpServletRequest request,
+            HttpServletResponse response,
+            boolean protectHeadersOnInclude,
+            boolean checkContentTypeOnInclude,
+            boolean disableCheckCompliantGetUserPrincipal) {
         this.startTimestamp = System.currentTimeMillis();
 
         this.slingRequestProcessor = slingRequestProcessor;
@@ -184,8 +187,8 @@ public class RequestData {
         this.slingResponse = new SlingHttpServletResponseImpl(this, this.servletResponse);
 
         // Use tracker from SlingHttpServletRequest
-        if ( request instanceof SlingHttpServletRequest ) {
-            this.requestProgressTracker = ((SlingHttpServletRequest)request).getRequestProgressTracker();
+        if (request instanceof SlingHttpServletRequest) {
+            this.requestProgressTracker = ((SlingHttpServletRequest) request).getRequestProgressTracker();
         } else {
             // Getting the RequestProgressTracker from the request attributes like
             // this should not be generally used, it's just a way to pass it from
@@ -193,7 +196,7 @@ public class RequestData {
             // the Sling request's getRequestProgressTracker method.
             final Object o = request.getAttribute(RequestProgressTracker.class.getName());
             if (o instanceof RequestProgressTracker) {
-                this.requestProgressTracker = (RequestProgressTracker)o;
+                this.requestProgressTracker = (RequestProgressTracker) o;
             } else {
                 log.warn("RequestProgressTracker not found in request attributes");
                 this.requestProgressTracker = Builders.newRequestProgressTracker();
@@ -217,7 +220,7 @@ public class RequestData {
                 final URL rUrl = new URL(requestURL.toString());
                 final String prefix = request.getContextPath().concat(request.getServletPath());
                 path = rUrl.getPath().substring(prefix.length());
-            } catch ( final MalformedURLException e) {
+            } catch (final MalformedURLException e) {
                 // ignore
             }
         }
@@ -226,26 +229,29 @@ public class RequestData {
         if (request.getAttribute(REQUEST_RESOURCE_PATH_ATTR) == null) {
             request.setAttribute(REQUEST_RESOURCE_PATH_ATTR, resource.getPath());
         }
-        requestProgressTracker.logTimer("ResourceResolution",
-            "URI={0} resolves to Resource={1}",
-            getServletRequest().getRequestURI(), resource);
+        requestProgressTracker.logTimer(
+                "ResourceResolution",
+                "URI={0} resolves to Resource={1}",
+                getServletRequest().getRequestURI(),
+                resource);
         return resource;
     }
 
-    public void initServlet(final Resource resource,
-            final ServletResolver sr) {
+    public void initServlet(final Resource resource, final ServletResolver sr) {
         // the resource and the request path info, will never be null
         RequestPathInfo requestPathInfo = new SlingRequestPathInfo(resource);
         ContentData contentData = setContent(resource, requestPathInfo);
 
-	    requestProgressTracker.log("Resource Path Info: {0}", requestPathInfo);
+        requestProgressTracker.log("Resource Path Info: {0}", requestPathInfo);
 
         // finally resolve the servlet for the resource
         requestProgressTracker.startTimer("ServletResolution");
         Servlet servlet = sr.resolveServlet(slingRequest);
-        requestProgressTracker.logTimer("ServletResolution",
-            "URI={0} handled by Servlet={1}",
-            getServletRequest().getRequestURI(), (servlet == null ? "-none-" : RequestUtil.getServletName(servlet)));
+        requestProgressTracker.logTimer(
+                "ServletResolution",
+                "URI={0} handled by Servlet={1}",
+                getServletRequest().getRequestURI(),
+                (servlet == null ? "-none-" : RequestUtil.getServletName(servlet)));
         contentData.setServlet(servlet);
     }
 
@@ -308,8 +314,7 @@ public class RequestData {
 
         // if we unwrapped everything and did not find a
         // SlingHttpServletRequest, we lost
-        throw new IllegalArgumentException(
-            "ServletRequest not wrapping SlingHttpServletRequest");
+        throw new IllegalArgumentException("ServletRequest not wrapping SlingHttpServletRequest");
     }
 
     /**
@@ -322,8 +327,7 @@ public class RequestData {
      *             <code>SlingHttpServletRequestWrapper</code> wrapping a
      *             <code>SlingHttpServletRequestImpl</code>.
      */
-    public static SlingHttpServletRequestImpl unwrap(
-            SlingHttpServletRequest request) {
+    public static SlingHttpServletRequestImpl unwrap(SlingHttpServletRequest request) {
         while (request instanceof SlingHttpServletRequestWrapper) {
             request = ((SlingHttpServletRequestWrapper) request).getSlingRequest();
         }
@@ -332,8 +336,7 @@ public class RequestData {
             return (SlingHttpServletRequestImpl) request;
         }
 
-        throw new IllegalArgumentException(
-            "SlingHttpServletRequest not of correct type");
+        throw new IllegalArgumentException("SlingHttpServletRequest not of correct type");
     }
 
     /**
@@ -365,8 +368,7 @@ public class RequestData {
 
         // if we unwrapped everything and did not find a
         // SlingHttpServletResponse, we lost
-        throw new IllegalArgumentException(
-            "ServletResponse not wrapping SlingHttpServletResponse");
+        throw new IllegalArgumentException("ServletResponse not wrapping SlingHttpServletResponse");
     }
 
     /**
@@ -379,8 +381,7 @@ public class RequestData {
      *             <code>SlingHttpServletResponseWrapper</code> wrapping a
      *             <code>SlingHttpServletResponseImpl</code>.
      */
-    public static SlingHttpServletResponseImpl unwrap(
-            SlingHttpServletResponse response) {
+    public static SlingHttpServletResponseImpl unwrap(SlingHttpServletResponse response) {
         while (response instanceof SlingHttpServletResponseWrapper) {
             response = ((SlingHttpServletResponseWrapper) response).getSlingResponse();
         }
@@ -389,8 +390,7 @@ public class RequestData {
             return (SlingHttpServletResponseImpl) response;
         }
 
-        throw new IllegalArgumentException(
-            "SlingHttpServletResponse not of correct type");
+        throw new IllegalArgumentException("SlingHttpServletResponse not of correct type");
     }
 
     /**
@@ -424,8 +424,7 @@ public class RequestData {
      *             <code>HttpServletRequest</code> of if <code>request</code>
      *             is not backed by <code>SlingHttpServletRequestImpl</code>.
      */
-    public static SlingHttpServletRequest toSlingHttpServletRequest(
-            ServletRequest request) {
+    public static SlingHttpServletRequest toSlingHttpServletRequest(ServletRequest request) {
 
         // unwrap to SlingHttpServletRequest, may throw if no
         // SlingHttpServletRequest is wrapped in request
@@ -447,8 +446,7 @@ public class RequestData {
 
         // otherwise, we create a new response wrapping the servlet response
         // and unwrapped component response
-        return new SlingServletRequestAdapter(cRequest,
-            (HttpServletRequest) request);
+        return new SlingServletRequestAdapter(cRequest, (HttpServletRequest) request);
     }
 
     /**
@@ -459,8 +457,7 @@ public class RequestData {
      *             <code>response</code> is not backed by
      *             <code>SlingHttpServletResponseImpl</code>.
      */
-    public static SlingHttpServletResponse toSlingHttpServletResponse(
-            ServletResponse response) {
+    public static SlingHttpServletResponse toSlingHttpServletResponse(ServletResponse response) {
 
         // unwrap to SlingHttpServletResponse
         SlingHttpServletResponse cResponse = unwrap(response);
@@ -473,14 +470,12 @@ public class RequestData {
 
         // ensure the response is a HTTP response
         if (!(response instanceof HttpServletResponse)) {
-            throw new IllegalArgumentException(
-                "Response is not an HTTP response");
+            throw new IllegalArgumentException("Response is not an HTTP response");
         }
 
         // otherwise, we create a new response wrapping the servlet response
         // and unwrapped component response
-        return new SlingServletResponseAdapter(cResponse,
-            (HttpServletResponse) response);
+        return new SlingServletResponseAdapter(cResponse, (HttpServletResponse) response);
     }
 
     /**
@@ -504,13 +499,13 @@ public class RequestData {
      * @throws IOException May be thrown by the servlet's service method
      * @throws ServletException May be thrown by the servlet's service method
      */
-    public static void service(SlingHttpServletRequest request,
-            SlingHttpServletResponse response) throws IOException,
-            ServletException {
+    public static void service(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws IOException, ServletException {
 
-        if (!isValidRequest(request.getRequestPathInfo().getResourcePath(), request.getRequestPathInfo().getSelectors())) {
-            response.sendError(HttpServletResponse.SC_BAD_REQUEST,
-                    "Malformed request syntax");
+        if (!isValidRequest(
+                request.getRequestPathInfo().getResourcePath(),
+                request.getRequestPathInfo().getSelectors())) {
+            response.sendError(HttpServletResponse.SC_BAD_REQUEST, "Malformed request syntax");
             return;
         }
 
@@ -518,13 +513,13 @@ public class RequestData {
         Servlet servlet = requestData.getContentData().getServlet();
         if (servlet == null) {
 
-            log.warn("Did not find a servlet to handle the request (path={},selectors={},extension={},suffix={})",
+            log.warn(
+                    "Did not find a servlet to handle the request (path={},selectors={},extension={},suffix={})",
                     request.getRequestPathInfo().getResourcePath(),
                     Arrays.toString(request.getRequestPathInfo().getSelectors()),
                     request.getRequestPathInfo().getExtension(),
                     request.getRequestPathInfo().getSuffix());
-            response.sendError(HttpServletResponse.SC_NOT_FOUND,
-                "No Servlet to handle request");
+            response.sendError(HttpServletResponse.SC_NOT_FOUND, "No Servlet to handle request");
 
         } else {
 
@@ -557,7 +552,6 @@ public class RequestData {
                 request.setAttribute(SLING_CURRENT_SERVLET_NAME, oldValue);
 
                 requestData.getRequestProgressTracker().logTimer(timerName);
-
             }
         }
     }
@@ -567,7 +561,7 @@ public class RequestData {
      * Additionally, check that we didn't have an empty selector from a dot replacement.
      */
     static boolean isValidRequest(String resourcePath, String... selectors) {
-       for (String selector : selectors) {
+        for (String selector : selectors) {
             if (selector.trim().isEmpty()) {
                 return false;
             }
@@ -577,9 +571,8 @@ public class RequestData {
 
     // ---------- Content inclusion stacking -----------------------------------
 
-    public ContentData setContent(final Resource resource,
-            final RequestPathInfo requestPathInfo) {
-        if ( this.recursionDepth >=  this.slingRequestProcessor.getMaxIncludeCounter()) {
+    public ContentData setContent(final Resource resource, final RequestPathInfo requestPathInfo) {
+        if (this.recursionDepth >= this.slingRequestProcessor.getMaxIncludeCounter()) {
             throw new RecursionTooDeepException(requestPathInfo.getResourcePath());
         }
         this.recursionDepth++;
@@ -683,8 +676,7 @@ public class RequestData {
 
     public ServletInputStream getInputStream() throws IOException {
         if (parameterSupport != null && parameterSupport.requestDataUsed()) {
-            throw new IllegalStateException(
-                "Request Data has already been read");
+            throw new IllegalStateException("Request Data has already been read");
         }
 
         // may throw IllegalStateException if the reader has already been
@@ -692,11 +684,9 @@ public class RequestData {
         return getServletRequest().getInputStream();
     }
 
-    public BufferedReader getReader() throws UnsupportedEncodingException,
-            IOException {
+    public BufferedReader getReader() throws UnsupportedEncodingException, IOException {
         if (parameterSupport != null && parameterSupport.requestDataUsed()) {
-            throw new IllegalStateException(
-                "Request Data has already been read");
+            throw new IllegalStateException("Request Data has already been read");
         }
 
         // may throw IllegalStateException if the input stream has already been
@@ -713,10 +703,10 @@ public class RequestData {
     }
 
     /*
-    * Traverses the path segment wise and checks
-    * if there is any path with only dots (".")
-    * skipping SKIPPED_TRAVERSAL_CHARS characters in segment.
-    */
+     * Traverses the path segment wise and checks
+     * if there is any path with only dots (".")
+     * skipping SKIPPED_TRAVERSAL_CHARS characters in segment.
+     */
     private static boolean traversesParentPath(String path) {
         int index = 0;
         while (index < path.length()) {
@@ -750,9 +740,10 @@ public class RequestData {
     public void logNonCompliantGetUserPrincipalWarning() {
         if (!loggedNonCompliantGetUserPrincipalWarning) {
             loggedNonCompliantGetUserPrincipalWarning = true;
-            log.warn("Request.getUserPrincipal() called without a remoteUser set. This is not compliant to the servlet spec " +
-                    "and might return a principal even if the request is not authenticated. Please update your code to use getAuthType() " +
-                    "to check for anonymous requests first.");
+            log.warn(
+                    "Request.getUserPrincipal() called without a remoteUser set. This is not compliant to the servlet spec "
+                            + "and might return a principal even if the request is not authenticated. Please update your code to use getAuthType() "
+                            + "to check for anonymous requests first.");
         }
     }
 }

@@ -18,14 +18,11 @@
  */
 package org.apache.sling.engine.impl;
 
-import static org.apache.sling.api.SlingConstants.ERROR_REQUEST_URI;
-import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -34,6 +31,9 @@ import org.apache.sling.api.request.ResponseUtil;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import static org.apache.sling.api.SlingConstants.ERROR_REQUEST_URI;
+import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
 
 /**
  * The <code>DefaultErrorHandler</code> is used by the
@@ -52,24 +52,27 @@ public class DefaultErrorHandler implements ErrorHandler {
     private volatile ErrorHandler delegate;
 
     void setServerInfo(final String serverInfo) {
-        this.serverInfo = (serverInfo != null)
-                ? serverInfo
-                : ProductInfoProvider.PRODUCT_NAME;
+        this.serverInfo = (serverInfo != null) ? serverInfo : ProductInfoProvider.PRODUCT_NAME;
     }
 
     public void setDelegate(final ErrorHandler eh) {
         delegate = eh;
     }
 
-    private void delegateFailed(int originalStatus, String originalMessage, Throwable t, HttpServletRequest request, HttpServletResponse response) throws IOException {
+    private void delegateFailed(
+            int originalStatus,
+            String originalMessage,
+            Throwable t,
+            HttpServletRequest request,
+            HttpServletResponse response)
+            throws IOException {
         // don't include Throwable in the response, gives too much information
         final String m = "Error handler failed:" + t.getClass().getName();
         log.error(m, t);
 
         if (response.isCommitted()) {
-            log.warn(
-                "handleError: Response already committed; cannot send error "
-                    + originalStatus + " : " + originalMessage);
+            log.warn("handleError: Response already committed; cannot send error " + originalStatus + " : "
+                    + originalMessage);
             return;
         }
         // reset the response to clear headers and body
@@ -92,11 +95,12 @@ public class DefaultErrorHandler implements ErrorHandler {
      * response has already been committed.
      */
     @Override
-    public void handleError(final int status,
+    public void handleError(
+            final int status,
             String message,
             final SlingHttpServletRequest request,
             final SlingHttpServletResponse response)
-    throws IOException {
+            throws IOException {
         // If we have a delegate let it handle the error
         if (delegate != null) {
             try {
@@ -128,10 +132,9 @@ public class DefaultErrorHandler implements ErrorHandler {
      * response has already been committed.
      */
     @Override
-    public void handleError(final Throwable throwable,
-            final SlingHttpServletRequest request,
-            final SlingHttpServletResponse response)
-    throws IOException {
+    public void handleError(
+            final Throwable throwable, final SlingHttpServletRequest request, final SlingHttpServletResponse response)
+            throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
         if (delegate != null) {
@@ -143,16 +146,16 @@ public class DefaultErrorHandler implements ErrorHandler {
             return;
         }
 
-        sendError(status,
-            throwable.getMessage(), throwable, request, response);
+        sendError(status, throwable.getMessage(), throwable, request, response);
     }
 
-    private void sendError(final int status,
+    private void sendError(
+            final int status,
             final String message,
             final Throwable throwable,
             final HttpServletRequest request,
             final HttpServletResponse response)
-    throws IOException {
+            throws IOException {
         // error situation
         final String servletName = (String) request.getAttribute(ERROR_SERVLET_NAME);
         String requestURI = (String) request.getAttribute(ERROR_REQUEST_URI);
@@ -166,7 +169,7 @@ public class DefaultErrorHandler implements ErrorHandler {
 
         final PrintWriter pw = response.getWriter();
         pw.print("<html><head><title>");
-        if ( message == null ) {
+        if (message == null) {
             pw.print("Internal error");
         } else {
             pw.print(ResponseUtil.escapeXml(message));
@@ -189,8 +192,7 @@ public class DefaultErrorHandler implements ErrorHandler {
         pw.println("</p>");
 
         if (throwable != null) {
-            final PrintWriter escapingWriter = new PrintWriter(
-                    ResponseUtil.getXmlEscapingWriter(pw));
+            final PrintWriter escapingWriter = new PrintWriter(ResponseUtil.getXmlEscapingWriter(pw));
             pw.println("<h3>Exception stacktrace:</h3>");
             pw.println("<pre>");
             pw.flush();

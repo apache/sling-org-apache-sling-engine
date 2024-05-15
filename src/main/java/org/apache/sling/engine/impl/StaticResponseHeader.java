@@ -19,7 +19,7 @@
 package org.apache.sling.engine.impl;
 
 /**
- * The <code>Mapping</code> class defines the mapping of a optional additional 
+ * The <code>Mapping</code> class defines the mapping of a optional additional
  * response headers
  */
 public class StaticResponseHeader {
@@ -64,5 +64,5 @@ public class StaticResponseHeader {
 
     public String getResponseHeaderValue() {
         return responseHeaderValue;
-    } 
+    }
 }

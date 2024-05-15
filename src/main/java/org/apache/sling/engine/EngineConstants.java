@@ -178,7 +178,6 @@ public class EngineConstants {
      */
     public static final String SLING_FILTER_REQUEST_PATTERN = "sling.filter.request.pattern";
 
-
     /**
      * Regular expression pattern for enabling a filter on a matching request suffix
      *@since Sling Engine 2.7

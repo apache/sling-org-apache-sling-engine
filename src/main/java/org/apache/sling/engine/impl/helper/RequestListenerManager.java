@@ -18,10 +18,10 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import java.util.List;
-
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
+
+import java.util.List;
 
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
@@ -40,33 +40,36 @@ import org.slf4j.LoggerFactory;
 @Component(service = RequestListenerManager.class)
 @ServiceDescription("Request listener manager")
 @ServiceVendor("The Apache Software Foundation")
-public class RequestListenerManager  {
+public class RequestListenerManager {
 
     private final ServletContext servletContext;
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    @Reference(cardinality = ReferenceCardinality.MULTIPLE, policy = ReferencePolicy.DYNAMIC, fieldOption = FieldOption.REPLACE)
+    @Reference(
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC,
+            fieldOption = FieldOption.REPLACE)
     private volatile List<SlingRequestListener> listeners;
 
     @Activate
-    public RequestListenerManager(@Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME
-            + ")") final ServletContext servletContext) {
-		this.servletContext = servletContext;
-	}
+    public RequestListenerManager(
+            @Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+                    final ServletContext servletContext) {
+        this.servletContext = servletContext;
+    }
 
-	public void sendEvent ( final HttpServletRequest request,
-	        final SlingRequestEvent.EventType type) {
+    public void sendEvent(final HttpServletRequest request, final SlingRequestEvent.EventType type) {
         final List<SlingRequestListener> local = listeners;
         if (local != null && !local.isEmpty()) {
-		    final SlingRequestEvent event = new SlingRequestEvent(this.servletContext, request, type);
+            final SlingRequestEvent event = new SlingRequestEvent(this.servletContext, request, type);
             for (final SlingRequestListener service : local) {
                 try {
                     service.onEvent(event);
                 } catch (final Throwable t) {
                     logger.error("Error invoking sling request listener " + service + " : " + t.getMessage(), t);
                 }
-			}
-		}
-	}
+            }
+        }
+    }
 }

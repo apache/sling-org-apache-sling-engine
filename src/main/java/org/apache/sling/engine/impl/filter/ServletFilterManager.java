@@ -18,15 +18,15 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.SlingHttpContext;
@@ -107,7 +107,9 @@ public class ServletFilterManager {
     private final Map<Long, MBeanReg> mbeanMap = new ConcurrentHashMap<>();
 
     @Activate
-    public ServletFilterManager(@Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")") final ServletContext servletContext) {
+    public ServletFilterManager(
+            @Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+                    final ServletContext servletContext) {
         this.servletContext = servletContext;
         this.filterChains = new SlingFilterChainHelper[FilterChainType.values().length];
         for (final FilterChainType type : FilterChainType.values()) {
@@ -123,11 +125,12 @@ public class ServletFilterManager {
         return getFilterChain(chain).getFilters();
     }
 
-    @Reference(service = Filter.class,
-        updated = "updatedFilter",
-        policy = ReferencePolicy.DYNAMIC,
-        cardinality = ReferenceCardinality.MULTIPLE,
-        target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
+    @Reference(
+            service = Filter.class,
+            updated = "updatedFilter",
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
     public void bindFilter(final ServiceReference<Filter> reference, final Filter filter) {
         initFilter(reference, filter);
     }
@@ -148,8 +151,7 @@ public class ServletFilterManager {
         destroyFilter(reference, service);
     }
 
-    private void initFilter(final ServiceReference<Filter> reference,
-            final Filter filter) {
+    private void initFilter(final ServiceReference<Filter> reference, final Filter filter) {
         final String filterName = SlingFilterConfig.getName(reference);
         final Long serviceId = (Long) reference.getProperty(Constants.SERVICE_ID);
 
@@ -162,8 +164,10 @@ public class ServletFilterManager {
                 reg = new MBeanReg();
                 reg.mbean = new FilterProcessorMBeanImpl();
 
-                reg.registration = reference.getBundle().getBundleContext().registerService(FilterProcessorMBean.class,
-                        reg.mbean, mbeanProps);
+                reg.registration = reference
+                        .getBundle()
+                        .getBundleContext()
+                        .registerService(FilterProcessorMBean.class, reg.mbean, mbeanProps);
 
                 mbeanMap.put(serviceId, reg);
             } catch (Throwable t) {
@@ -198,8 +202,7 @@ public class ServletFilterManager {
         return null;
     }
 
-    private void destroyFilter(final ServiceReference<Filter> reference,
-            final Filter filter) {
+    private void destroyFilter(final ServiceReference<Filter> reference, final Filter filter) {
         // service id
         Long serviceId = (Long) reference.getProperty(Constants.SERVICE_ID);
 
@@ -233,13 +236,20 @@ public class ServletFilterManager {
             // addition we allow different types than Integer
             orderObj = reference.getProperty(EngineConstants.FILTER_ORDER);
             if (orderObj != null) {
-                log.warn("Filter service {} is using deprecated property {}. Use {} instead.",
-                        reference, EngineConstants.FILTER_ORDER, Constants.SERVICE_RANKING );
+                log.warn(
+                        "Filter service {} is using deprecated property {}. Use {} instead.",
+                        reference,
+                        EngineConstants.FILTER_ORDER,
+                        Constants.SERVICE_RANKING);
                 // we can use 0 as the default as this will be applied
                 // in the next step anyway if this props contains an
                 // invalid value
                 orderSource = EngineConstants.FILTER_ORDER.concat("=").concat(orderObj.toString());
-                orderObj = Integer.valueOf(-1 * Converters.standardConverter().convert(orderObj).defaultValue(0).to(Integer.class));
+                orderObj = Integer.valueOf(-1
+                        * Converters.standardConverter()
+                                .convert(orderObj)
+                                .defaultValue(0)
+                                .to(Integer.class));
             } else {
                 orderSource = "none";
             }
@@ -250,12 +260,16 @@ public class ServletFilterManager {
 
         // register by scope
         Object scopeValue = reference.getProperty(EngineConstants.SLING_FILTER_SCOPE);
-        if ( scopeValue == null ) {
+        if (scopeValue == null) {
             scopeValue = reference.getProperty(EngineConstants.FILTER_SCOPE);
-            log.warn("Filter service {} is using deprecated property {}. Use {} instead.",
-                    reference, EngineConstants.FILTER_SCOPE, EngineConstants.SLING_FILTER_SCOPE );
+            log.warn(
+                    "Filter service {} is using deprecated property {}. Use {} instead.",
+                    reference,
+                    EngineConstants.FILTER_SCOPE,
+                    EngineConstants.SLING_FILTER_SCOPE);
         }
-        final String[] scopes = Converters.standardConverter().convert(scopeValue).to(String[].class);
+        final String[] scopes =
+                Converters.standardConverter().convert(scopeValue).to(String[].class);
         final FilterPredicate predicate = new FilterPredicate(reference);
 
         boolean used = false;
@@ -266,23 +280,24 @@ public class ServletFilterManager {
                 getFilterChain(type).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
 
                 if (type == FilterChainType.COMPONENT) {
-                    getFilterChain(FilterChainType.INCLUDE).addFilter(filter, predicate, serviceId, order,
-                            orderSource, mbean);
-                    getFilterChain(FilterChainType.FORWARD).addFilter(filter, predicate, serviceId, order,
-                            orderSource, mbean);
+                    getFilterChain(FilterChainType.INCLUDE)
+                            .addFilter(filter, predicate, serviceId, order, orderSource, mbean);
+                    getFilterChain(FilterChainType.FORWARD)
+                            .addFilter(filter, predicate, serviceId, order, orderSource, mbean);
                 }
 
                 used = true;
             } catch (final IllegalArgumentException iae) {
                 log.warn("Filter service {} has invalid value {} for scope. Value is ignored", reference, scope);
             }
-        } 
-        if ( !used ){
-            log.warn("Filter service {} has been registered without a valid {} property. Using default value.", serviceId,
+        }
+        if (!used) {
+            log.warn(
+                    "Filter service {} has been registered without a valid {} property. Using default value.",
+                    serviceId,
                     EngineConstants.SLING_FILTER_SCOPE);
             getFilterChain(FilterChainType.REQUEST).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
         }
-
     }
 
     private boolean removeFilterFromChains(final Long serviceId) {

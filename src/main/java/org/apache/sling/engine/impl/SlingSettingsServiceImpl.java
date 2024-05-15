@@ -34,8 +34,7 @@ import org.osgi.service.component.propertytypes.ServiceVendor;
 @ServiceDescription("deprecated")
 @ServiceVendor("The Apache Software Foundation")
 @Deprecated
-public class SlingSettingsServiceImpl
-    implements SlingSettingsService {
+public class SlingSettingsServiceImpl implements SlingSettingsService {
 
     @Reference
     private org.apache.sling.settings.SlingSettingsService settingsService;

@@ -21,11 +21,11 @@ package org.apache.sling.engine;
 import org.osgi.annotation.versioning.ProviderType;
 
 /**
-  * This service can be used to gather information about requests processed by the
-  * engine.
-  *
-  * @since 2.5
-  */
+ * This service can be used to gather information about requests processed by the
+ * engine.
+ *
+ * @since 2.5
+ */
 @ProviderType
 public interface RequestInfoProvider {
 
@@ -76,4 +76,4 @@ public interface RequestInfoProvider {
      * Clear all request infos
      */
     void clear();
- }
+}

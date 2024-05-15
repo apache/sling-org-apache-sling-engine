@@ -44,47 +44,52 @@ import org.osgi.service.metatype.annotations.Option;
 @Designate(ocd = RequestLoggerService.Config.class, factory = true)
 public class RequestLoggerService {
 
-    @ObjectClassDefinition(name = "Apache Sling Customizable Request Data Logger",
-            description="This configuration creates customizable "+
-                 "loggers for request content. Each configuration results in a logger writing "+
-                 "the requested data. Deleting an existing configuration removes the respective "+
-                 "logger.")
+    @ObjectClassDefinition(
+            name = "Apache Sling Customizable Request Data Logger",
+            description = "This configuration creates customizable "
+                    + "loggers for request content. Each configuration results in a logger writing "
+                    + "the requested data. Deleting an existing configuration removes the respective "
+                    + "logger.")
     public @interface Config {
 
-        @AttributeDefinition(name = "Log Format",
-                description="The format for log entries. This is "+
-                    "a format string as defined at https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification.")
+        @AttributeDefinition(
+                name = "Log Format",
+                description =
+                        "The format for log entries. This is "
+                                + "a format string as defined at https://sling.apache.org/site/client-request-logging.html#ClientRequestLogging-LogFormatSpecification.")
         String request_log_service_format();
 
-        @AttributeDefinition(name = "Logger Name",
-                description="Name of the destination for the log "+
-                     "output. Depending on the output type this is a file name (absolute or "+
-                     "relative), a SLF4J logger name or the name under which a RequestLog service "+
-                     "has been registered.")
+        @AttributeDefinition(
+                name = "Logger Name",
+                description = "Name of the destination for the log "
+                        + "output. Depending on the output type this is a file name (absolute or "
+                        + "relative), a SLF4J logger name or the name under which a RequestLog service "
+                        + "has been registered.")
         String request_log_service_output() default "request.log";
 
-        @AttributeDefinition(name = "Logger Type",
-                description = "Type of log destination. Select "+
-                     "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "+
-                     "write the access log to a file (relative paths resolved against sling.home) "+
-                     "or \"RequestLog Service\" to use a named OSGi service registered with the "+
-                     "service interface \"org.apache.sling.engine.RequestLog\" and a service property "+
-                     "\"requestlog.name\" equal to the Logger Name setting.",
+        @AttributeDefinition(
+                name = "Logger Type",
+                description = "Type of log destination. Select "
+                        + "\"Logger Name\" to write the access log to an SLF4J logger, \"File Name\" to "
+                        + "write the access log to a file (relative paths resolved against sling.home) "
+                        + "or \"RequestLog Service\" to use a named OSGi service registered with the "
+                        + "service interface \"org.apache.sling.engine.RequestLog\" and a service property "
+                        + "\"requestlog.name\" equal to the Logger Name setting.",
                 options = {
                     @Option(label = "Logger Name", value = "0"),
                     @Option(label = "File Name", value = "1"),
                     @Option(label = "RequestLog Service", value = "2")
-        })
+                })
         int request_log_service_outputtype() default 0;
 
-        @AttributeDefinition(name = "Request Entry",
-                description="Check if the logger is called on "+
-                     "request entry. Otherwise leave unchecked and the logger will be called on "+
-                     "request exit (aka termination), which is the default for access logger type "+
-                     "loggers.")
+        @AttributeDefinition(
+                name = "Request Entry",
+                description = "Check if the logger is called on "
+                        + "request entry. Otherwise leave unchecked and the logger will be called on "
+                        + "request exit (aka termination), which is the default for access logger type "
+                        + "loggers.")
         boolean request_log_service_onentry() default false;
     }
-
 
     private static final int OUTPUT_TYPE_LOGGER = 0;
 
@@ -101,8 +106,7 @@ public class RequestLoggerService {
     /**
      * Public default constructor for SCR integration
      */
-    public RequestLoggerService() {
-    }
+    public RequestLoggerService() {}
 
     RequestLoggerService(BundleContext bundleContext, Config configuration) {
         this.setup(bundleContext, configuration);

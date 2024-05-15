@@ -24,7 +24,6 @@ import java.io.UnsupportedEncodingException;
 import java.util.List;
 
 import junit.framework.TestCase;
-
 import org.apache.sling.api.request.RequestParameter;
 
 public class UtilTest extends TestCase {
@@ -39,8 +38,7 @@ public class UtilTest extends TestCase {
 
     static {
         try {
-            utf8String = new String(utf8Coded.getBytes(Util.ENCODING_DIRECT),
-                utf8);
+            utf8String = new String(utf8Coded.getBytes(Util.ENCODING_DIRECT), utf8);
         } catch (UnsupportedEncodingException e) {
             throw new InternalError(e.toString());
         }
@@ -71,27 +69,22 @@ public class UtilTest extends TestCase {
     public void test_fix_encoding_direct() {
 
         ParameterMap pm = new ParameterMap();
-        pm.addParameter(new ContainerRequestParameter("par", utf8Coded,
-            Util.ENCODING_DIRECT), false);
+        pm.addParameter(new ContainerRequestParameter("par", utf8Coded, Util.ENCODING_DIRECT), false);
         Util.fixEncoding(pm);
         assertEquals(utf8Coded, pm.getValue("par").getString());
-
     }
 
     public void test_fix_encoding_charset() {
         ParameterMap pm2 = new ParameterMap();
-        pm2.addParameter(new ContainerRequestParameter("par", utf8Coded,
-            Util.ENCODING_DIRECT), false);
-        pm2.addParameter(new ContainerRequestParameter("_charset_", utf8,
-            Util.ENCODING_DIRECT), false);
+        pm2.addParameter(new ContainerRequestParameter("par", utf8Coded, Util.ENCODING_DIRECT), false);
+        pm2.addParameter(new ContainerRequestParameter("_charset_", utf8, Util.ENCODING_DIRECT), false);
         Util.fixEncoding(pm2);
         assertEquals(utf8String, pm2.getValue("par").getString());
     }
 
     public void test_fix_encoding_configured() {
         ParameterMap pm3 = new ParameterMap();
-        pm3.addParameter(new ContainerRequestParameter("par", utf8Coded,
-            Util.ENCODING_DIRECT), false);
+        pm3.addParameter(new ContainerRequestParameter("par", utf8Coded, Util.ENCODING_DIRECT), false);
         Util.setDefaultFixEncoding(utf8);
         Util.fixEncoding(pm3);
         assertEquals(utf8String, pm3.getValue("par").getString());
@@ -101,7 +94,8 @@ public class UtilTest extends TestCase {
     public void test_decode_query() throws IllegalArgumentException, UnsupportedEncodingException, IOException {
         final ParameterMap map = new ParameterMap();
         final String query = "a=1&b=2&c=3&a=1&b=2&c=3";
-        Util.parseQueryString(new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)), Util.ENCODING_DIRECT, map, false);
+        Util.parseQueryString(
+                new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)), Util.ENCODING_DIRECT, map, false);
 
         assertEquals(3, map.size());
 
@@ -124,9 +118,9 @@ public class UtilTest extends TestCase {
     public void test_getParameter_with_space() throws Exception {
         final ParameterMap map = new ParameterMap();
         final String query = "cmsaction=createPage&templateName=/apps/geometrixx/templates/contentpage"
-            + "&label=&title=Some Page&parentPath=/content/geometrixx";
-        Util.parseQueryString(new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)), Util.ENCODING_DIRECT,
-            map, false);
+                + "&label=&title=Some Page&parentPath=/content/geometrixx";
+        Util.parseQueryString(
+                new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)), Util.ENCODING_DIRECT, map, false);
         assertEquals("createPage", map.getStringValue("cmsaction"));
         assertEquals("/apps/geometrixx/templates/contentpage", map.getStringValue("templateName"));
         assertEquals("", map.getStringValue("label"));

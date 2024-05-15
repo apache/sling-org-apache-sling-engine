@@ -18,16 +18,13 @@
  */
 package org.apache.sling.engine.impl;
 
-import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.FORWARD_PATH_INFO;
-import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
-import static javax.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
+import javax.servlet.DispatcherType;
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletInputStream;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+import javax.servlet.http.Part;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -44,14 +41,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
-
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.Part;
 
 import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -71,22 +60,37 @@ import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
 import org.osgi.service.http.HttpContext;
 import org.osgi.service.useradmin.Authorization;
 
-public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper implements
-        SlingHttpServletRequest {
+import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
+import static javax.servlet.RequestDispatcher.FORWARD_PATH_INFO;
+import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
+import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
+import static javax.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
+import static javax.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
+import static javax.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
+import static javax.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
+import static javax.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
+import static javax.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
 
-    private static final List<String> FORWARD_ATTRIBUTES = Arrays.asList(FORWARD_CONTEXT_PATH,
-            FORWARD_PATH_INFO, FORWARD_QUERY_STRING, FORWARD_REQUEST_URI, FORWARD_SERVLET_PATH);
-    
+public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper implements SlingHttpServletRequest {
+
+    private static final List<String> FORWARD_ATTRIBUTES = Arrays.asList(
+            FORWARD_CONTEXT_PATH, FORWARD_PATH_INFO, FORWARD_QUERY_STRING, FORWARD_REQUEST_URI, FORWARD_SERVLET_PATH);
+
     private static final List<String> INCLUDE_ATTRIBUTES = Arrays.asList(
-            SlingConstants.ATTR_REQUEST_CONTENT, SlingConstants.ATTR_REQUEST_SERVLET, SlingConstants.ATTR_REQUEST_PATH_INFO,
-            INCLUDE_CONTEXT_PATH, INCLUDE_PATH_INFO, INCLUDE_QUERY_STRING, INCLUDE_REQUEST_URI, INCLUDE_SERVLET_PATH);
+            SlingConstants.ATTR_REQUEST_CONTENT,
+            SlingConstants.ATTR_REQUEST_SERVLET,
+            SlingConstants.ATTR_REQUEST_PATH_INFO,
+            INCLUDE_CONTEXT_PATH,
+            INCLUDE_PATH_INFO,
+            INCLUDE_QUERY_STRING,
+            INCLUDE_REQUEST_URI,
+            INCLUDE_SERVLET_PATH);
 
     private final RequestData requestData;
     private final String pathInfo;
     private String responseContentType;
 
-    public SlingHttpServletRequestImpl(RequestData requestData,
-            HttpServletRequest servletRequest) {
+    public SlingHttpServletRequestImpl(RequestData requestData, HttpServletRequest servletRequest) {
         super(servletRequest);
         this.requestData = requestData;
 
@@ -105,14 +109,14 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
         return this.requestData;
     }
 
-    //---------- Adaptable interface
+    // ---------- Adaptable interface
 
     @Override
     public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
         return getRequestData().getSlingRequestProcessor().adaptTo(this, type);
     }
 
-    //---------- SlingHttpServletRequest interface
+    // ---------- SlingHttpServletRequest interface
 
     ParameterSupport getParameterSupport() {
         return this.getRequestData().getParameterSupport();
@@ -146,15 +150,13 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      * Returns <code>null</code> if <code>resource</code> is <code>null</code>.
      */
     @Override
-    public RequestDispatcher getRequestDispatcher(Resource resource,
-            RequestDispatcherOptions options) {
-        return (resource != null) ?
-                new SlingRequestDispatcher(
+    public RequestDispatcher getRequestDispatcher(Resource resource, RequestDispatcherOptions options) {
+        return (resource != null)
+                ? new SlingRequestDispatcher(
                         resource,
                         options,
                         requestData.protectHeadersOnInclude(),
-                        requestData.checkContentTypeOnInclude()
-                )
+                        requestData.checkContentTypeOnInclude())
                 : null;
     }
 
@@ -170,15 +172,10 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      * Returns <code>null</code> if <code>path</code> is <code>null</code>.
      */
     @Override
-    public RequestDispatcher getRequestDispatcher(String path,
-            RequestDispatcherOptions options) {
-        return (path != null) ?
-                new SlingRequestDispatcher(
-                        path,
-                        options,
-                        requestData.protectHeadersOnInclude(),
-                        requestData.checkContentTypeOnInclude()
-                )
+    public RequestDispatcher getRequestDispatcher(String path, RequestDispatcherOptions options) {
+        return (path != null)
+                ? new SlingRequestDispatcher(
+                        path, options, requestData.protectHeadersOnInclude(), requestData.checkContentTypeOnInclude())
                 : null;
     }
 
@@ -300,8 +297,9 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     public String getResponseContentType() {
         if (responseContentType == null) {
             final String ext = getRequestPathInfo().getExtension();
-            if ( ext != null ) {
-                responseContentType = this.requestData.getSlingRequestProcessor().getMimeType("dummy.".concat(ext));
+            if (ext != null) {
+                responseContentType =
+                        this.requestData.getSlingRequestProcessor().getMimeType("dummy.".concat(ext));
             }
         }
         return responseContentType;
@@ -332,8 +330,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      * @see javax.servlet.ServletRequestWrapper#getReader()
      */
     @Override
-    public BufferedReader getReader() throws UnsupportedEncodingException,
-            IOException {
+    public BufferedReader getReader() throws UnsupportedEncodingException, IOException {
         return this.getRequestData().getReader();
     }
 
@@ -366,9 +363,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     @Override
     public boolean isUserInRole(String role) {
         Object authorization = getAttribute(HttpContext.AUTHORIZATION);
-        return (authorization instanceof Authorization)
-                ? ((Authorization) authorization).hasRole(role)
-                : false;
+        return (authorization instanceof Authorization) ? ((Authorization) authorization).hasRole(role) : false;
     }
 
     /**
@@ -399,7 +394,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
         return (Collection<Part>) this.getParameterSupport().getParts();
     }
 
-    // ---------- Attribute handling -----------------------------------	
+    // ---------- Attribute handling -----------------------------------
 
     @Override
     public Object getAttribute(final String name) {
@@ -421,7 +416,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
                 return dispatchingInfo.getRequestUri();
             } else if (INCLUDE_SERVLET_PATH.equals(name)) {
                 return dispatchingInfo.getServletPath();
-            } else if (FORWARD_ATTRIBUTES.contains(name) ) {
+            } else if (FORWARD_ATTRIBUTES.contains(name)) {
                 // include might be contained within a forward, allow forward attributes
                 return super.getAttribute(name);
             }
@@ -432,19 +427,18 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
         }
         return super.getAttribute(name);
     }
-    
+
     @Override
     public Enumeration<String> getAttributeNames() {
         final DispatchingInfo dispatchingInfo = this.requestData.getDispatchingInfo();
-        if ( dispatchingInfo != null && dispatchingInfo.getType() == DispatcherType.INCLUDE ) {
+        if (dispatchingInfo != null && dispatchingInfo.getType() == DispatcherType.INCLUDE) {
             final Set<String> allNames = new HashSet<>(Collections.list(super.getAttributeNames()));
             allNames.addAll(INCLUDE_ATTRIBUTES);
             return Collections.enumeration(allNames);
         }
         return super.getAttributeNames();
     }
-    
-    
+
     /**
      * A <code>UserPrincipal</code> ...
      */
@@ -487,7 +481,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
             return name.hashCode();
         }
 
-        //------------------------------------------------------------< Principal >
+        // ------------------------------------------------------------< Principal >
         /**
          * {@inheritDoc}
          */
@@ -496,5 +490,4 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
             return name;
         }
     }
-
 }

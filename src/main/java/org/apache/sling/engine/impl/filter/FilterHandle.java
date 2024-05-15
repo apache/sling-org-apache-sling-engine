@@ -18,9 +18,9 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import java.util.concurrent.atomic.AtomicLong;
-
 import javax.servlet.Filter;
+
+import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 
@@ -42,7 +42,12 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     private final FilterProcessorMBeanImpl mbean;
 
-    FilterHandle(Filter filter, FilterPredicate predicate, long filterId, int order, final String orderSource,
+    FilterHandle(
+            Filter filter,
+            FilterPredicate predicate,
+            long filterId,
+            int order,
+            final String orderSource,
             FilterProcessorMBeanImpl mbean) {
         this.filter = filter;
         this.predicate = predicate;
@@ -71,10 +76,10 @@ public class FilterHandle implements Comparable<FilterHandle> {
     }
 
     boolean select(SlingHttpServletRequest slingHttpServletRequest) {
-      if (predicate != null){
-          return predicate.test(slingHttpServletRequest);
-      }
-      return true;
+        if (predicate != null) {
+            return predicate.test(slingHttpServletRequest);
+        }
+        return true;
     }
 
     public long getCalls() {
@@ -86,7 +91,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
      * @return duration in miliseconds
      */
     public long getTime() {
-        return time.get()/1000 ;
+        return time.get() / 1000;
     }
 
     /**
@@ -132,7 +137,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     @Override
     public int hashCode() {
-        if ( filter == null ) {
+        if (filter == null) {
             return 0;
         }
         return filter.hashCode();

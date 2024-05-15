@@ -32,12 +32,13 @@ import org.osgi.service.component.annotations.Reference;
  * prints out the currently configured filter chains.
  *
  */
-@Component(service = WebConsoleConfigPrinter.class,
-    property = {
-        "felix.webconsole.label=slingfilter",
-        "felix.webconsole.title=Sling Servlet Filter",
-        "felix.webconsole.configprinter.modes=always"
-    })
+@Component(
+        service = WebConsoleConfigPrinter.class,
+        property = {
+            "felix.webconsole.label=slingfilter",
+            "felix.webconsole.title=Sling Servlet Filter",
+            "felix.webconsole.configprinter.modes=always"
+        })
 public class WebConsoleConfigPrinter {
 
     private final ServletFilterManager filterManager;
@@ -51,10 +52,16 @@ public class WebConsoleConfigPrinter {
      * Helper method for printing out a filter chain.
      */
     private void printFilterChain(final PrintWriter pw, final FilterHandle[] entries) {
-        for(final FilterHandle entry : entries) {
-            pw.printf("%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
-                entry.getOrder(), entry.getFilter().getClass(), entry.getFilterId(), entry.getOrderSource(),
-                entry.getCalls(), entry.getTime(), entry.getTimePerCall());
+        for (final FilterHandle entry : entries) {
+            pw.printf(
+                    "%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
+                    entry.getOrder(),
+                    entry.getFilter().getClass(),
+                    entry.getFilterId(),
+                    entry.getOrderSource(),
+                    entry.getCalls(),
+                    entry.getTime(),
+                    entry.getTimePerCall());
         }
     }
 
@@ -71,8 +78,7 @@ public class WebConsoleConfigPrinter {
         for (FilterChainType type : FilterChainType.values()) {
             pw.println();
             pw.println(type + " Filters:");
-            printFilterChain(pw,
-                filterManager.getFilterChain(type).getFilters());
+            printFilterChain(pw, filterManager.getFilterChain(type).getFilters());
         }
     }
 }
