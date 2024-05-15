@@ -544,18 +544,12 @@ public class RequestData {
             requestData.servletCallCounter++;
             requestData.getRequestProgressTracker().startTimer(timerName);
 
+            String prevServletName = requestData.setActiveServletName(name);
             try {
-
-                String callerServlet = requestData.setActiveServletName(name);
-
                 servlet.service(request, response);
-
-                requestData.setActiveServletName(callerServlet);
-
             } finally {
-
+                requestData.setActiveServletName(prevServletName);
                 request.setAttribute(SLING_CURRENT_SERVLET_NAME, oldValue);
-
                 requestData.getRequestProgressTracker().logTimer(timerName);
 
             }
