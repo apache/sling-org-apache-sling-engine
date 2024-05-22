@@ -18,10 +18,10 @@
  */
 package org.apache.sling.engine;
 
-import java.util.Map;
-
 import javax.servlet.Servlet;
 import javax.servlet.http.HttpServletRequest;
+
+import java.util.Map;
 
 /**
  * @deprecated Use {@link org.apache.sling.api.request.RequestUtil}
@@ -97,8 +97,7 @@ public class RequestUtil {
      * @return The previous value of the named request attribute or
      *         <code>null</code> if it was not set.
      */
-    public static Object setRequestAttribute(final HttpServletRequest request,
-            final String name, final Object value) {
+    public static Object setRequestAttribute(final HttpServletRequest request, final String name, final Object value) {
         return org.apache.sling.api.request.RequestUtil.setRequestAttribute(request, name, value);
     }
 }

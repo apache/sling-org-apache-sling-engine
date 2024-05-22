@@ -18,7 +18,15 @@
  */
 package org.apache.sling.engine.impl;
 
-import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
+import javax.servlet.DispatcherType;
+import javax.servlet.FilterChain;
+import javax.servlet.Servlet;
+import javax.servlet.ServletContext;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
 
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -32,16 +40,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.FilterChain;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -51,6 +49,7 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceNotFoundException;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
 import org.apache.sling.commons.mime.MimeTypeService;
@@ -61,13 +60,12 @@ import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
-import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
+import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.apache.sling.api.servlets.ErrorHandler;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
@@ -78,8 +76,11 @@ import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(service = {SlingRequestProcessor.class, SlingRequestProcessorImpl.class},
-    configurationPid = Config.PID)
+import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
+
+@Component(
+        service = {SlingRequestProcessor.class, SlingRequestProcessorImpl.class},
+        configurationPid = Config.PID)
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     /** default log */
@@ -94,7 +95,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     @Reference
     private volatile RequestProcessorMBeanImpl mbean;
 
-    @Reference(cardinality=ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
+    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC)
     private volatile AdapterManager adapterManager;
 
     /**
@@ -126,9 +127,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     public void modified(final Config config) {
         final List<StaticResponseHeader> mappings = new ArrayList<>();
         final String[] props = config.sling_additional_response_headers();
-        if ( props != null ) {
+        if (props != null) {
             for (final String prop : props) {
-                if (prop != null && prop.trim().length() > 0 ) {
+                if (prop != null && prop.trim().length() > 0) {
                     try {
                         final StaticResponseHeader mapping = new StaticResponseHeader(prop.trim());
                         mappings.add(mapping);
@@ -157,10 +158,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         // nothing to do here, but DS requires this method
     }
 
-    @Reference(name = "ErrorHandler",
-               cardinality=ReferenceCardinality.OPTIONAL,
-               policy = ReferencePolicy.DYNAMIC,
-               policyOption = ReferencePolicyOption.GREEDY)
+    @Reference(
+            name = "ErrorHandler",
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            policyOption = ReferencePolicyOption.GREEDY)
     void setErrorHandler(final ErrorHandler handler) {
         this.errorHandler.setDelegate(handler);
     }
@@ -194,9 +196,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     /**
      * This method is directly called by the Sling main servlet.
      */
-    public void doProcessRequest(final HttpServletRequest servletRequest,
+    public void doProcessRequest(
+            final HttpServletRequest servletRequest,
             final HttpServletResponse servletResponse,
-            final ResourceResolver resourceResolver) throws IOException {
+            final ResourceResolver resourceResolver)
+            throws IOException {
         final ServletResolver sr = this.servletResolver;
 
         // check that we have all required services
@@ -207,13 +211,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
             final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
             String errorMessage = "Required service missing (";
-            if ( resourceResolver == null ) {
+            if (resourceResolver == null) {
                 errorMessage = errorMessage.concat("ResourceResolver");
-                if ( sr == null ) {
+                if (sr == null) {
                     errorMessage = errorMessage.concat(", ");
                 }
             }
-            if ( sr == null ) {
+            if (sr == null) {
                 errorMessage = errorMessage.concat("ServletResolver");
             }
             log.debug("{}, cannot service requests, sending status {}", errorMessage, status);
@@ -222,8 +226,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         }
 
         // setting the Sling request and response
-        final RequestData requestData = new RequestData(this, servletRequest, servletResponse,
-            protectHeadersOnInclude, checkContentTypeOnInclude, this.disableCheckCompliantGetUserPrincipal);
+        final RequestData requestData = new RequestData(
+                this,
+                servletRequest,
+                servletResponse,
+                protectHeadersOnInclude,
+                checkContentTypeOnInclude,
+                this.disableCheckCompliantGetUserPrincipal);
         final SlingHttpServletRequest request = requestData.getSlingRequest();
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
@@ -235,11 +244,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             final FilterHandle[] filters = filterManager.getFilters(FilterChainType.REQUEST);
             final FilterChain processor = new RequestSlingFilterChain(this, filters);
 
-            request.getRequestProgressTracker().log("Applying ".concat(FilterChainType.REQUEST.name()).concat("filters"));
+            request.getRequestProgressTracker()
+                    .log("Applying ".concat(FilterChainType.REQUEST.name()).concat("filters"));
 
             processor.doFilter(request, response);
 
-        } catch ( final SlingHttpServletResponseImpl.WriterAlreadyClosedException wace ) {
+        } catch (final SlingHttpServletResponseImpl.WriterAlreadyClosedException wace) {
             // this is an exception case, log as error
             log.error("Writer has already been closed.", wace);
 
@@ -252,7 +262,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // send this exception as is (albeit unwrapping and wrapped
             // exception.
             Throwable t = se;
-            while ( t instanceof SlingException && t.getCause() != null ) {
+            while (t instanceof SlingException && t.getCause() != null) {
                 t = t.getCause();
             }
             handleError(requestData, "SlingException", t, request, response);
@@ -260,10 +270,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         } catch (final AccessControlException ace) {
             // SLING-319 if anything goes wrong, send 403/FORBIDDEN
             log.debug(
-                "service: Authenticated user {} does not have enough rights to executed requested action",
-                request.getRemoteUser());
-            handleError(HttpServletResponse.SC_FORBIDDEN, null, request,
-                response);
+                    "service: Authenticated user {} does not have enough rights to executed requested action",
+                    request.getRemoteUser());
+            handleError(HttpServletResponse.SC_FORBIDDEN, null, request, response);
 
         } catch (final FileNotFoundException fnfe) {
             // send this exception as a 404 status
@@ -280,9 +289,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if (cause instanceof SocketException) {
                 // if the cause is a SocketException, the client most
                 // probably aborted the request, we do not fill the log with errors
-                log.debug(
-                    "service: Socketexception (Client abort or network problem",
-                    ioe);
+                log.debug("service: Socketexception (Client abort or network problem", ioe);
 
             } else {
                 // otherwise call error handler with original exception
@@ -303,15 +310,15 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     }
 
     private void handleError(
-        final RequestData requestData,
-        final String identifier,
-        final Throwable throwable,
-        final SlingHttpServletRequest request,
-        final SlingHttpServletResponse response) throws IOException {
+            final RequestData requestData,
+            final String identifier,
+            final Throwable throwable,
+            final SlingHttpServletRequest request,
+            final SlingHttpServletResponse response)
+            throws IOException {
         // we assume, that this is the name of the causing servlet
         if (requestData.getActiveServletName() != null) {
-            request.setAttribute(ERROR_SERVLET_NAME,
-                requestData.getActiveServletName());
+            request.setAttribute(ERROR_SERVLET_NAME, requestData.getActiveServletName());
         }
 
         log.error("service: Uncaught {}", identifier, throwable);
@@ -323,9 +330,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
      * @see org.apache.sling.engine.SlingRequestProcessor#processRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, org.apache.sling.api.resource.ResourceResolver)
      */
     @Override
-    public void processRequest(final HttpServletRequest servletRequest,
+    public void processRequest(
+            final HttpServletRequest servletRequest,
             final HttpServletResponse servletResponse,
-            final ResourceResolver resourceResolver) throws IOException {
+            final ResourceResolver resourceResolver)
+            throws IOException {
         // set the marker for the parameter support
         final Object oldValue = servletRequest.getAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING);
         servletRequest.setAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING, Boolean.TRUE);
@@ -333,7 +342,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             this.doProcessRequest(servletRequest, servletResponse, resourceResolver);
         } finally {
             // restore the old value
-            if ( oldValue != null ) {
+            if (oldValue != null) {
                 servletRequest.setAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING, oldValue);
             } else {
                 servletRequest.removeAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING);
@@ -353,17 +362,14 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
      * @throws IOException
      * @throws ServletException
      */
-
-    public void processComponent(SlingHttpServletRequest request,
-            SlingHttpServletResponse response,
-            final FilterChainType filterChainType) throws IOException,
-            ServletException {
+    public void processComponent(
+            SlingHttpServletRequest request, SlingHttpServletResponse response, final FilterChainType filterChainType)
+            throws IOException, ServletException {
 
         final FilterHandle filters[] = filterManager.getFilters(filterChainType);
 
         FilterChain processor = new SlingComponentFilterChain(filters);
-        request.getRequestProgressTracker().log(
-            "Applying " + filterChainType + "filters");
+        request.getRequestProgressTracker().log("Applying " + filterChainType + "filters");
         processor.doFilter(request, response);
     }
 
@@ -378,11 +384,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
      * @param resolvedURL Request path info
      * @param DispatchingInfo dispatching info
      */
-    public void dispatchRequest(final ServletRequest request,
-            final ServletResponse response, final Resource resource,
-            final RequestPathInfo resolvedURL, 
+    public void dispatchRequest(
+            final ServletRequest request,
+            final ServletResponse response,
+            final Resource resource,
+            final RequestPathInfo resolvedURL,
             final DispatchingInfo dispatchingInfo)
-    throws IOException, ServletException {
+            throws IOException, ServletException {
         // we need a SlingHttpServletRequest/SlingHttpServletResponse tupel
         // to continue
         final SlingHttpServletRequest cRequest = RequestData.toSlingHttpServletRequest(request);
@@ -422,10 +430,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     // ---------- Error Handling with Filters
 
-    private void handleError(final FilterChain errorFilterChain,
+    private void handleError(
+            final FilterChain errorFilterChain,
             final SlingHttpServletRequest request,
-            final SlingHttpServletResponse response) 
-    throws IOException {
+            final SlingHttpServletResponse response)
+            throws IOException {
         request.getRequestProgressTracker().log("Applying " + FilterChainType.ERROR + " filters");
 
         try {
@@ -437,24 +446,26 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         }
     }
 
-    void handleError(final int status, final String message,
+    void handleError(
+            final int status,
+            final String message,
             final SlingHttpServletRequest request,
-            final SlingHttpServletResponse response) throws IOException {
+            final SlingHttpServletResponse response)
+            throws IOException {
         final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
         final FilterChain processor = new ErrorFilterChain(filters, errorHandler, status, message);
         this.handleError(processor, request, response);
     }
 
-    private void handleError(final Throwable throwable,
-            final SlingHttpServletRequest request,
-            final SlingHttpServletResponse response) throws IOException {
+    private void handleError(
+            final Throwable throwable, final SlingHttpServletRequest request, final SlingHttpServletResponse response)
+            throws IOException {
         final FilterHandle[] filters = filterManager.getFilters(FilterChainType.ERROR);
         final FilterChain processor = new ErrorFilterChain(filters, errorHandler, throwable);
         this.handleError(processor, request, response);
     }
 
-    private static class ErrorResponseWrapper extends
-            SlingHttpServletResponseWrapper {
+    private static class ErrorResponseWrapper extends SlingHttpServletResponseWrapper {
 
         private PrintWriter writer;
 
@@ -508,9 +519,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             return mtservice.getMimeType(name);
         }
 
-        log.debug(
-            "getMimeType: MimeTypeService not available, cannot resolve mime type for {}",
-            name);
+        log.debug("getMimeType: MimeTypeService not available, cannot resolve mime type for {}", name);
         return null;
     }
 }

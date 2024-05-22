@@ -18,17 +18,6 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import java.io.InputStream;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.util.Collections;
-import java.util.Dictionary;
-import java.util.Enumeration;
-import java.util.EventListener;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Set;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterRegistration;
 import javax.servlet.RequestDispatcher;
@@ -41,6 +30,17 @@ import javax.servlet.ServletRegistration.Dynamic;
 import javax.servlet.SessionCookieConfig;
 import javax.servlet.SessionTrackingMode;
 import javax.servlet.descriptor.JspConfigDescriptor;
+
+import java.io.InputStream;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.util.Collections;
+import java.util.Dictionary;
+import java.util.Enumeration;
+import java.util.EventListener;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Set;
 
 import org.apache.sling.engine.impl.Config;
 import org.apache.sling.engine.impl.ProductInfoProvider;
@@ -88,9 +88,9 @@ import org.slf4j.LoggerFactory;
  * <p>
  * This class implements the Servlet API 3.0 {@code ServletContext} interface.
  */
-@Component(service = ServletContextListener.class,
-    configurationPid = Config.PID)
-@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+@Component(service = ServletContextListener.class, configurationPid = Config.PID)
+@HttpWhiteboardContextSelect(
+        "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
 @HttpWhiteboardListener
 public class SlingServletContext implements ServletContext, ServletContextListener {
 
@@ -127,9 +127,8 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     private final boolean checkContentTypeOnInclude;
 
     @Activate
-    public SlingServletContext(final Config config, 
-        final BundleContext bundleContext,
-        @Reference final ProductInfoProvider infoProvider) {
+    public SlingServletContext(
+            final Config config, final BundleContext bundleContext, @Reference final ProductInfoProvider infoProvider) {
         this.bundleContext = bundleContext;
         this.productInfoProvider = infoProvider;
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
@@ -175,7 +174,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
      * </ol>
      */
     private void setServerInfo() {
-        if ( this.configuredServerInfo != null ) {
+        if (this.configuredServerInfo != null) {
             this.serverInfo = this.configuredServerInfo;
         } else {
             final String containerProductInfo;
@@ -194,11 +193,15 @@ public class SlingServletContext implements ServletContext, ServletContextListen
                 }
             }
 
-            this.serverInfo = String.format("%s (%s, %s %s, %s %s %s)",
-                this.productInfoProvider.getProductInfo(), containerProductInfo,
-                System.getProperty("java.vm.name"),
-                System.getProperty("java.version"), System.getProperty("os.name"),
-                System.getProperty("os.version"), System.getProperty("os.arch"));
+            this.serverInfo = String.format(
+                    "%s (%s, %s %s, %s %s %s)",
+                    this.productInfoProvider.getProductInfo(),
+                    containerProductInfo,
+                    System.getProperty("java.vm.name"),
+                    System.getProperty("java.version"),
+                    System.getProperty("os.name"),
+                    System.getProperty("os.version"),
+                    System.getProperty("os.arch"));
         }
     }
 
@@ -226,49 +229,51 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     public void contextInitialized(final ServletContextEvent sce) {
         final ServletContext delegatee;
         final long counter;
-        synchronized ( this ) {
+        synchronized (this) {
             this.servletContext = sce.getServletContext();
             this.setServerInfo();
             delegatee = this.servletContext;
             this.initCounter++;
             counter = this.initCounter;
         }
-        if ( delegatee != null ) {
+        if (delegatee != null) {
             // async registration
-            this.runAsync(() -> {
-                final boolean register;
-                synchronized ( SlingServletContext.this ) {
-                    register = SlingServletContext.this.servletContext == delegatee;
-                }
-                if ( register ) {
-                    final ServiceRegistration<ServletContext> reg = registerServletContext();
-                    boolean immediatelyUnregister = false;
-                    synchronized ( SlingServletContext.this ) {
-                        if ( SlingServletContext.this.initCounter == counter ) {
-                            SlingServletContext.this.registration = reg;
-                        } else {
-                            immediatelyUnregister = true;
+            this.runAsync(
+                    () -> {
+                        final boolean register;
+                        synchronized (SlingServletContext.this) {
+                            register = SlingServletContext.this.servletContext == delegatee;
                         }
-                    }
-                    if ( immediatelyUnregister ) {
-                        unregisterServletContext(reg);
-                    }
-                }
-            }, "registration");
+                        if (register) {
+                            final ServiceRegistration<ServletContext> reg = registerServletContext();
+                            boolean immediatelyUnregister = false;
+                            synchronized (SlingServletContext.this) {
+                                if (SlingServletContext.this.initCounter == counter) {
+                                    SlingServletContext.this.registration = reg;
+                                } else {
+                                    immediatelyUnregister = true;
+                                }
+                            }
+                            if (immediatelyUnregister) {
+                                unregisterServletContext(reg);
+                            }
+                        }
+                    },
+                    "registration");
         }
     }
 
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
         final ServiceRegistration<ServletContext> reg;
-        synchronized ( this ) {
+        synchronized (this) {
             this.initCounter++;
             reg = this.registration;
             this.registration = null;
             this.servletContext = null;
             this.setServerInfo();
         }
-        if ( reg != null ) {
+        if (reg != null) {
             // async unregistration
             this.runAsync(() -> unregisterServletContext(reg), "unregistration");
         }
@@ -789,7 +794,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         // ServletContainerInitializer.onStartuo
         throw new IllegalStateException();
     }
-
 
     @Override
     public String getVirtualServerName() {

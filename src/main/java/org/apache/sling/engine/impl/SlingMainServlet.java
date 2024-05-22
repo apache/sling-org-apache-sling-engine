@@ -18,10 +18,6 @@
  */
 package org.apache.sling.engine.impl;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.Objects;
-
 import javax.servlet.GenericServlet;
 import javax.servlet.Servlet;
 import javax.servlet.ServletContext;
@@ -30,6 +26,10 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.util.Dictionary;
+import java.util.Hashtable;
+import java.util.Objects;
 
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -62,10 +62,13 @@ import org.slf4j.LoggerFactory;
 @Component(configurationPid = Config.PID)
 @ServiceDescription("Apache Sling Main Servlet")
 @ServiceVendor("The Apache Software Foundation")
-@Designate(ocd=Config.class)
+@Designate(ocd = Config.class)
 public class SlingMainServlet extends GenericServlet {
 
-    @Reference(cardinality = ReferenceCardinality.OPTIONAL, policy = ReferencePolicy.DYNAMIC, policyOption = ReferencePolicyOption.GREEDY)
+    @Reference(
+            cardinality = ReferenceCardinality.OPTIONAL,
+            policy = ReferencePolicy.DYNAMIC,
+            policyOption = ReferencePolicyOption.GREEDY)
     private volatile RequestListenerManager requestListenerManager;
 
     private BundleContext bundleContext;
@@ -95,10 +98,8 @@ public class SlingMainServlet extends GenericServlet {
     // ---------- Servlet API -------------------------------------------------
 
     @Override
-    public void service(ServletRequest req, ServletResponse res)
-            throws ServletException {
-        if (req instanceof HttpServletRequest
-            && res instanceof HttpServletResponse) {
+    public void service(ServletRequest req, ServletResponse res) throws ServletException {
+        if (req instanceof HttpServletRequest && res instanceof HttpServletResponse) {
 
             HttpServletRequest request = (HttpServletRequest) req;
 
@@ -121,17 +122,16 @@ public class SlingMainServlet extends GenericServlet {
 
                 // get ResourceResolver (set by AuthenticationSupport)
                 Object resolverObject = request.getAttribute(AuthenticationSupport.REQUEST_ATTRIBUTE_RESOLVER);
-                resolver = (resolverObject instanceof ResourceResolver)
-                        ? (ResourceResolver) resolverObject
-                        : null;
+                resolver = (resolverObject instanceof ResourceResolver) ? (ResourceResolver) resolverObject : null;
 
                 // real request handling for HTTP requests
                 // we don't check for null of requestProcessorImpl as we would throw an exception anyway in that case
-                requestProcessorImpl.doProcessRequest(request, (HttpServletResponse) res,
-                    resolver);
+                requestProcessorImpl.doProcessRequest(request, (HttpServletResponse) res, resolver);
 
             } catch (ClientAbortException cae) {
-                log.debug("service: ClientAbortException, probable cause is client aborted request or network problem", cae);
+                log.debug(
+                        "service: ClientAbortException, probable cause is client aborted request or network problem",
+                        cae);
 
             } catch (Throwable t) {
 
@@ -143,7 +143,6 @@ public class SlingMainServlet extends GenericServlet {
                 log.error("service: Uncaught Problem handling the request", t);
 
             } finally {
-
 
                 // close the resource resolver (not relying on servlet request
                 // listener to do this for now; see SLING-1270)
@@ -162,8 +161,7 @@ public class SlingMainServlet extends GenericServlet {
             }
 
         } else {
-            throw new ServletException(
-                "Apache Sling must be run in an HTTP servlet environment.");
+            throw new ServletException("Apache Sling must be run in an HTTP servlet environment.");
         }
     }
 
@@ -176,8 +174,10 @@ public class SlingMainServlet extends GenericServlet {
 
     private Dictionary<String, Object> getServletContextRegistrationProps(final String servletName) {
         final Dictionary<String, Object> servletConfig = new Hashtable<>();
-        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT,
-                "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")");
+        servletConfig.put(
+                HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_SELECT,
+                "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME
+                        + ")");
         servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_PATTERN, "/");
         if (servletName != null) {
             servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME, servletName);
@@ -197,12 +197,15 @@ public class SlingMainServlet extends GenericServlet {
             servletName = this.productInfoProvider.getProductInfo();
         }
         if (this.servletRegistration == null) {
-            this.servletRegistration = bundleContext.registerService(Servlet.class, this,
-                    getServletContextRegistrationProps(servletName));
+            this.servletRegistration =
+                    bundleContext.registerService(Servlet.class, this, getServletContextRegistrationProps(servletName));
         } else {
             // check if the servlet name has changed and update properties
-            if (!Objects.equals(servletName, this.servletRegistration.getReference()
-                    .getProperty(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME))) {
+            if (!Objects.equals(
+                    servletName,
+                    this.servletRegistration
+                            .getReference()
+                            .getProperty(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME))) {
                 this.servletRegistration.setProperties(getServletContextRegistrationProps(servletName));
             }
         }
@@ -222,7 +225,7 @@ public class SlingMainServlet extends GenericServlet {
 
     @Deactivate
     protected void deactivate() {
-        if ( this.servletRegistration != null ) {
+        if (this.servletRegistration != null) {
             this.servletRegistration.unregister();
             this.servletRegistration = null;
         }

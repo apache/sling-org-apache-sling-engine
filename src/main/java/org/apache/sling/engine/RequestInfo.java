@@ -29,34 +29,39 @@ import org.osgi.annotation.versioning.ProviderType;
  */
 @ProviderType
 public interface RequestInfo {
-    
+
     /**
      * Get the unique id for the request
      * @return The id
      */
-    @NotNull String getId();
+    @NotNull
+    String getId();
 
     /**
      * Get the request method
      * @return The request method
      */
-    @NotNull String getMethod();
+    @NotNull
+    String getMethod();
 
     /**
      * Get the requested path
      * @return The path
      */
-    @NotNull String getPath();
+    @NotNull
+    String getPath();
 
     /**
      * Get the user id for the request
      * @return the user id or {@code null}
      */
-    @Nullable String getUserId();
+    @Nullable
+    String getUserId();
 
     /**
      * Get the log for the request
      * @return The request log, multi-line output
      */
-    @NotNull String getLog();
+    @NotNull
+    String getLog();
 }

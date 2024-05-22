@@ -18,25 +18,25 @@
  */
 package org.apache.sling.engine.impl;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.fail;
+import javax.management.NotCompliantMBeanException;
 
 import java.util.Random;
-
-import javax.management.NotCompliantMBeanException;
 
 import org.apache.commons.math.stat.descriptive.SummaryStatistics;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
+
 public class RequestProcessorMBeanImplTest {
-    
+
     /**
      * Asserts that the simple standard deviation algorithm used by the
      * RequestProcessorMBeanImpl is equivalent to the Commons Math
      * SummaryStatistics implementation.
-     * 
+     *
      * It also tests that resetStatistics method, actually resets all the statistics
      *
      * @throws NotCompliantMBeanException not expected
@@ -75,7 +75,7 @@ public class RequestProcessorMBeanImplTest {
             durationStats.addValue(durationValue);
             servletCallCountStats.addValue(callCountValue);
             peakRecursionDepthStats.addValue(peakRecursionDepthValue);
-            
+
             final RequestData requestData = Mockito.mock(RequestData.class, "requestData" + i);
             Mockito.when(requestData.getElapsedTimeMsec()).thenReturn(durationValue);
             Mockito.when(requestData.getServletCallCount()).thenReturn(callCountValue);
@@ -85,30 +85,54 @@ public class RequestProcessorMBeanImplTest {
         }
 
         assertEquals("Number of points must be the same", durationStats.getN(), bean.getRequestsCount());
-        
+
         assertEquals("Min Duration must be equal", (long) durationStats.getMin(), bean.getMinRequestDurationMsec());
         assertEquals("Max Duration must be equal", (long) durationStats.getMax(), bean.getMaxRequestDurationMsec());
         assertAlmostEqual("Mean Duration", durationStats.getMean(), bean.getMeanRequestDurationMsec(), num);
-        assertAlmostEqual("Standard Deviation Duration", durationStats.getStandardDeviation(),
-            bean.getStandardDeviationDurationMsec(), num);
-        
-        assertEquals("Min Servlet Call Count must be equal", (long) servletCallCountStats.getMin(), bean.getMinServletCallCount());
-        assertEquals("Max Servlet Call Count must be equal", (long) servletCallCountStats.getMax(), bean.getMaxServletCallCount());
-        assertAlmostEqual("Mean Servlet Call Count", servletCallCountStats.getMean(), bean.getMeanServletCallCount(), num);
-        assertAlmostEqual("Standard Deviation Servlet Call Count", servletCallCountStats.getStandardDeviation(),
-            bean.getStandardDeviationServletCallCount(), num);
-        
-        assertEquals("Min Peak Recursion Depth must be equal", (long) peakRecursionDepthStats.getMin(), bean.getMinPeakRecursionDepth());
-        assertEquals("Max Peak Recursion Depth must be equal", (long) peakRecursionDepthStats.getMax(), bean.getMaxPeakRecursionDepth());
-        assertAlmostEqual("Mean Peak Recursion Depth", peakRecursionDepthStats.getMean(), bean.getMeanPeakRecursionDepth(), num);
-        assertAlmostEqual("Standard Deviation Peak Recursion Depth", peakRecursionDepthStats.getStandardDeviation(),
-            bean.getStandardDeviationPeakRecursionDepth(), num);
-        
-        //check method resetStatistics 
-        //In the previous test, some requests have been processed, now we reset the statistics so everything statistic is reinitialized
+        assertAlmostEqual(
+                "Standard Deviation Duration",
+                durationStats.getStandardDeviation(),
+                bean.getStandardDeviationDurationMsec(),
+                num);
+
+        assertEquals(
+                "Min Servlet Call Count must be equal",
+                (long) servletCallCountStats.getMin(),
+                bean.getMinServletCallCount());
+        assertEquals(
+                "Max Servlet Call Count must be equal",
+                (long) servletCallCountStats.getMax(),
+                bean.getMaxServletCallCount());
+        assertAlmostEqual(
+                "Mean Servlet Call Count", servletCallCountStats.getMean(), bean.getMeanServletCallCount(), num);
+        assertAlmostEqual(
+                "Standard Deviation Servlet Call Count",
+                servletCallCountStats.getStandardDeviation(),
+                bean.getStandardDeviationServletCallCount(),
+                num);
+
+        assertEquals(
+                "Min Peak Recursion Depth must be equal",
+                (long) peakRecursionDepthStats.getMin(),
+                bean.getMinPeakRecursionDepth());
+        assertEquals(
+                "Max Peak Recursion Depth must be equal",
+                (long) peakRecursionDepthStats.getMax(),
+                bean.getMaxPeakRecursionDepth());
+        assertAlmostEqual(
+                "Mean Peak Recursion Depth", peakRecursionDepthStats.getMean(), bean.getMeanPeakRecursionDepth(), num);
+        assertAlmostEqual(
+                "Standard Deviation Peak Recursion Depth",
+                peakRecursionDepthStats.getStandardDeviation(),
+                bean.getStandardDeviationPeakRecursionDepth(),
+                num);
+
+        // check method resetStatistics
+        // In the previous test, some requests have been processed, now we reset the statistics so everything statistic
+        // is reinitialized
         bean.resetStatistics();
 
-        //Simulate a single request 
+        // Simulate a single request
         final long durationValue = min + random.nextInt(max - min);
         final int callCountValue = min + random.nextInt(max - min);
         final int peakRecursionDepthValue = min + random.nextInt(max - min);
@@ -120,20 +144,46 @@ public class RequestProcessorMBeanImplTest {
 
         bean.addRequestData(requestData);
 
-        //As only one request has been simulated since resetStatiscts: min, max and mean statistics should be equals to the request data
-        assertEquals("After resetStatistics Number of requests must be one",1, bean.getRequestsCount());
-        assertEquals("After resetStatistics Min Duration must be equal", bean.getMinRequestDurationMsec(), (long) durationValue);
-        assertEquals("After resetStatistics Max Duration must be equal", bean.getMaxRequestDurationMsec(), (long) durationValue);
-        assertEquals("After resetStatistics Mean Duration must be equal",  bean.getMeanRequestDurationMsec(),(double) durationValue, 0d);
+        // As only one request has been simulated since resetStatiscts: min, max and mean statistics should be equals to
+        // the request data
+        assertEquals("After resetStatistics Number of requests must be one", 1, bean.getRequestsCount());
+        assertEquals("After resetStatistics Min Duration must be equal", bean.getMinRequestDurationMsec(), (long)
+                durationValue);
+        assertEquals("After resetStatistics Max Duration must be equal", bean.getMaxRequestDurationMsec(), (long)
+                durationValue);
+        assertEquals(
+                "After resetStatistics Mean Duration must be equal",
+                bean.getMeanRequestDurationMsec(),
+                (double) durationValue,
+                0d);
 
-        
-        assertEquals("After resetStatistics Min Servlet Call Count must be equal",bean.getMinServletCallCount(), callCountValue);
-        assertEquals("After resetStatistics Max Servlet Call Count must be equal",bean.getMaxServletCallCount(), callCountValue);
-        assertEquals("After resetStatistics Mean Servlet Call Count", bean.getMeanServletCallCount(), (double)callCountValue, 0d);
-        
-        assertEquals("After resetStatistics Min Peak Recursion Depth must be equal", bean.getMinPeakRecursionDepth(),peakRecursionDepthValue );
-        assertEquals("After resetStatistics Max Peak Recursion Depth must be equal", bean.getMinPeakRecursionDepth(), peakRecursionDepthValue);
-        assertEquals("After resetStatistics Mean Peak Recursion Depth", bean.getMeanPeakRecursionDepth(), (double)peakRecursionDepthValue, 0d);
+        assertEquals(
+                "After resetStatistics Min Servlet Call Count must be equal",
+                bean.getMinServletCallCount(),
+                callCountValue);
+        assertEquals(
+                "After resetStatistics Max Servlet Call Count must be equal",
+                bean.getMaxServletCallCount(),
+                callCountValue);
+        assertEquals(
+                "After resetStatistics Mean Servlet Call Count",
+                bean.getMeanServletCallCount(),
+                (double) callCountValue,
+                0d);
+
+        assertEquals(
+                "After resetStatistics Min Peak Recursion Depth must be equal",
+                bean.getMinPeakRecursionDepth(),
+                peakRecursionDepthValue);
+        assertEquals(
+                "After resetStatistics Max Peak Recursion Depth must be equal",
+                bean.getMinPeakRecursionDepth(),
+                peakRecursionDepthValue);
+        assertEquals(
+                "After resetStatistics Mean Peak Recursion Depth",
+                bean.getMeanPeakRecursionDepth(),
+                (double) peakRecursionDepthValue,
+                0d);
     }
 
     private void assertAlmostEqual(final String message, final double v1, final double v2, int samples) {

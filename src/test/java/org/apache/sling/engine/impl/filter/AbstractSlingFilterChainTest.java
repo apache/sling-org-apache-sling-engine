@@ -18,10 +18,6 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import static org.junit.Assert.assertTrue;
-
-import java.io.IOException;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -31,12 +27,16 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
+import java.io.IOException;
+
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
+
+import static org.junit.Assert.assertTrue;
 
 public class AbstractSlingFilterChainTest extends AbstractFilterTest {
 
@@ -47,25 +47,26 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
             public void init(FilterConfig filterConfig) throws ServletException {}
 
             @Override
-            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
+            public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+                    throws IOException, ServletException {
                 chain.doFilter(request, response);
                 chain.doFilter(request, response);
             }
 
             @Override
-            public void destroy() { }
+            public void destroy() {}
         };
 
         FilterHandle handle = new FilterHandle(badFilter, null, 1, 1, null, null);
 
-        AbstractSlingFilterChain chain = new AbstractSlingFilterChain(new FilterHandle[]{ handle }) {
+        AbstractSlingFilterChain chain = new AbstractSlingFilterChain(new FilterHandle[] {handle}) {
             @Override
-            protected void render(SlingHttpServletRequest request, SlingHttpServletResponse response) throws IOException, ServletException {
-            }
+            protected void render(SlingHttpServletRequest request, SlingHttpServletResponse response)
+                    throws IOException, ServletException {}
         };
         HttpServletRequest httpReq = whateverRequest();
-        final RequestData requestData = new RequestData(new SlingRequestProcessorImpl(), httpReq,
-                context.mock(HttpServletResponse.class), false, false, true);
+        final RequestData requestData = new RequestData(
+                new SlingRequestProcessorImpl(), httpReq, context.mock(HttpServletResponse.class), false, false, true);
         final SlingHttpServletRequestImpl req = new SlingHttpServletRequestImpl(requestData, httpReq);
         boolean illegalStateCaught = false;
         try {
@@ -75,5 +76,4 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
         }
         assertTrue("an illegal state exception should have been caught", illegalStateCaught);
     }
-
 }

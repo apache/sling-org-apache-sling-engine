@@ -18,8 +18,6 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import java.io.IOException;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -28,6 +26,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.osgi.service.component.annotations.Component;
@@ -43,8 +43,8 @@ import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardFilterPatter
 import org.slf4j.LoggerFactory;
 
 @Component(service = Filter.class)
-@HttpWhiteboardContextSelect("(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
-        + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+@HttpWhiteboardContextSelect(
+        "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
 @HttpWhiteboardFilterPattern("/")
 @ServiceRanking(32768)
 @ServiceDescription("Request Logger Filter")
@@ -58,12 +58,11 @@ public final class RequestLoggerFilter implements Filter {
     private RequestLoggerService[] requestExit = NONE;
 
     @Override
-    public void init(FilterConfig filterConfig) {
-    }
+    public void init(FilterConfig filterConfig) {}
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException,
-            ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
 
         final RequestLoggerRequest rlreq = new RequestLoggerRequest((HttpServletRequest) request);
         final RequestLoggerResponse rlres = new RequestLoggerResponse(request, (HttpServletResponse) response);
@@ -104,9 +103,7 @@ public final class RequestLoggerFilter implements Filter {
 
     private RequestLoggerService[] addService(RequestLoggerService[] list, RequestLoggerService requestLoggerService) {
         if (list.length == 0) {
-            return new RequestLoggerService[] {
-                requestLoggerService
-            };
+            return new RequestLoggerService[] {requestLoggerService};
         }
 
         // add the service to the list, must not be in the list yet due to
@@ -118,7 +115,8 @@ public final class RequestLoggerFilter implements Filter {
         return newList;
     }
 
-    private RequestLoggerService[] removeService(RequestLoggerService[] list, RequestLoggerService requestLoggerService) {
+    private RequestLoggerService[] removeService(
+            RequestLoggerService[] list, RequestLoggerService requestLoggerService) {
 
         RequestLoggerService[] newList = NONE;
         for (int i = 0; i < list.length; i++) {
@@ -141,8 +139,8 @@ public final class RequestLoggerFilter implements Filter {
         return (newList.length > 0) ? newList : NONE;
     }
 
-    private void log(RequestLoggerService[] services, final RequestLoggerRequest request,
-            final RequestLoggerResponse response) {
+    private void log(
+            RequestLoggerService[] services, final RequestLoggerRequest request, final RequestLoggerResponse response) {
         for (RequestLoggerService service : services) {
             try {
                 service.log(request, response);

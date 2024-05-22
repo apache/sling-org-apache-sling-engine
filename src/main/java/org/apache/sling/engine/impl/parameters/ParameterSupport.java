@@ -18,6 +18,9 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletRequestWrapper;
+
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -28,9 +31,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
 
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
@@ -52,14 +52,15 @@ public class ParameterSupport {
      * method (which unfortunately happens to be returning {@code null} most of
      * the time.
      */
-    public final static String PARAMETER_FORMENCODING = "_charset_";
+    public static final String PARAMETER_FORMENCODING = "_charset_";
 
     /**
      * Request attribute which is set if the current request is "started"
      * by calling {@link org.apache.sling.engine.SlingRequestProcessor#processRequest(HttpServletRequest, HttpServletResponse, ResourceResolver)}
      * This marker is evaluated in {@link #getRequestParameterMapInternal()}.
      */
-    public final static String MARKER_IS_SERVICE_PROCESSING = ParameterSupport.class.getName() + "/ServiceProcessingMarker";
+    public static final String MARKER_IS_SERVICE_PROCESSING =
+            ParameterSupport.class.getName() + "/ServiceProcessingMarker";
 
     // name of the request attribute caching the ParameterSupport instance
     // used during the request
@@ -156,7 +157,10 @@ public class ParameterSupport {
         return new ParameterSupportHttpServletRequestWrapper(request);
     }
 
-    static void configure(final long maxRequestSize, final String location, final long maxFileSize,
+    static void configure(
+            final long maxRequestSize,
+            final String location,
+            final long maxFileSize,
             final int fileSizeThreshold,
             final boolean checkForAdditionalParameters,
             final long maxFileCount) {
@@ -194,7 +198,10 @@ public class ParameterSupport {
 
     public Enumeration<String> getParameterNames() {
         return new Enumeration<String>() {
-            private final Iterator<String> base = ParameterSupport.this.getRequestParameterMapInternal().keySet().iterator();
+            private final Iterator<String> base = ParameterSupport.this
+                    .getRequestParameterMapInternal()
+                    .keySet()
+                    .iterator();
 
             @Override
             public boolean hasMoreElements() {
@@ -298,16 +305,24 @@ public class ParameterSupport {
                     if (isStreamed(parameters, this.getServletRequest())) {
                         // special case, the request is Multipart and streamed processing has been requested
                         try {
-                            this.getServletRequest().setAttribute(REQUEST_PARTS_ITERATOR_ATTRIBUTE, new RequestPartsIterator(this.getServletRequest()));
-                            this.log.debug("getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
+                            this.getServletRequest()
+                                    .setAttribute(
+                                            REQUEST_PARTS_ITERATOR_ATTRIBUTE,
+                                            new RequestPartsIterator(this.getServletRequest()));
+                            this.log.debug(
+                                    "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
                         } catch (IOException e) {
-                            this.log.error("getRequestParameterMapInternal: Error parsing multipart streamed request", e);
+                            this.log.error(
+                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
                         } catch (FileUploadException e) {
-                            this.log.error("getRequestParameterMapInternal: Error parsing multipart streamed request", e);
+                            this.log.error(
+                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
                         }
-                        // The request data has been passed to the RequestPartsIterator, hence from a RequestParameter pov its been used, and must not be used again.
+                        // The request data has been passed to the RequestPartsIterator, hence from a RequestParameter
+                        // pov its been used, and must not be used again.
                         this.requestDataUsed = true;
-                        // must not try and get anything from the request at this point so avoid jumping through the stream.
+                        // must not try and get anything from the request at this point so avoid jumping through the
+                        // stream.
                         addContainerParameters = false;
                         useFallback = false;
                     } else {
@@ -318,9 +333,9 @@ public class ParameterSupport {
                     }
                 }
             }
-            if ( useFallback ) {
+            if (useFallback) {
                 getContainerParameters(parameters, encoding, true);
-            } else  if ( addContainerParameters ) {
+            } else if (addContainerParameters) {
                 getContainerParameters(parameters, encoding, false);
             }
             // apply any form encoding (from '_charset_') in the parameter map
@@ -331,7 +346,6 @@ public class ParameterSupport {
         return this.postParameterMap;
     }
 
-
     /**
      * Checks to see if there is an upload mode header or uploadmode parameter indicating the request is
      * to be streamed from the client to the server.
@@ -340,11 +354,11 @@ public class ParameterSupport {
      * @return true if the request was made with streaming in mind.
      */
     private boolean isStreamed(ParameterMap parameters, HttpServletRequest servletRequest) {
-        if ( STREAM_UPLOAD.equals(servletRequest.getHeader(SLING_UPLOADMODE_HEADER)) ) {
+        if (STREAM_UPLOAD.equals(servletRequest.getHeader(SLING_UPLOADMODE_HEADER))) {
             return true;
         }
         RequestParameter[] rp = parameters.get(UPLOADMODE_PARAM);
-        return ( rp != null && rp.length == 1 && STREAM_UPLOAD.equals(rp[0].getString()));
+        return (rp != null && rp.length == 1 && STREAM_UPLOAD.equals(rp[0].getString()));
     }
 
     private void getContainerParameters(final ParameterMap parameters, final String encoding, final boolean alwaysAdd) {
@@ -352,12 +366,11 @@ public class ParameterSupport {
         for (Map.Entry<?, ?> entry : pMap.entrySet()) {
 
             final String name = (String) entry.getKey();
-            if ( alwaysAdd || !parameters.containsKey(name) ) {
+            if (alwaysAdd || !parameters.containsKey(name)) {
                 final String[] values = (String[]) entry.getValue();
 
                 for (int i = 0; i < values.length; i++) {
-                    parameters.addParameter(new ContainerRequestParameter(
-                        name, values[i], encoding), false);
+                    parameters.addParameter(new ContainerRequestParameter(name, values[i], encoding), false);
                 }
             }
         }
@@ -380,15 +393,14 @@ public class ParameterSupport {
         return false;
     }
 
-
     private void parseMultiPartPost(ParameterMap parameters) {
 
         // Create a new file upload handler
         ServletFileUpload upload = new ServletFileUpload();
         upload.setSizeMax(ParameterSupport.maxRequestSize);
         upload.setFileSizeMax(ParameterSupport.maxFileSize);
-        upload.setFileItemFactory(new DiskFileItemFactory(ParameterSupport.fileSizeThreshold,
-            ParameterSupport.location));
+        upload.setFileItemFactory(
+                new DiskFileItemFactory(ParameterSupport.fileSizeThreshold, ParameterSupport.location));
         upload.setFileCountMax(ParameterSupport.maxFileCount);
         RequestContext rc = new ServletRequestContext(this.getServletRequest()) {
             @Override
@@ -399,7 +411,7 @@ public class ParameterSupport {
         };
 
         // Parse the request
-        List<?> /* FileItem */items = null;
+        List<?> /* FileItem */ items = null;
         try {
             items = upload.parseRequest(rc);
         } catch (FileUploadException fue) {
@@ -407,12 +419,11 @@ public class ParameterSupport {
         }
 
         if (items != null && items.size() > 0) {
-            for (Iterator<?> ii = items.iterator(); ii.hasNext();) {
+            for (Iterator<?> ii = items.iterator(); ii.hasNext(); ) {
                 FileItem fileItem = (FileItem) ii.next();
                 RequestParameter pp = new MultipartRequestParameter(fileItem);
                 parameters.addParameter(pp, false);
             }
         }
     }
-
 }

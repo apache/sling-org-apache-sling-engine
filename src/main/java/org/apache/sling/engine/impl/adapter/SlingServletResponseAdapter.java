@@ -18,14 +18,14 @@
  */
 package org.apache.sling.engine.impl.adapter;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Locale;
-
 import javax.servlet.ServletOutputStream;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Locale;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
@@ -40,13 +40,11 @@ import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
  * <code>SlingHttpServletResponseWrapper</code>. One such case is the Jasper
  * runtime which does this.
  */
-public class SlingServletResponseAdapter extends
-        SlingHttpServletResponseWrapper {
+public class SlingServletResponseAdapter extends SlingHttpServletResponseWrapper {
 
     private final HttpServletResponse response;
 
-    public SlingServletResponseAdapter(SlingHttpServletResponse delegatee,
-            HttpServletResponse response) {
+    public SlingServletResponseAdapter(SlingHttpServletResponse delegatee, HttpServletResponse response) {
         super(delegatee);
         this.response = response;
     }
@@ -178,7 +176,6 @@ public class SlingServletResponseAdapter extends
     public ServletResponse getResponse() {
         return response;
     }
-
 
     @Override
     public SlingHttpServletResponse getSlingResponse() {

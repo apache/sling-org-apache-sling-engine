@@ -18,9 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import java.io.File;
-import java.io.IOException;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -28,6 +25,9 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
+
+import java.io.File;
+import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.settings.SlingSettingsService;
@@ -45,63 +45,61 @@ import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-@Component(
-        name = RequestParameterSupportConfigurer.PID,
-        service = Filter.class)
+@Component(name = RequestParameterSupportConfigurer.PID, service = Filter.class)
 @HttpWhiteboardContextSelect("(osgi.http.whiteboard.context.name=org.apache.sling)")
 @HttpWhiteboardFilterPattern("/")
 @ServiceDescription("Filter for request parameter support")
 @ServiceVendor("The Apache Software Foundation")
 @ServiceRanking(Integer.MAX_VALUE)
-@Designate(ocd=RequestParameterSupportConfigurer.Config.class)
+@Designate(ocd = RequestParameterSupportConfigurer.Config.class)
 public class RequestParameterSupportConfigurer implements Filter {
 
     @Override
-    public void init(FilterConfig filterConfig) throws ServletException {
-
-    }
+    public void init(FilterConfig filterConfig) throws ServletException {}
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        if (request instanceof HttpServletRequest && !(request instanceof ParameterSupportHttpServletRequestWrapper) && !(request instanceof SlingHttpServletRequest)) {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
+        if (request instanceof HttpServletRequest
+                && !(request instanceof ParameterSupportHttpServletRequestWrapper)
+                && !(request instanceof SlingHttpServletRequest)) {
             chain.doFilter(ParameterSupport.getParameterSupportRequestWrapper((HttpServletRequest) request), response);
-        }
-        else {
+        } else {
             chain.doFilter(request, response);
         }
     }
 
     @Override
-    public void destroy() {
+    public void destroy() {}
 
-    }
-
-    @ObjectClassDefinition(name = "Apache Sling Request Parameter Handling",
-        description = "Configures Sling's request parameter handling.")
+    @ObjectClassDefinition(
+            name = "Apache Sling Request Parameter Handling",
+            description = "Configures Sling's request parameter handling.")
     public @interface Config {
         @AttributeDefinition(
                 name = "Default Parameter Encoding",
                 description = "The default request parameter encoding used to decode request "
-                    + "parameters into strings. If this property is not set the default encoding "
-                    + "is 'ISO-8859-1' as mandated by the Servlet API spec. This default encoding "
-                    + "is used if the '_charset_' request parameter is not set to another "
-                    + "(supported) character encoding. Applications being sure to always use the "
-                    + "same encoding (e.g. UTF-8) can set this default here and may omit the "
-                    + "'_charset_' request parameter")
+                        + "parameters into strings. If this property is not set the default encoding "
+                        + "is 'ISO-8859-1' as mandated by the Servlet API spec. This default encoding "
+                        + "is used if the '_charset_' request parameter is not set to another "
+                        + "(supported) character encoding. Applications being sure to always use the "
+                        + "same encoding (e.g. UTF-8) can set this default here and may omit the "
+                        + "'_charset_' request parameter")
         String sling_default_parameter_encoding() default Util.ENCODING_DIRECT;
 
         @AttributeDefinition(
                 name = "Maximum POST Parameters",
                 description = "The maximum number of parameters supported. To prevent a DOS-style attack with an "
-                    + "overrunning number of parameters the number of parameters supported can be limited. This "
-                    + "includes all of the query string as well as application/x-www-form-urlencoded and "
-                    + "multipart/form-data parameters. The default value is " + ParameterMap.DEFAULT_MAX_PARAMS + ".")
-       int sling_default_max_parameters() default ParameterMap.DEFAULT_MAX_PARAMS;
+                        + "overrunning number of parameters the number of parameters supported can be limited. This "
+                        + "includes all of the query string as well as application/x-www-form-urlencoded and "
+                        + "multipart/form-data parameters. The default value is " + ParameterMap.DEFAULT_MAX_PARAMS
+                        + ".")
+        int sling_default_max_parameters() default ParameterMap.DEFAULT_MAX_PARAMS;
 
         @AttributeDefinition(
                 name = "Temporary File Location",
                 description = "The temporary directory where uploaded files are written to disk. The default is "
-                    + "null, which means the directory given by the 'java.io.tmpdir' system property.")
+                        + "null, which means the directory given by the 'java.io.tmpdir' system property.")
         String file_location();
 
         @AttributeDefinition(
@@ -116,25 +114,27 @@ public class RequestParameterSupportConfigurer implements Filter {
 
         @AttributeDefinition(
                 name = "Maximum Request Size",
-                description = "The maximum size allowed for multipart/form-data requests. The default is -1, which means unlimited.")
+                description =
+                        "The maximum size allowed for multipart/form-data requests. The default is -1, which means unlimited.")
         long request_max() default -1;
 
         @AttributeDefinition(
                 name = "Check Additional Parameters",
-                description = "Enable this if you want to include request parameters added through the container, e.g through a valve.")
+                description =
+                        "Enable this if you want to include request parameters added through the container, e.g through a valve.")
         boolean sling_default_parameter_checkForAdditionalContainerParameters() default false;
 
         @AttributeDefinition(
                 name = "Maximum File Count",
-                description = "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
+                description =
+                        "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
         long request_max_file_count() default 50;
     }
+
     static final String PID = "org.apache.sling.engine.parameters";
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(PID);
-
-
 
     @Reference
     private SlingSettingsService settignsService;
@@ -162,8 +162,13 @@ public class RequestParameterSupportConfigurer implements Filter {
 
         Util.setDefaultFixEncoding(fixEncoding);
         ParameterMap.setMaxParameters(maxParams);
-        ParameterSupport.configure(maxRequestSize, fileLocation, maxFileSize,
-                fileSizeThreshold, checkAddParameters, config.request_max_file_count());
+        ParameterSupport.configure(
+                maxRequestSize,
+                fileLocation,
+                maxFileSize,
+                fileSizeThreshold,
+                checkAddParameters,
+                config.request_max_file_count());
     }
 
     private String getFileLocation(String fileLocation) {
@@ -176,8 +181,8 @@ public class RequestParameterSupportConfigurer implements Filter {
             if (file.exists()) {
                 if (!file.isDirectory()) {
                     log.error(
-                        "Configured temporary file location {} exists but is not a directory; using java.io.tmpdir instead",
-                        fileLocation);
+                            "Configured temporary file location {} exists but is not a directory; using java.io.tmpdir instead",
+                            fileLocation);
                     fileLocation = null;
                 }
             } else {

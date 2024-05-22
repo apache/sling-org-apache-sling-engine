@@ -18,12 +18,12 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import java.io.IOException;
-
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -54,8 +54,8 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         final long start = System.nanoTime();
 
         if (filterIdx > this.filters.length) {
-            //this happens when the whole filter chain has been executed, and a filter in that chain,
-            //for some (bad) reason, calls doFilter yet another time.
+            // this happens when the whole filter chain has been executed, and a filter in that chain,
+            // for some (bad) reason, calls doFilter yet another time.
             throw new IllegalStateException("doFilter should not be called more than once");
         }
 
@@ -71,17 +71,17 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
 
                 // continue filtering with the next filter
                 FilterHandle filter = this.filters[this.current];
-                
+
                 if (filter.select(slingRequest)) {
                     LOG.debug("{} got selected for this request", filter);
                     trackFilter(slingRequest, filter);
                     filter.getFilter().doFilter(slingRequest, slingResponse, this);
                 } else {
                     LOG.debug("{} was not selected for this request", filter);
-                    if (this.current == this.filters.length-1) {
+                    if (this.current == this.filters.length - 1) {
                         this.render(slingRequest, slingResponse);
                     } else {
-                       doFilter(slingRequest, slingResponse);
+                        doFilter(slingRequest, slingResponse);
                     }
                 }
             } else {
@@ -98,9 +98,8 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         }
     }
 
-    protected abstract void render(SlingHttpServletRequest request,
-            SlingHttpServletResponse response) throws IOException,
-            ServletException;
+    protected abstract void render(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            throws IOException, ServletException;
 
     // ---------- internal helper
 
@@ -108,8 +107,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         final RequestData data = RequestData.getRequestData(request);
         if (data != null) {
             RequestProgressTracker tracker = data.getRequestProgressTracker();
-            tracker.log("Calling filter: {0}",
-                filter.getFilter().getClass().getName());
+            tracker.log("Calling filter: {0}", filter.getFilter().getClass().getName());
         }
         filter.track();
     }
@@ -122,8 +120,12 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
             for (int i = filters.length - 1; i > 0; i--) {
                 filters[i].trackTime(times[i] - times[i + 1]);
                 if (tracker != null) {
-                    tracker.log("Filter timing: filter={0}, inner={1,number,#}, total={2,number,#}, outer={3,number,#}",
-                        filters[i].getFilter().getClass().getName(), times[i + 1], times[i], (times[i] - times[i + 1]));
+                    tracker.log(
+                            "Filter timing: filter={0}, inner={1,number,#}, total={2,number,#}, outer={3,number,#}",
+                            filters[i].getFilter().getClass().getName(),
+                            times[i + 1],
+                            times[i],
+                            (times[i] - times[i + 1]));
                 }
             }
         }

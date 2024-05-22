@@ -18,13 +18,13 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
+import javax.servlet.http.Part;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
-
-import javax.servlet.http.Part;
 
 public class SlingPart implements Part {
 
@@ -72,7 +72,8 @@ public class SlingPart implements Part {
     @Override
     public Collection<String> getHeaders(String name) {
         final ArrayList<String> headers = new ArrayList<String>();
-        final Iterator<String> itemHeaders = this.param.getFileItem().getHeaders().getHeaders(name);
+        final Iterator<String> itemHeaders =
+                this.param.getFileItem().getHeaders().getHeaders(name);
         while (itemHeaders.hasNext()) {
             headers.add(itemHeaders.next());
         }
@@ -82,7 +83,8 @@ public class SlingPart implements Part {
     @Override
     public Collection<String> getHeaderNames() {
         final ArrayList<String> headers = new ArrayList<String>();
-        final Iterator<String> itemHeaders = this.param.getFileItem().getHeaders().getHeaderNames();
+        final Iterator<String> itemHeaders =
+                this.param.getFileItem().getHeaders().getHeaderNames();
         while (itemHeaders.hasNext()) {
             headers.add(itemHeaders.next());
         }

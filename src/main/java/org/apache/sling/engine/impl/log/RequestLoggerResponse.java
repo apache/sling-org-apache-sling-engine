@@ -18,6 +18,13 @@
  */
 package org.apache.sling.engine.impl.log;
 
+import javax.servlet.ServletOutputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.WriteListener;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpServletResponseWrapper;
+
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -30,13 +37,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.WriteListener;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 
 class RequestLoggerResponse extends HttpServletResponseWrapper {
@@ -48,8 +48,8 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
     private static final String HEADER_CONTENT_LENGTH = "Content-Length";
 
     /** format for RFC 1123 date string -- "Sun, 06 Nov 1994 08:49:37 GMT" */
-    private final static SimpleDateFormat RFC1123_FORMAT = new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z",
-        Locale.US);
+    private static final SimpleDateFormat RFC1123_FORMAT =
+            new SimpleDateFormat("EEE, dd MMM yyyy HH:mm:ss z", Locale.US);
 
     /**
      * The counter for request gone through this filter. As this is the first
@@ -288,7 +288,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
             return (String) header;
         } else {
             StringBuilder headerBuf = new StringBuilder();
-            for (Iterator<?> hi = ((List<?>) header).iterator(); hi.hasNext();) {
+            for (Iterator<?> hi = ((List<?>) header).iterator(); hi.hasNext(); ) {
                 if (headerBuf.length() > 0) {
                     headerBuf.append(",");
                 }
@@ -378,7 +378,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
             try {
                 this.delegatee.write(b);
                 this.count++;
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 throw new ClientAbortException(ioe);
             }
         }
@@ -388,7 +388,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
             try {
                 this.delegatee.write(b);
                 this.count += b.length;
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 throw new ClientAbortException(ioe);
             }
         }
@@ -398,7 +398,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
             try {
                 this.delegatee.write(b, off, len);
                 this.count += len;
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 throw new ClientAbortException(ioe);
             }
         }
@@ -407,7 +407,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
         public void flush() throws IOException {
             try {
                 this.delegatee.flush();
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 throw new ClientAbortException(ioe);
             }
         }
@@ -416,7 +416,7 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
         public void close() throws IOException {
             try {
                 this.delegatee.close();
-            } catch(IOException ioe) {
+            } catch (IOException ioe) {
                 throw new ClientAbortException(ioe);
             }
         }
@@ -435,7 +435,8 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
     // character transfer counting PrintWriter
     private static class LoggerResponseWriter extends PrintWriter {
 
-        private static final int LINE_SEPARATOR_LENGTH = System.getProperty("line.separator").length();
+        private static final int LINE_SEPARATOR_LENGTH =
+                System.getProperty("line.separator").length();
 
         private int count;
 
@@ -471,5 +472,4 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
             this.count += LINE_SEPARATOR_LENGTH;
         }
     }
-
 }

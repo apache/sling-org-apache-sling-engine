@@ -18,16 +18,9 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.times;
+import javax.servlet.ServletException;
 
 import java.io.IOException;
-
-import javax.servlet.ServletException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -36,13 +29,21 @@ import org.apache.sling.engine.impl.DefaultErrorHandler;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+
 /**
  * This class tests the error filter chain in combination with the
  * {@link DefaultErrorHandler}.
  */
 public class ErrorFilterChainTest {
 
-    @Test public void testResponseCommitted() throws IOException, ServletException {
+    @Test
+    public void testResponseCommitted() throws IOException, ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
         final ErrorHandler errorHandler = Mockito.mock(ErrorHandler.class);
         handler.setDelegate(errorHandler);
@@ -61,7 +62,8 @@ public class ErrorFilterChainTest {
         Mockito.verify(errorHandler, never()).handleError(anyInt(), anyString(), eq(null), eq(response));
     }
 
-    @Test public void testResponseNotCommitted() throws IOException, ServletException {
+    @Test
+    public void testResponseNotCommitted() throws IOException, ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
         final ErrorHandler errorHandler = Mockito.mock(ErrorHandler.class);
         handler.setDelegate(errorHandler);

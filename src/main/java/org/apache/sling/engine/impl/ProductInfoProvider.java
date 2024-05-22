@@ -63,8 +63,7 @@ public class ProductInfoProvider {
     private void setProductInfo(final BundleContext bundleContext) {
         final Dictionary<?, ?> props = bundleContext.getBundle().getHeaders();
         final Version bundleVersion = Version.parseVersion((String) props.get(Constants.BUNDLE_VERSION));
-        final String productVersion = bundleVersion.getMajor() + "."
-            + bundleVersion.getMinor();
+        final String productVersion = bundleVersion.getMajor() + "." + bundleVersion.getMinor();
         this.productInfo = PRODUCT_NAME + "/" + productVersion;
     }
 

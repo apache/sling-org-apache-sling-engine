@@ -18,11 +18,6 @@
  */
 package org.apache.sling.engine.impl.debug;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.fail;
-
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.engine.RequestInfo;
@@ -30,9 +25,15 @@ import org.apache.sling.engine.impl.Config;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.fail;
+
 public class RequestInfoProviderImplTest {
 
-    @Test public void testDisabledProvider() {
+    @Test
+    public void testDisabledProvider() {
         final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(0);
 
@@ -49,7 +50,8 @@ public class RequestInfoProviderImplTest {
         assertFalse(provider.getRequestInfos().iterator().hasNext());
     }
 
-    @Test public void testEnabledProvider() {
+    @Test
+    public void testEnabledProvider() {
         final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(5);
 
@@ -64,8 +66,8 @@ public class RequestInfoProviderImplTest {
         RequestInfoProviderImpl.recordRequest(request);
 
         String id = null;
-        for(final RequestInfo info : provider.getRequestInfos()) {
-            if ( id != null ) {
+        for (final RequestInfo info : provider.getRequestInfos()) {
+            if (id != null) {
                 fail("More than one request info");
             }
             id = info.getId();

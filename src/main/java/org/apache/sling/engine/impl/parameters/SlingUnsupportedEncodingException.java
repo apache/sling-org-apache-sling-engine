@@ -29,5 +29,4 @@ public class SlingUnsupportedEncodingException extends SlingIOException {
     public SlingUnsupportedEncodingException(UnsupportedEncodingException uee) {
         super(uee);
     }
-
 }

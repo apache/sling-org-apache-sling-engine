@@ -18,13 +18,13 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import java.io.IOException;
-
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+
+import java.io.IOException;
 
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.propertytypes.ServiceRanking;
@@ -41,7 +41,7 @@ public class RequestLoggerPreprocessor implements Preprocessor {
 
     @Override
     public void doFilter(final ServletRequest request, final ServletResponse response, final FilterChain chain)
-    throws IOException, ServletException {
+            throws IOException, ServletException {
         request.setAttribute(ATTR_NAME, System.currentTimeMillis());
         try {
             chain.doFilter(request, response);
@@ -63,7 +63,7 @@ public class RequestLoggerPreprocessor implements Preprocessor {
     public static long getRequestStartTime(final ServletRequest request) {
         final Object val = request == null ? null : request.getAttribute(ATTR_NAME);
         if (val instanceof Long) {
-            return (Long)val;
+            return (Long) val;
         }
         // default is *now*
         return System.currentTimeMillis();

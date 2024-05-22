@@ -18,17 +18,17 @@
  */
 package org.apache.sling.engine.impl;
 
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.util.Arrays;
-import java.util.Locale;
-import java.util.Optional;
-
 import javax.servlet.ServletOutputStream;
 import javax.servlet.WriteListener;
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpServletResponseWrapper;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Arrays;
+import java.util.Locale;
+import java.util.Optional;
 
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -52,14 +52,14 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private final boolean firstSlingResponse;
 
-    public SlingHttpServletResponseImpl(RequestData requestData,
-            HttpServletResponse response) {
+    public SlingHttpServletResponseImpl(RequestData requestData, HttpServletResponse response) {
         super(response);
         this.requestData = requestData;
         this.firstSlingResponse = !(response instanceof SlingHttpServletResponse);
-        
+
         if (firstSlingResponse) {
-            for (final StaticResponseHeader mapping: requestData.getSlingRequestProcessor().getAdditionalResponseHeaders()) {
+            for (final StaticResponseHeader mapping :
+                    requestData.getSlingRequestProcessor().getAdditionalResponseHeaders()) {
                 response.addHeader(mapping.getResponseHeaderName(), mapping.getResponseHeaderValue());
             }
         }
@@ -69,7 +69,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         return requestData;
     }
 
-    //---------- Adaptable interface
+    // ---------- Adaptable interface
 
     public <AdapterType> AdapterType adaptTo(Class<AdapterType> type) {
         return getRequestData().getSlingRequestProcessor().adaptTo(this, type);
@@ -138,7 +138,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private boolean isProtectHeadersOnInclude() {
         return this.requestData.getDispatchingInfo() != null
-               && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
+                && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
     }
 
     @Override
@@ -159,14 +159,20 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
         if (isCommitted()) {
             if (flusherStacktrace != null && flusherStacktrace != FLUSHER_STACK_DUMMY) {
-                LOG.warn("Response already committed. Failed to set status code from {} to {}.",
-                        getStatus(), sc, flusherStacktrace);
+                LOG.warn(
+                        "Response already committed. Failed to set status code from {} to {}.",
+                        getStatus(),
+                        sc,
+                        flusherStacktrace);
             } else {
                 String explanation = flusherStacktrace != null
                         ? "Enable debug logging to find out where the response was committed."
                         : "The response was auto-committed due to the number of bytes written.";
-                LOG.warn("Response already committed. Failed to set status code from {} to {}. {}",
-                        getStatus(), sc, explanation);
+                LOG.warn(
+                        "Response already committed. Failed to set status code from {} to {}. {}",
+                        getStatus(),
+                        sc,
+                        explanation);
             }
         } else { // response is not yet committed, so the statuscode can be changed
             if (msg == null) {
@@ -224,7 +230,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
-
     @Override
     public void addDateHeader(final String name, final long value) {
         if (!this.isProtectHeadersOnInclude()) {
@@ -276,7 +281,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if ( this.requestData.getDispatchingInfo() != null && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() ) {
+        if (this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()) {
             String contentTypeString = getContentType();
             if (contentTypeString != null) {
                 if (type == null) {
@@ -284,9 +290,12 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                     requestData.getRequestProgressTracker().log("ERROR: " + message);
                     throw new ContentTypeChangeException(message);
                 }
-                Optional<String> currentMime = Arrays.stream(contentTypeString.split(";")).findFirst();
+                Optional<String> currentMime =
+                        Arrays.stream(contentTypeString.split(";")).findFirst();
                 Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
-                if (currentMime.isPresent() && setMime.isPresent() && !currentMime.get().equals(setMime.get())) {
+                if (currentMime.isPresent()
+                        && setMime.isPresent()
+                        && !currentMime.get().equals(setMime.get())) {
                     String message = getMessage(contentTypeString, type);
                     requestData.getRequestProgressTracker().log("ERROR: " + message);
                     throw new ContentTypeChangeException(message);
@@ -304,14 +313,13 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private String getMessage(String currentContentType, String setContentType) {
         return String.format(
-                "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the" +
-                        " %s forbids this via the %s configuration property.",
+                "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
+                        + " %s forbids this via the %s configuration property.",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
                 Config.PID,
-                "sling.includes.checkcontenttype"
-        );
+                "sling.includes.checkcontenttype");
     }
 
     private static class ContentTypeChangeException extends SlingException {
@@ -339,20 +347,19 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
-
     // ---------- Internal helper ---------------------------------------------
 
     @Override
     public PrintWriter getWriter() throws IOException {
         PrintWriter result = super.getWriter();
-        if ( firstSlingResponse ) {
+        if (firstSlingResponse) {
             final PrintWriter delegatee = result;
             result = new PrintWriter(result) {
 
                 private boolean isClosed = false;
 
                 private void checkClosed() {
-                    if ( this.isClosed ) {
+                    if (this.isClosed) {
                         throw new WriterAlreadyClosedException();
                     }
                 }
@@ -396,8 +403,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 }
 
                 @Override
-                public PrintWriter format(final Locale arg0, final String arg1,
-                        final Object... arg2) {
+                public PrintWriter format(final Locale arg0, final String arg1, final Object... arg2) {
                     this.checkClosed();
                     return delegatee.format(arg0, arg1, arg2);
                 }
@@ -463,8 +469,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 }
 
                 @Override
-                public PrintWriter printf(final Locale arg0, final String arg1,
-                        final Object... arg2) {
+                public PrintWriter printf(final Locale arg0, final String arg1, final Object... arg2) {
                     this.checkClosed();
                     return delegatee.printf(arg0, arg1, arg2);
                 }
@@ -564,7 +569,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                     this.checkClosed();
                     delegatee.write(arg0);
                 }
-
             };
         }
         return result;
@@ -587,8 +591,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private void checkCommitted() {
         if (isCommitted()) {
-            throw new IllegalStateException(
-                "Response has already been committed");
+            throw new IllegalStateException("Response has already been committed");
         }
     }
 
@@ -600,7 +603,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         String base = getRequestData().getContentData().getResource().getPath();
         int lastSlash = base.lastIndexOf('/');
         if (lastSlash >= 0) {
-            path = base.substring(0, lastSlash+1) + path;
+            path = base.substring(0, lastSlash + 1) + path;
         } else {
             path = "/" + path;
         }
@@ -613,8 +616,9 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private String removeContextPath(final String path) {
-        final String contextPath = this.getRequestData().getSlingRequest().getContextPath().concat("/");
-        if ( contextPath.length() > 1 && path.startsWith(contextPath) ) {
+        final String contextPath =
+                this.getRequestData().getSlingRequest().getContextPath().concat("/");
+        if (contextPath.length() > 1 && path.startsWith(contextPath)) {
             return path.substring(contextPath.length() - 1);
         }
         return path;

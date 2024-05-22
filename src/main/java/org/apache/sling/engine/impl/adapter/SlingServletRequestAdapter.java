@@ -18,6 +18,13 @@
  */
 package org.apache.sling.engine.impl.adapter;
 
+import javax.servlet.RequestDispatcher;
+import javax.servlet.ServletInputStream;
+import javax.servlet.ServletRequest;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -25,13 +32,6 @@ import java.security.Principal;
 import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map;
-
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
@@ -49,8 +49,7 @@ public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
 
     private final HttpServletRequest request;
 
-    public SlingServletRequestAdapter(SlingHttpServletRequest delegatee,
-            HttpServletRequest request) {
+    public SlingServletRequestAdapter(SlingHttpServletRequest delegatee, HttpServletRequest request) {
         super(delegatee);
         this.request = request;
     }
@@ -337,8 +336,7 @@ public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
     }
 
     @Override
-    public void setCharacterEncoding(String enc)
-            throws UnsupportedEncodingException {
+    public void setCharacterEncoding(String enc) throws UnsupportedEncodingException {
         request.setCharacterEncoding(enc);
     }
 }

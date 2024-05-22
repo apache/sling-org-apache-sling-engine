@@ -105,8 +105,7 @@ public class ContainerRequestParameter extends AbstractRequestParameter {
     /**
      * @see org.apache.sling.api.request.RequestParameter#getString(java.lang.String)
      */
-    public String getString(String encoding)
-            throws UnsupportedEncodingException {
+    public String getString(String encoding) throws UnsupportedEncodingException {
         return new String(this.get(), encoding);
     }
 
@@ -121,5 +120,4 @@ public class ContainerRequestParameter extends AbstractRequestParameter {
     public String toString() {
         return this.getString();
     }
-
 }

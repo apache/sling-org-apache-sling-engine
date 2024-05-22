@@ -44,23 +44,19 @@ public class ContainerRequestParameterTest extends TestCase {
         testInternal("\u00e1\u009b\u0082\u00e3\u0083\u0091\u00ef\u00be\u0089", LATIN1, UTF8);
     }
 
-    private void testInternal(String value, String baseEncoding,
-            String targetEncoding) throws UnsupportedEncodingException {
-        ContainerRequestParameter par = new ContainerRequestParameter("name", value,
-            baseEncoding);
+    private void testInternal(String value, String baseEncoding, String targetEncoding)
+            throws UnsupportedEncodingException {
+        ContainerRequestParameter par = new ContainerRequestParameter("name", value, baseEncoding);
 
         assertEquals(baseEncoding, par.getEncoding());
         assertEquals(value, par.getString());
-        assertEquals("byte[] value mismatch", value.getBytes(baseEncoding),
-            par.get());
+        assertEquals("byte[] value mismatch", value.getBytes(baseEncoding), par.get());
 
         par.setEncoding(targetEncoding);
 
         assertEquals(targetEncoding, par.getEncoding());
-        assertEquals(new String(value.getBytes(baseEncoding), targetEncoding),
-            par.getString());
-        assertEquals("byte[] value mismatch", value.getBytes(baseEncoding),
-            par.get());
+        assertEquals(new String(value.getBytes(baseEncoding), targetEncoding), par.getString());
+        assertEquals("byte[] value mismatch", value.getBytes(baseEncoding), par.get());
     }
 
     private void assertEquals(String message, byte[] expected, byte[] actual) {

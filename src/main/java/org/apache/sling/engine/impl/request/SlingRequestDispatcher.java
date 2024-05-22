@@ -18,8 +18,6 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import java.io.IOException;
-
 import javax.servlet.DispatcherType;
 import javax.servlet.RequestDispatcher;
 import javax.servlet.ServletException;
@@ -27,6 +25,8 @@ import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
@@ -50,9 +50,11 @@ public class SlingRequestDispatcher implements RequestDispatcher {
     private final boolean protectHeadersOnInclude;
     private final boolean checkContentTypeOnInclude;
 
-    public SlingRequestDispatcher(String path, RequestDispatcherOptions options,
-                                  boolean protectHeadersOnInclude,
-                                  boolean checkContentTypeOnInclude) {
+    public SlingRequestDispatcher(
+            String path,
+            RequestDispatcherOptions options,
+            boolean protectHeadersOnInclude,
+            boolean checkContentTypeOnInclude) {
         this.path = path;
         this.options = options;
         this.resource = null;
@@ -60,9 +62,11 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         this.checkContentTypeOnInclude = checkContentTypeOnInclude;
     }
 
-    public SlingRequestDispatcher(Resource resource, RequestDispatcherOptions options,
-                                  boolean protectHeadersOnInclude,
-                                  boolean checkContentTypeOnInclude) {
+    public SlingRequestDispatcher(
+            Resource resource,
+            RequestDispatcherOptions options,
+            boolean protectHeadersOnInclude,
+            boolean checkContentTypeOnInclude) {
         this.resource = resource;
         this.options = options;
         this.path = resource.getPath();
@@ -71,8 +75,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
     }
 
     @Override
-    public void include(ServletRequest request, ServletResponse sResponse)
-            throws ServletException, IOException {
+    public void include(ServletRequest request, ServletResponse sResponse) throws ServletException, IOException {
 
         // guard access to the request and content data: If the request is
         // not (wrapping) a SlingHttpServletRequest, accessing the request Data
@@ -103,8 +106,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
     }
 
     @Override
-    public void forward(ServletRequest request, ServletResponse response)
-            throws ServletException, IOException {
+    public void forward(ServletRequest request, ServletResponse response) throws ServletException, IOException {
 
         // fail forwarding if the response has already been committed
         if (response.isCommitted()) {
@@ -152,8 +154,9 @@ public class SlingRequestDispatcher implements RequestDispatcher {
      * @param response The response
      * @param dispatchingInfo Is this an include (or forward)
      */
-    private void dispatch(final ServletRequest request, final ServletResponse response,
-            final DispatchingInfo dispatchingInfo) throws ServletException, IOException {
+    private void dispatch(
+            final ServletRequest request, final ServletResponse response, final DispatchingInfo dispatchingInfo)
+            throws ServletException, IOException {
         SlingHttpServletRequest cRequest = RequestData.unwrap(request);
         RequestData rd = RequestData.getRequestData(cRequest);
         String absPath = getAbsolutePath(cRequest, path);
@@ -162,8 +165,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         // if the response is not an HttpServletResponse, fail gracefully not
         // doing anything
         if (!(response instanceof HttpServletResponse)) {
-            log.error("include: Failed to include {}, response has wrong type",
-                absPath);
+            log.error("include: Failed to include {}, response has wrong type", absPath);
             return;
         }
 
@@ -177,25 +179,22 @@ public class SlingRequestDispatcher implements RequestDispatcher {
 
             // if the resource could not be resolved, fail gracefully
             if (resource == null) {
-                log.error(
-                    "include: Could not resolve {} to a resource, not including",
-                    absPath);
+                log.error("include: Could not resolve {} to a resource, not including", absPath);
                 return;
             }
 
-            requestProgressTracker.logTimer(timerName,
-                    "path={0} resolves to Resource={1}",
-                    absPath, resource);
+            requestProgressTracker.logTimer(timerName, "path={0} resolves to Resource={1}", absPath, resource);
         }
 
         // ensure request path info and optional merges
         SlingRequestPathInfo info = getMergedRequestPathInfo(cRequest);
-        requestProgressTracker.log(
-            "Including resource {0} ({1})", resource, info);
+        requestProgressTracker.log("Including resource {0} ({1})", resource, info);
         if (dispatchingInfo.getType() == DispatcherType.INCLUDE) {
-            final boolean protectHeaders = this.options != null ?
-                Boolean.parseBoolean(this.options.getOrDefault(RequestDispatcherOptions.OPT_PROTECT_HEADERS_ON_INCLUDE, String.valueOf(this.protectHeadersOnInclude)))
-                : this.protectHeadersOnInclude;
+            final boolean protectHeaders = this.options != null
+                    ? Boolean.parseBoolean(this.options.getOrDefault(
+                            RequestDispatcherOptions.OPT_PROTECT_HEADERS_ON_INCLUDE,
+                            String.valueOf(this.protectHeadersOnInclude)))
+                    : this.protectHeadersOnInclude;
             dispatchingInfo.setProtectHeadersOnInclude(protectHeaders);
             dispatchingInfo.setCheckContentTypeOnInclude(this.checkContentTypeOnInclude);
         }
@@ -212,8 +211,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
      * may be wrapped with a {@link TypeOverwritingResourceWrapper} as a result
      * of calling this method.
      */
-    private SlingRequestPathInfo getMergedRequestPathInfo(
-            final SlingHttpServletRequest cRequest) {
+    private SlingRequestPathInfo getMergedRequestPathInfo(final SlingHttpServletRequest cRequest) {
         SlingRequestPathInfo info = new SlingRequestPathInfo(resource);
         info = info.merge(cRequest.getRequestPathInfo());
 
@@ -223,10 +221,8 @@ public class SlingRequestDispatcher implements RequestDispatcher {
 
             // ensure overwritten resource type
             String rtOverwrite = options.getForceResourceType();
-            if (rtOverwrite != null
-                && !rtOverwrite.equals(resource.getResourceType())) {
-                resource = new TypeOverwritingResourceWrapper(resource,
-                    rtOverwrite);
+            if (rtOverwrite != null && !rtOverwrite.equals(resource.getResourceType())) {
+                resource = new TypeOverwritingResourceWrapper(resource, rtOverwrite);
             }
         }
 
@@ -260,6 +256,5 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         public boolean isResourceType(final String resourceType) {
             return this.getResourceResolver().isResourceType(this, resourceType);
         }
-
     }
 }

@@ -46,5 +46,4 @@ abstract class AbstractRequestParameter implements RequestParameter {
     public String getEncoding() {
         return this.encoding;
     }
-
 }

@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine;
 
-import java.io.IOException;
-
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.api.resource.ResourceResolver;
 import org.osgi.annotation.versioning.ProviderType;
@@ -62,8 +62,6 @@ public interface SlingRequestProcessor {
      *             writing the response
      * @throws ServletException if another servlet related problem occurrs
      */
-    void processRequest(HttpServletRequest request,
-            HttpServletResponse response, ResourceResolver resourceResolver)
+    void processRequest(HttpServletRequest request, HttpServletResponse response, ResourceResolver resourceResolver)
             throws ServletException, IOException;
-
 }

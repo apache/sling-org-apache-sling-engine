@@ -1,23 +1,28 @@
-/*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
- ~ Licensed to the Apache Software Foundation (ASF) under one
- ~ or more contributor license agreements.  See the NOTICE file
- ~ distributed with this work for additional information
- ~ regarding copyright ownership.  The ASF licenses this file
- ~ to you under the Apache License, Version 2.0 (the
- ~ "License"); you may not use this file except in compliance
- ~ with the License.  You may obtain a copy of the License at
- ~
- ~   http://www.apache.org/licenses/LICENSE-2.0
- ~
- ~ Unless required by applicable law or agreed to in writing,
- ~ software distributed under the License is distributed on an
- ~ "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- ~ KIND, either express or implied.  See the License for the
- ~ specific language governing permissions and limitations
- ~ under the License.
- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
 package org.apache.sling.engine.impl;
 
+import javax.servlet.DispatcherType;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
+
+import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -34,13 +39,6 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-
-import java.io.IOException;
-
-
-import javax.servlet.DispatcherType;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
 
 public class SlingHttpServletResponseImplTest {
 
@@ -76,9 +74,11 @@ public class SlingHttpServletResponseImplTest {
             throwable = t;
         }
         assertNotNull(throwable);
-        assertEquals("Servlet activeServlet tried to override the 'Content-Type' header from 'text/html' to " +
-                "'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the " +
-                "sling.includes.checkcontenttype configuration property.", throwable.getMessage());
+        assertEquals(
+                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html' to "
+                        + "'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the "
+                        + "sling.includes.checkcontenttype configuration property.",
+                throwable.getMessage());
     }
 
     @Test
@@ -90,10 +90,12 @@ public class SlingHttpServletResponseImplTest {
         SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
         when(response.getContentType()).thenReturn("text/html");
         doAnswer(invocationOnMock -> {
-            String setContentType = invocationOnMock.getArgument(0);
-            when(response.getContentType()).thenReturn(setContentType);
-            return null;
-        }).when(response).setContentType(anyString());
+                    String setContentType = invocationOnMock.getArgument(0);
+                    when(response.getContentType()).thenReturn(setContentType);
+                    return null;
+                })
+                .when(response)
+                .setContentType(anyString());
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setCheckContentTypeOnInclude(true);
@@ -117,13 +119,16 @@ public class SlingHttpServletResponseImplTest {
             throwable = t;
         }
         assertNotNull(throwable);
-        assertEquals("Servlet activeServlet tried to override the 'Content-Type' header from 'text/html;utf-8' to " +
-                "'null', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the sling" +
-                ".includes.checkcontenttype configuration property.", throwable.getMessage());
+        assertEquals(
+                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html;utf-8' to "
+                        + "'null', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the sling"
+                        + ".includes.checkcontenttype configuration property.",
+                throwable.getMessage());
         assertEquals("text/html;utf-8", wrapper.getContentType());
     }
 
-    @Test public void testReset() {
+    @Test
+    public void testReset() {
         final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -144,7 +149,8 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoMoreInteractions(orig);
     }
 
-    @Test public void testContentMethods() {
+    @Test
+    public void testContentMethods() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -162,7 +168,8 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoInteractions(orig);
     }
 
-    @Test public void testCookies() {
+    @Test
+    public void testCookies() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -176,7 +183,8 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoInteractions(orig);
     }
 
-    @Test public void testSendError() throws IOException {
+    @Test
+    public void testSendError() throws IOException {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -192,7 +200,8 @@ public class SlingHttpServletResponseImplTest {
     }
 
     @Deprecated
-    @Test public void testSetStatus() {
+    @Test
+    public void testSetStatus() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -207,7 +216,8 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoInteractions(orig);
     }
 
-    @Test public void testHeaders() {
+    @Test
+    public void testHeaders() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);

@@ -18,16 +18,16 @@
  */
 package org.apache.sling.engine.impl.debug;
 
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
-
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
+
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Iterator;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
@@ -48,42 +48,46 @@ import org.slf4j.LoggerFactory;
  * processing the request.
  *
  */
-@Designate(ocd=RequestProgressTrackerLogFilter.Config.class)
-@Component(service=Filter.class,
-           property={
-                   EngineConstants.SLING_FILTER_SCOPE + "=" + EngineConstants.FILTER_SCOPE_REQUEST
-           })
+@Designate(ocd = RequestProgressTrackerLogFilter.Config.class)
+@Component(
+        service = Filter.class,
+        property = {EngineConstants.SLING_FILTER_SCOPE + "=" + EngineConstants.FILTER_SCOPE_REQUEST})
 @ServiceDescription("RequestProgressTracker dump filte")
 @ServiceVendor("The Apache Software Foundation")
 public class RequestProgressTrackerLogFilter implements Filter {
 
-    @ObjectClassDefinition(name="Apache Sling Request Progress Tracker Log Filter",
-            description="Filter that enables logging of request progress tracker " +
-                        "information. To enable the log output, the category " +
-                        "org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter needs to be " +
-                        "logged on debug level.")
+    @ObjectClassDefinition(
+            name = "Apache Sling Request Progress Tracker Log Filter",
+            description = "Filter that enables logging of request progress tracker "
+                    + "information. To enable the log output, the category "
+                    + "org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter needs to be "
+                    + "logged on debug level.")
     public static @interface Config {
-        @AttributeDefinition(name="Extension filter",
-                             description="Only requests with the listed extensions will be logged. " +
-                                         "If no extensions are configured all requests are logged. Empty by default.")
+        @AttributeDefinition(
+                name = "Extension filter",
+                description = "Only requests with the listed extensions will be logged. "
+                        + "If no extensions are configured all requests are logged. Empty by default.")
         String[] extensions() default {};
 
-        @AttributeDefinition(name="Min duration (ms)",
-                description="Only requests that take at least the minimum duration " +
-                            "in milliseconds are logged. Default is 0.")
+        @AttributeDefinition(
+                name = "Min duration (ms)",
+                description = "Only requests that take at least the minimum duration "
+                        + "in milliseconds are logged. Default is 0.")
         int minDurationMs() default 0;
 
-        @AttributeDefinition(name="Max duration (ms)",
-                             description="Only requests that take at most the maximum duration " +
-                                         "in milliseconds are logged. Default is 2147483647, i.e. Integer.MAX_VALUE.")
+        @AttributeDefinition(
+                name = "Max duration (ms)",
+                description = "Only requests that take at most the maximum duration "
+                        + "in milliseconds are logged. Default is 2147483647, i.e. Integer.MAX_VALUE.")
         int maxDurationMs() default Integer.MAX_VALUE;
 
-        @AttributeDefinition(name="Compact Log Format",
-                description="Whether or not to use the compact format. In compact " +
-                            "one log entry is logged per request, detailing the request progress tracker " +
-                            "information in individual lines, like stack-traces. This keeps log files smaller " +
-                            "and makes them more readable. In the older (non-compact) format, one log entry is " +
-                            "printed per line, thus potentially containing more noise. Default is false.")
+        @AttributeDefinition(
+                name = "Compact Log Format",
+                description = "Whether or not to use the compact format. In compact "
+                        + "one log entry is logged per request, detailing the request progress tracker "
+                        + "information in individual lines, like stack-traces. This keeps log files smaller "
+                        + "and makes them more readable. In the older (non-compact) format, one log entry is "
+                        + "printed per line, thus potentially containing more noise. Default is false.")
         boolean compactLogFormat() default false;
     }
 
@@ -103,8 +107,8 @@ public class RequestProgressTrackerLogFilter implements Filter {
     }
 
     @Override
-    public void doFilter(ServletRequest request, ServletResponse response,
-            FilterChain chain) throws IOException, ServletException {
+    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+            throws IOException, ServletException {
 
         chain.doFilter(request, response);
 
@@ -124,8 +128,7 @@ public class RequestProgressTrackerLogFilter implements Filter {
     }
 
     @Override
-    public void destroy() {
-    }
+    public void destroy() {}
 
     private void logCompactFormat(RequestProgressTracker rpt) {
         final Iterator<String> messages = rpt.getMessages();
@@ -160,9 +163,7 @@ public class RequestProgressTrackerLogFilter implements Filter {
     }
 
     private boolean allowExtension(final String extension) {
-        return extensions == null
-               || extensions.length == 0
-               || Arrays.binarySearch(extensions, extension) > -1;
+        return extensions == null || extensions.length == 0 || Arrays.binarySearch(extensions, extension) > -1;
     }
 
     private boolean allowDuration(final RequestProgressTracker rpt) {
@@ -198,7 +199,11 @@ public class RequestProgressTrackerLogFilter implements Filter {
         this.configuration = config;
         // extensions needs to be sorted for Arrays.binarySearch() to work
         this.extensions = sortAndClean(this.configuration.extensions());
-        log.debug("activated: extensions = {}, min = {}, max = {}, compact = {}",
-                extensions, configuration.minDurationMs(), configuration.maxDurationMs(), configuration.compactLogFormat());
+        log.debug(
+                "activated: extensions = {}, min = {}, max = {}, compact = {}",
+                extensions,
+                configuration.minDurationMs(),
+                configuration.maxDurationMs(),
+                configuration.compactLogFormat());
     }
 }

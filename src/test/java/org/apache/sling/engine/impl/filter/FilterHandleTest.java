@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import org.junit.Test;
+
 import static org.apache.sling.engine.EngineConstants.SLING_FILTER_PATTERN;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
-
-import org.junit.Test;
 
 public class FilterHandleTest extends AbstractFilterTest {
 
@@ -30,12 +30,18 @@ public class FilterHandleTest extends AbstractFilterTest {
      * a filter with no predicate should be selected always, a filter with select only if predicate is good
      */
     @Test
-    public void testSelect(){
+    public void testSelect() {
         FilterHandle handle = new FilterHandle(null, predicate(), 0L, 0, "", null);
-        assertTrue("filter should be selected when no predicate", handle.select(mockRequest("/content/test/no/predicate", null, null, null, null)));
-        handle = new FilterHandle(null, predicate(SLING_FILTER_PATTERN,"/content/test/.*"), 0L, 0, "", null);
-        assertTrue("filter should be selected when matching predicate", handle.select(mockRequest("/content/test/matching/predicate", null, null, null, null)));
-        handle = new FilterHandle(null, predicate(SLING_FILTER_PATTERN,"/content/foo/.*"), 0L, 0, "", null);
-        assertFalse("filter should not be selected when no matching predicate", handle.select(mockRequest("/content/test/no/matching/predicate", null, null, null, null)));
+        assertTrue(
+                "filter should be selected when no predicate",
+                handle.select(mockRequest("/content/test/no/predicate", null, null, null, null)));
+        handle = new FilterHandle(null, predicate(SLING_FILTER_PATTERN, "/content/test/.*"), 0L, 0, "", null);
+        assertTrue(
+                "filter should be selected when matching predicate",
+                handle.select(mockRequest("/content/test/matching/predicate", null, null, null, null)));
+        handle = new FilterHandle(null, predicate(SLING_FILTER_PATTERN, "/content/foo/.*"), 0L, 0, "", null);
+        assertFalse(
+                "filter should not be selected when no matching predicate",
+                handle.select(mockRequest("/content/test/no/matching/predicate", null, null, null, null)));
     }
 }

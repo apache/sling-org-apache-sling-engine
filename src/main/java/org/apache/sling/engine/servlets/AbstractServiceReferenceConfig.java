@@ -18,21 +18,20 @@
  */
 package org.apache.sling.engine.servlets;
 
-import static org.apache.sling.engine.EngineConstants.SLING_SERLVET_NAME;
-import static org.osgi.framework.Constants.SERVICE_ID;
-import static org.osgi.framework.Constants.SERVICE_PID;
-import static org.osgi.service.component.ComponentConstants.COMPONENT_NAME;
+import javax.servlet.ServletContext;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
-import javax.servlet.ServletContext;
-
 import org.osgi.annotation.versioning.ConsumerType;
 import org.osgi.framework.ServiceReference;
 
+import static org.apache.sling.engine.EngineConstants.SLING_SERLVET_NAME;
+import static org.osgi.framework.Constants.SERVICE_ID;
+import static org.osgi.framework.Constants.SERVICE_PID;
+import static org.osgi.service.component.ComponentConstants.COMPONENT_NAME;
 
 /**
  * The <code>AbstractServiceReferenceConfig</code> may be used as a base class
@@ -63,8 +62,7 @@ import org.osgi.framework.ServiceReference;
 public abstract class AbstractServiceReferenceConfig {
 
     /** The list of property names checked by {@link #getName(ServiceReference)} */
-    private static final String[] NAME_PROPERTIES = { SLING_SERLVET_NAME,
-        COMPONENT_NAME, SERVICE_PID, SERVICE_ID };
+    private static final String[] NAME_PROPERTIES = {SLING_SERLVET_NAME, COMPONENT_NAME, SERVICE_PID, SERVICE_ID};
 
     /** The <code>ServletContext</code> of this configuration object */
     private ServletContext servletContext;
@@ -85,8 +83,7 @@ public abstract class AbstractServiceReferenceConfig {
      * @param name The name of this configuration.
      * @see #getName()
      */
-    public AbstractServiceReferenceConfig(ServletContext servletContext,
-            ServiceReference reference, String name) {
+    public AbstractServiceReferenceConfig(ServletContext servletContext, ServiceReference reference, String name) {
         this.servletContext = servletContext;
         this.reference = reference;
         this.name = name;
@@ -125,8 +122,7 @@ public abstract class AbstractServiceReferenceConfig {
      */
     public static String getName(ServiceReference reference) {
         String servletName = null;
-        for (int i = 0; i < NAME_PROPERTIES.length
-            && (servletName == null || servletName.length() == 0); i++) {
+        for (int i = 0; i < NAME_PROPERTIES.length && (servletName == null || servletName.length() == 0); i++) {
             Object prop = reference.getProperty(NAME_PROPERTIES[i]);
             if (prop != null) {
                 servletName = String.valueOf(prop);
@@ -134,5 +130,4 @@ public abstract class AbstractServiceReferenceConfig {
         }
         return servletName;
     }
-
 }
