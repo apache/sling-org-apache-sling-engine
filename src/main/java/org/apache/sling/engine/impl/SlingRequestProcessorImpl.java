@@ -280,21 +280,23 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             handleError(HttpServletResponse.SC_NOT_FOUND, fnfe.getMessage(), request, response);
 
         } catch (final IOException ioe) {
-            // unwrap any causes (Jetty wraps SocketException in EofException)
-            Throwable cause = ioe;
-            while (cause.getCause() != null) {
-                cause = cause.getCause();
-            }
+            /**
+             * handle all IOExceptions the same way; remember that there could be 2 major
+             * types of IOExceptions 
+             * * exceptions thrown by the rendering process because it
+             * does I/O 
+             * * exceptions thrown by the servlet engine when the connectivity to
+             * the requester is problematic
+             * 
+             * the second case does not need a proper error handling as the requester won't
+             * see the result of it anyway, and for that case also the logging is not
+             * helpful and should be limited to a minimum (if at all).
+             * 
+             * But to ease the code and to provide a proper error handling for the
+             * first case, both types are treated equally here.
+             */
+            handleError(requestData, "IOException", ioe, request, response);
 
-            if (cause instanceof SocketException) {
-                // if the cause is a SocketException, the client most
-                // probably aborted the request, we do not fill the log with errors
-                log.debug("service: Socketexception (Client abort or network problem", ioe);
-
-            } else {
-                // otherwise call error handler with original exception
-                handleError(requestData, "IOException", ioe, request, response);
-            }
         } catch (final Throwable t) {
             handleError(requestData, "Throwable", t, request, response);
 
