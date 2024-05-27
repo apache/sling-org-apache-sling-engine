@@ -44,6 +44,7 @@
         <site.jira.version.id>12314287</site.jira.version.id>
         <site.javadoc.exclude>**.impl.**</site.javadoc.exclude>
         <project.build.outputTimestamp>1713755769</project.build.outputTimestamp>
+        <sling.java.version>8</sling.java.version>
     </properties>
     <dependencies>
         <dependency>
