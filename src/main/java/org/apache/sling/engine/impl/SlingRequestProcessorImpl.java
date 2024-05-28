@@ -34,7 +34,6 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
 import java.io.Writer;
-import java.net.SocketException;
 import java.security.AccessControlException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -282,16 +281,16 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         } catch (final IOException ioe) {
             /**
              * handle all IOExceptions the same way; remember that there could be 2 major
-             * types of IOExceptions 
+             * types of IOExceptions
              * * exceptions thrown by the rendering process because it
-             * does I/O 
+             * does I/O
              * * exceptions thrown by the servlet engine when the connectivity to
              * the requester is problematic
-             * 
+             *
              * the second case does not need a proper error handling as the requester won't
              * see the result of it anyway, and for that case also the logging is not
              * helpful and should be limited to a minimum (if at all).
-             * 
+             *
              * But to ease the code and to provide a proper error handling for the
              * first case, both types are treated equally here.
              */
