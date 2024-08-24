@@ -240,23 +240,27 @@ public class SlingServletContext implements ServletContext, ServletContextListen
             // async registration
             this.runAsync(
                     () -> {
-                        final boolean register;
-                        synchronized (SlingServletContext.this) {
-                            register = SlingServletContext.this.servletContext == delegatee;
-                        }
-                        if (register) {
-                            final ServiceRegistration<ServletContext> reg = registerServletContext();
-                            boolean immediatelyUnregister = false;
+                        try {
+                            final boolean register;
                             synchronized (SlingServletContext.this) {
-                                if (SlingServletContext.this.initCounter == counter) {
-                                    SlingServletContext.this.registration = reg;
-                                } else {
-                                    immediatelyUnregister = true;
+                                register = SlingServletContext.this.servletContext == delegatee;
+                            }
+                            if (register) {
+                                final ServiceRegistration<ServletContext> reg = registerServletContext();
+                                boolean immediatelyUnregister = false;
+                                synchronized (SlingServletContext.this) {
+                                    if (SlingServletContext.this.initCounter == counter) {
+                                        SlingServletContext.this.registration = reg;
+                                    } else {
+                                        immediatelyUnregister = true;
+                                    }
+                                }
+                                if (immediatelyUnregister) {
+                                    unregisterServletContext(reg);
                                 }
                             }
-                            if (immediatelyUnregister) {
-                                unregisterServletContext(reg);
-                            }
+                        } catch (Throwable t) {
+                            log.error("caught exception during async registration", t);
                         }
                     },
                     "registration");
