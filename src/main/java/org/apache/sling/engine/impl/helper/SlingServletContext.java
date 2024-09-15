@@ -263,8 +263,8 @@ public class SlingServletContext implements ServletContext, ServletContextListen
                         unregisterServletContext(reg);
                     }
                 }
-            } catch (Throwable t) {
-                log.error("caught exception during async registration", t);
+            } catch (Exception e) {
+                log.error("caught exception during async registration", e);
             }
         };
     }
