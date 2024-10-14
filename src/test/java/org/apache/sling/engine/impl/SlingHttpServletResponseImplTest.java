@@ -36,6 +36,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -165,7 +166,63 @@ public class SlingHttpServletResponseImplTest {
         include.setLocale(null);
         include.setBufferSize(4500);
 
-        Mockito.verifyNoInteractions(orig);
+        Mockito.verify(orig, never()).setContentLength(54);
+        Mockito.verify(orig, never()).setContentLengthLong(33L);
+        Mockito.verify(orig, never()).setContentType("text/plain");
+        Mockito.verify(orig, never()).setLocale(null);
+        Mockito.verify(orig, never()).setBufferSize(4500);
+    }
+
+    @Test
+    public void testContentTypeOverrideEnabled() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setCheckContentTypeOnInclude(true);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
+
+        Throwable throwable = null;
+        try {
+            include.setContentType("application/json");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        verify(requestProgressTracker, times(1))
+                .log("ERROR: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html'"
+                        + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
+                        + " forbids this via the sling.includes.checkcontenttype configuration property.");
+        assertNotNull("Expected a RuntimeException.", throwable);
+        assertEquals(
+                "Servlet"
+                        + " IncludedServlet tried to override the 'Content-Type' header from 'text/html' to"
+                        + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
+                        + " via the sling.includes.checkcontenttype configuration property.",
+                throwable.getMessage());
+    }
+
+    @Test
+    public void testContentTypeOverrideDisabled() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
+        include.setContentType("application/json");
+
+        verify(requestProgressTracker, times(1))
+                .log(
+                        "WARN: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html' to 'application/json'.");
     }
 
     @Test

@@ -281,24 +281,44 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()) {
+        if (this.requestData.getDispatchingInfo() != null) {
+            String message = null;
             String contentTypeString = getContentType();
             if (contentTypeString != null) {
                 if (type == null) {
-                    String message = getMessage(contentTypeString, "null");
-                    requestData.getRequestProgressTracker().log("ERROR: " + message);
-                    throw new ContentTypeChangeException(message);
+                    message = getMessage(
+                            contentTypeString,
+                            "null",
+                            this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude());
+                    this.requestData
+                            .getRequestProgressTracker()
+                            .log((this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()
+                                            ? "ERROR: "
+                                            : "WARN: ")
+                                    + message);
+                } else {
+                    Optional<String> currentMime =
+                            Arrays.stream(contentTypeString.split(";")).findFirst();
+                    Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
+                    if (currentMime.isPresent()
+                            && setMime.isPresent()
+                            && !currentMime.get().equals(setMime.get())) {
+                        message = getMessage(
+                                contentTypeString,
+                                type,
+                                this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude());
+                        this.requestData
+                                .getRequestProgressTracker()
+                                .log((this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()
+                                                ? "ERROR: "
+                                                : "WARN: ")
+                                        + message);
+                    }
                 }
-                Optional<String> currentMime =
-                        Arrays.stream(contentTypeString.split(";")).findFirst();
-                Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
-                if (currentMime.isPresent()
-                        && setMime.isPresent()
-                        && !currentMime.get().equals(setMime.get())) {
-                    String message = getMessage(contentTypeString, type);
-                    requestData.getRequestProgressTracker().log("ERROR: " + message);
+                if (this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() && message != null) {
                     throw new ContentTypeChangeException(message);
+                } else {
+                    LOG.warn(message);
                 }
                 if (!this.isProtectHeadersOnInclude()) {
                     getResponse().setContentType(type);
@@ -311,7 +331,19 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
-    private String getMessage(String currentContentType, String setContentType) {
+    /**
+     * Retrieves the message to log when the 'Content-Type' header is changed via an include.
+     * @param currentContentType the current 'Content-Type' header
+     * @param setContentType the 'Content-Type' header that is being set
+     * @param error whether the message should be a warning or an error
+     * @return the message to log
+     */
+    private String getMessage(String currentContentType, String setContentType, boolean error) {
+        if (!error) {
+            return String.format(
+                    "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'.",
+                    requestData.getActiveServletName(), currentContentType, setContentType);
+        }
         return String.format(
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property.",

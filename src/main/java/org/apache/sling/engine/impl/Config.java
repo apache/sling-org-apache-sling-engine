@@ -116,7 +116,8 @@ public @interface Config {
     @AttributeDefinition(
             name = "Check Content-Type overrides",
             description = "When enabled, it will check explicit overrides of the Content-Type header and will make the "
-                    + "Sling Engine throw a RuntimeException when such an override is detected.")
+                    + "Sling Engine throw a RuntimeException when such an override is detected; otherwise the "
+                    + "Sling Engine will only log these cases on WARN.")
     boolean sling_includes_checkcontenttype() default false;
 
     @AttributeDefinition(
