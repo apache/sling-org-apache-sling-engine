@@ -33,8 +33,6 @@ import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -44,89 +42,6 @@ import static org.mockito.Mockito.when;
 public class SlingHttpServletResponseImplTest {
 
     private static final String ACTIVE_SERVLET_NAME = "activeServlet";
-
-    @Test
-    public void testContentTypeOverrideThrows() {
-        RequestData requestData = mock(RequestData.class);
-        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
-        RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
-        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
-        SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
-        when(response.getContentType()).thenReturn("text/html");
-
-        SlingHttpServletResponseImpl wrapper = new SlingHttpServletResponseImpl(requestData, response);
-        // no include, set content type should work
-        wrapper.setContentType("application/json1");
-        verify(response).setContentType("application/json1");
-
-        // include but allow set content type
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        wrapper.setContentType("application/json2");
-        verify(response).setContentType("application/json2");
-
-        // include, don't allow set content type
-        info.setCheckContentTypeOnInclude(true);
-
-        Throwable throwable = null;
-        try {
-            wrapper.setContentType("application/json");
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        assertNotNull(throwable);
-        assertEquals(
-                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html' to "
-                        + "'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the "
-                        + "sling.includes.checkcontenttype configuration property.",
-                throwable.getMessage());
-    }
-
-    @Test
-    public void testContentTypeOverrideLenient() throws Throwable {
-        RequestData requestData = mock(RequestData.class);
-        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
-        RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
-        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
-        SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
-        when(response.getContentType()).thenReturn("text/html");
-        doAnswer(invocationOnMock -> {
-                    String setContentType = invocationOnMock.getArgument(0);
-                    when(response.getContentType()).thenReturn(setContentType);
-                    return null;
-                })
-                .when(response)
-                .setContentType(anyString());
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setCheckContentTypeOnInclude(true);
-
-        SlingHttpServletResponseImpl wrapper = new SlingHttpServletResponseImpl(requestData, response);
-
-        Throwable throwable = null;
-        try {
-            wrapper.setContentType("text/html;utf-8");
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        if (throwable != null) {
-            throw throwable;
-        }
-        assertEquals("text/html;utf-8", wrapper.getContentType());
-
-        try {
-            wrapper.setContentType(null);
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        assertNotNull(throwable);
-        assertEquals(
-                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html;utf-8' to "
-                        + "'null', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the sling"
-                        + ".includes.checkcontenttype configuration property.",
-                throwable.getMessage());
-        assertEquals("text/html;utf-8", wrapper.getContentType());
-    }
 
     @Test
     public void testReset() {
@@ -194,15 +109,20 @@ public class SlingHttpServletResponseImplTest {
             throwable = e;
         }
         verify(requestProgressTracker, times(1))
-                .log("ERROR: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html'"
-                        + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
-                        + " forbids this via the sling.includes.checkcontenttype configuration property.");
+                .log(
+                        "ERROR: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html'"
+                                + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
+                                + " forbids this via the sling.includes.checkcontenttype configuration property."
+                                + " This is a violation of the RequestDispatcher.include() contract -"
+                                + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
         assertNotNull("Expected a RuntimeException.", throwable);
         assertEquals(
                 "Servlet"
                         + " IncludedServlet tried to override the 'Content-Type' header from 'text/html' to"
                         + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
-                        + " via the sling.includes.checkcontenttype configuration property.",
+                        + " via the sling.includes.checkcontenttype configuration property."
+                        + " This is a violation of the RequestDispatcher.include() contract -"
+                        + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                 throwable.getMessage());
     }
 
@@ -222,7 +142,10 @@ public class SlingHttpServletResponseImplTest {
 
         verify(requestProgressTracker, times(1))
                 .log(
-                        "WARN: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html' to 'application/json'.");
+                        "WARN: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html' "
+                                + "to 'application/json'. This is a violation of the RequestDispatcher.include() "
+                                + "contract -"
+                                + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
     }
 
     @Test

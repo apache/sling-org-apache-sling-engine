@@ -341,12 +341,16 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     private String getMessage(String currentContentType, String setContentType, boolean error) {
         if (!error) {
             return String.format(
-                    "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'.",
+                    "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
+                            + "the RequestDispatcher.include() contract - "
+                            + "https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                     requestData.getActiveServletName(), currentContentType, setContentType);
         }
         return String.format(
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
-                        + " %s forbids this via the %s configuration property.",
+                        + " %s forbids this via the %s configuration property. This is a violation of the "
+                        + "RequestDispatcher.include() contract - "
+                        + "https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
