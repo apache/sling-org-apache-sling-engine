@@ -70,7 +70,10 @@ public class SlingHttpServletResponseImplTest {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
         when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
         info.setProtectHeadersOnInclude(true);
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
@@ -86,6 +89,41 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setContentType("text/plain");
         Mockito.verify(orig, never()).setLocale(null);
         Mockito.verify(orig, never()).setBufferSize(4500);
+
+        verify(requestProgressTracker, times(1))
+                .log(
+                        "ERROR: Servlet IncludedServlet tried to override the 'Content-Type' header from 'null'"
+                                + " to 'text/plain'. This is a violation of the RequestDispatcher.include() contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
+    }
+
+    @Test
+    public void testContentMethodsOnForward() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
+        info.setProtectHeadersOnInclude(true);
+        info.setCheckContentTypeOnInclude(true);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+
+        include.setContentLength(54);
+        include.setContentLengthLong(33L);
+        include.setContentType("text/plain");
+        include.setLocale(null);
+        include.setBufferSize(4500);
+
+        Mockito.verify(orig, times(1)).setContentLength(54);
+        Mockito.verify(orig, times(1)).setContentLengthLong(33L);
+        Mockito.verify(orig, times(1)).setContentType("text/plain");
+        Mockito.verify(orig, times(1)).setLocale(null);
+        Mockito.verify(orig, times(1)).setBufferSize(4500);
+
+        Mockito.verifyNoInteractions(requestProgressTracker);
     }
 
     @Test
@@ -108,13 +146,14 @@ public class SlingHttpServletResponseImplTest {
         } catch (RuntimeException e) {
             throwable = e;
         }
+        Mockito.verify(orig, never()).setContentType("application/json");
         verify(requestProgressTracker, times(1))
                 .log(
                         "ERROR: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html'"
                                 + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
                                 + " forbids this via the sling.includes.checkcontenttype configuration property."
                                 + " This is a violation of the RequestDispatcher.include() contract -"
-                                + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
         assertNotNull("Expected a RuntimeException.", throwable);
         assertEquals(
                 "Servlet"
@@ -122,7 +161,7 @@ public class SlingHttpServletResponseImplTest {
                         + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
                         + " via the sling.includes.checkcontenttype configuration property."
                         + " This is a violation of the RequestDispatcher.include() contract -"
-                        + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                 throwable.getMessage());
     }
 
@@ -139,13 +178,33 @@ public class SlingHttpServletResponseImplTest {
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
         include.setContentType("application/json");
+        Mockito.verify(orig, times(1)).setContentType("application/json");
 
         verify(requestProgressTracker, times(1))
                 .log(
-                        "WARN: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html' "
-                                + "to 'application/json'. This is a violation of the RequestDispatcher.include() "
-                                + "contract -"
-                                + " https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
+                        "WARN: Servlet IncludedServlet tried to override the 'Content-Type' header from 'text/html'"
+                                + " to 'application/json'. This is a violation of the RequestDispatcher.include()"
+                                + " contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.");
+    }
+
+    @Test
+    public void testNoOverrideProtectHeadersContentTypeOverride() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+        info.setCheckContentTypeOnInclude(true);
+        when(orig.getContentType()).thenReturn("application/json");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn("IncludedServlet");
+        include.setContentType("application/json");
+        Mockito.verify(orig, times(1)).setContentType("application/json");
+        Mockito.verifyNoInteractions(requestProgressTracker);
     }
 
     @Test

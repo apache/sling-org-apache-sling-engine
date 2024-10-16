@@ -33,6 +33,7 @@ import java.util.Optional;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.request.RequestData;
+import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -136,9 +137,21 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
+    private boolean isInclude() {
+        return this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE;
+    }
+
     private boolean isProtectHeadersOnInclude() {
         return this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
+    }
+
+    private boolean isCheckContentTypeOnInclude() {
+        return this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE
+                && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude();
     }
 
     @Override
@@ -281,76 +294,70 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (this.requestData.getDispatchingInfo() != null) {
-            String message = null;
-            String contentTypeString = getContentType();
-            if (contentTypeString != null) {
-                if (type == null) {
-                    message = getMessage(
-                            contentTypeString,
-                            "null",
-                            this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude());
-                    this.requestData
-                            .getRequestProgressTracker()
-                            .log((this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()
-                                            ? "ERROR: "
-                                            : "WARN: ")
-                                    + message);
-                } else {
-                    Optional<String> currentMime =
-                            Arrays.stream(contentTypeString.split(";")).findFirst();
-                    Optional<String> setMime = Arrays.stream(type.split(";")).findFirst();
-                    if (currentMime.isPresent()
-                            && setMime.isPresent()
-                            && !currentMime.get().equals(setMime.get())) {
-                        message = getMessage(
-                                contentTypeString,
-                                type,
-                                this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude());
-                        this.requestData
-                                .getRequestProgressTracker()
-                                .log((this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude()
-                                                ? "ERROR: "
-                                                : "WARN: ")
-                                        + message);
-                    }
-                }
-                if (this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude() && message != null) {
-                    throw new ContentTypeChangeException(message);
-                } else {
-                    LOG.warn(message);
-                }
-                if (!this.isProtectHeadersOnInclude()) {
-                    getResponse().setContentType(type);
-                }
-            }
-            return;
-        }
-        if (!this.isProtectHeadersOnInclude()) {
+        if (!isInclude()) {
             super.setContentType(type);
+        } else {
+            Optional<String> message = checkContentTypeOverride(type);
+            if (message.isPresent()) {
+                if (isCheckContentTypeOnInclude()) {
+                    requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                    throw new ContentTypeChangeException(message.get());
+                }
+                if (isProtectHeadersOnInclude()) {
+                    LOG.error(message.get());
+                    requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                    return;
+                }
+                LOG.warn(message.get());
+                requestData.getRequestProgressTracker().log("WARN: " + message.get());
+                super.setContentType(type);
+            } else {
+                super.setContentType(type);
+            }
         }
+    }
+
+    /**
+     * Checks if the 'Content-Type' header is being overridden and provides a message to log if it is.
+     * @param contentType the 'Content-Type' value that is being set
+     * @return an optional message to log
+     */
+    private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+        String currentContentType = getContentType();
+        if (contentType == null) {
+            return Optional.of(getMessage(currentContentType, null));
+        } else {
+            Optional<String> currentMime = currentContentType == null
+                    ? Optional.of("null")
+                    : Arrays.stream(currentContentType.split(";")).findFirst();
+            Optional<String> setMime = Arrays.stream(contentType.split(";")).findFirst();
+            if (currentMime.isPresent()
+                    && setMime.isPresent()
+                    && !currentMime.get().equals(setMime.get())) {
+                return Optional.of(getMessage(currentContentType, contentType));
+            }
+        }
+        return Optional.empty();
     }
 
     /**
      * Retrieves the message to log when the 'Content-Type' header is changed via an include.
      * @param currentContentType the current 'Content-Type' header
      * @param setContentType the 'Content-Type' header that is being set
-     * @param error whether the message should be a warning or an error
-     * @return the message to log
      */
-    private String getMessage(String currentContentType, String setContentType, boolean error) {
-        if (!error) {
+    private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
+        if (!isCheckContentTypeOnInclude()) {
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
                             + "the RequestDispatcher.include() contract - "
-                            + "https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                     requestData.getActiveServletName(), currentContentType, setContentType);
         }
         return String.format(
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property. This is a violation of the "
                         + "RequestDispatcher.include() contract - "
-                        + "https://javadoc.io/static/javax.servlet/javax.servlet-api/4.0.1/javax/servlet/RequestDispatcher.html#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
