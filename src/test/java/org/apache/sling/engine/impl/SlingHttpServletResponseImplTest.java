@@ -33,9 +33,8 @@ import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,89 +42,6 @@ import static org.mockito.Mockito.when;
 public class SlingHttpServletResponseImplTest {
 
     private static final String ACTIVE_SERVLET_NAME = "activeServlet";
-
-    @Test
-    public void testContentTypeOverrideThrows() {
-        RequestData requestData = mock(RequestData.class);
-        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
-        RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
-        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
-        SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
-        when(response.getContentType()).thenReturn("text/html");
-
-        SlingHttpServletResponseImpl wrapper = new SlingHttpServletResponseImpl(requestData, response);
-        // no include, set content type should work
-        wrapper.setContentType("application/json1");
-        verify(response).setContentType("application/json1");
-
-        // include but allow set content type
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        wrapper.setContentType("application/json2");
-        verify(response).setContentType("application/json2");
-
-        // include, don't allow set content type
-        info.setCheckContentTypeOnInclude(true);
-
-        Throwable throwable = null;
-        try {
-            wrapper.setContentType("application/json");
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        assertNotNull(throwable);
-        assertEquals(
-                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html' to "
-                        + "'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the "
-                        + "sling.includes.checkcontenttype configuration property.",
-                throwable.getMessage());
-    }
-
-    @Test
-    public void testContentTypeOverrideLenient() throws Throwable {
-        RequestData requestData = mock(RequestData.class);
-        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
-        RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
-        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
-        SlingHttpServletResponse response = mock(SlingHttpServletResponse.class);
-        when(response.getContentType()).thenReturn("text/html");
-        doAnswer(invocationOnMock -> {
-                    String setContentType = invocationOnMock.getArgument(0);
-                    when(response.getContentType()).thenReturn(setContentType);
-                    return null;
-                })
-                .when(response)
-                .setContentType(anyString());
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setCheckContentTypeOnInclude(true);
-
-        SlingHttpServletResponseImpl wrapper = new SlingHttpServletResponseImpl(requestData, response);
-
-        Throwable throwable = null;
-        try {
-            wrapper.setContentType("text/html;utf-8");
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        if (throwable != null) {
-            throw throwable;
-        }
-        assertEquals("text/html;utf-8", wrapper.getContentType());
-
-        try {
-            wrapper.setContentType(null);
-        } catch (Throwable t) {
-            throwable = t;
-        }
-        assertNotNull(throwable);
-        assertEquals(
-                "Servlet activeServlet tried to override the 'Content-Type' header from 'text/html;utf-8' to "
-                        + "'null', however the org.apache.sling.engine.impl.SlingMainServlet forbids this via the sling"
-                        + ".includes.checkcontenttype configuration property.",
-                throwable.getMessage());
-        assertEquals("text/html;utf-8", wrapper.getContentType());
-    }
 
     @Test
     public void testReset() {
@@ -154,7 +70,10 @@ public class SlingHttpServletResponseImplTest {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
         when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         info.setProtectHeadersOnInclude(true);
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
@@ -165,7 +84,129 @@ public class SlingHttpServletResponseImplTest {
         include.setLocale(null);
         include.setBufferSize(4500);
 
-        Mockito.verifyNoInteractions(orig);
+        Mockito.verify(orig, never()).setContentLength(54);
+        Mockito.verify(orig, never()).setContentLengthLong(33L);
+        Mockito.verify(orig, never()).setContentType("text/plain");
+        Mockito.verify(orig, never()).setLocale(null);
+        Mockito.verify(orig, never()).setBufferSize(4500);
+
+        verify(requestProgressTracker, times(1))
+                .log(String.format(
+                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null'"
+                                + " to 'text/plain'. This is a violation of the RequestDispatcher.include() contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        ACTIVE_SERVLET_NAME));
+    }
+
+    @Test
+    public void testContentMethodsOnForward() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+
+        include.setContentLength(54);
+        include.setContentLengthLong(33L);
+        include.setContentType("text/plain");
+        include.setLocale(null);
+        include.setBufferSize(4500);
+
+        Mockito.verify(orig, times(1)).setContentLength(54);
+        Mockito.verify(orig, times(1)).setContentLengthLong(33L);
+        Mockito.verify(orig, times(1)).setContentType("text/plain");
+        Mockito.verify(orig, times(1)).setLocale(null);
+        Mockito.verify(orig, times(1)).setBufferSize(4500);
+
+        Mockito.verifyNoInteractions(requestProgressTracker);
+    }
+
+    @Test
+    public void testContentTypeOverrideEnabled() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setCheckContentTypeOnInclude(true);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        Throwable throwable = null;
+        try {
+            include.setContentType("application/json");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        Mockito.verify(orig, never()).setContentType("application/json");
+        verify(requestProgressTracker, times(1))
+                .log(String.format(
+                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
+                                + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
+                                + " forbids this via the sling.includes.checkcontenttype configuration property."
+                                + " This is a violation of the RequestDispatcher.include() contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        ACTIVE_SERVLET_NAME));
+        assertNotNull("Expected a RuntimeException.", throwable);
+        assertEquals(
+                String.format(
+                        "Servlet %s tried to override the 'Content-Type' header from 'text/html' to"
+                                + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
+                                + " via the sling.includes.checkcontenttype configuration property."
+                                + " This is a violation of the RequestDispatcher.include() contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        ACTIVE_SERVLET_NAME),
+                throwable.getMessage());
+    }
+
+    @Test
+    public void testContentTypeOverrideDisabled() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        include.setContentType("application/json");
+        Mockito.verify(orig, times(1)).setContentType("application/json");
+
+        verify(requestProgressTracker, times(1))
+                .log(String.format(
+                        "WARN: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
+                                + " to 'application/json'. This is a violation of the RequestDispatcher.include()"
+                                + " contract -"
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        ACTIVE_SERVLET_NAME));
+    }
+
+    @Test
+    public void testNoOverrideProtectHeadersContentTypeOverride() {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+        info.setCheckContentTypeOnInclude(true);
+        when(orig.getContentType()).thenReturn("application/json");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        include.setContentType("application/json");
+        Mockito.verify(orig, times(1)).setContentType("application/json");
+        Mockito.verifyNoInteractions(requestProgressTracker);
     }
 
     @Test
