@@ -144,13 +144,11 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private boolean isProtectHeadersOnInclude() {
         return this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
     }
 
     private boolean isCheckContentTypeOnInclude() {
         return this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE
                 && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude();
     }
 
