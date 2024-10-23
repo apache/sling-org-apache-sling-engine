@@ -238,29 +238,35 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
         if (delegatee != null) {
             // async registration
-            this.runAsync(
-                    () -> {
-                        final boolean register;
-                        synchronized (SlingServletContext.this) {
-                            register = SlingServletContext.this.servletContext == delegatee;
-                        }
-                        if (register) {
-                            final ServiceRegistration<ServletContext> reg = registerServletContext();
-                            boolean immediatelyUnregister = false;
-                            synchronized (SlingServletContext.this) {
-                                if (SlingServletContext.this.initCounter == counter) {
-                                    SlingServletContext.this.registration = reg;
-                                } else {
-                                    immediatelyUnregister = true;
-                                }
-                            }
-                            if (immediatelyUnregister) {
-                                unregisterServletContext(reg);
-                            }
-                        }
-                    },
-                    "registration");
+            this.runAsync(registerContext(delegatee, counter), "registration");
         }
+    }
+
+    Runnable registerContext(final ServletContext delegatee, final long counter) {
+        return () -> {
+            try {
+                final boolean register;
+                synchronized (SlingServletContext.this) {
+                    register = SlingServletContext.this.servletContext == delegatee;
+                }
+                if (register) {
+                    final ServiceRegistration<ServletContext> reg = registerServletContext();
+                    boolean immediatelyUnregister = false;
+                    synchronized (SlingServletContext.this) {
+                        if (SlingServletContext.this.initCounter == counter) {
+                            SlingServletContext.this.registration = reg;
+                        } else {
+                            immediatelyUnregister = true;
+                        }
+                    }
+                    if (immediatelyUnregister) {
+                        unregisterServletContext(reg);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("caught exception during async registration", e);
+            }
+        };
     }
 
     @Override
