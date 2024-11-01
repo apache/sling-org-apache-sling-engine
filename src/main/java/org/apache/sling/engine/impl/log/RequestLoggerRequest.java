@@ -22,7 +22,7 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
 
-import org.osgi.service.http.HttpContext;
+import org.osgi.service.http.context.ServletContextHelper;
 
 class RequestLoggerRequest extends HttpServletRequestWrapper {
 
@@ -32,7 +32,7 @@ class RequestLoggerRequest extends HttpServletRequestWrapper {
 
     @Override
     public String getRemoteUser() {
-        final Object user = getAttribute(HttpContext.REMOTE_USER);
+        final Object user = getAttribute(ServletContextHelper.REMOTE_USER);
         if (user instanceof String) {
             return (String) user;
         }
@@ -41,7 +41,7 @@ class RequestLoggerRequest extends HttpServletRequestWrapper {
     }
 
     public String getAuthType() {
-        final Object authType = getAttribute(HttpContext.AUTHENTICATION_TYPE);
+        final Object authType = getAttribute(ServletContextHelper.AUTHENTICATION_TYPE);
         if (authType instanceof String) {
             return (String) authType;
         }

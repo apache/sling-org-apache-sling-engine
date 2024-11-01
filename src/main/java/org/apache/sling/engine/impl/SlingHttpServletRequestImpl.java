@@ -57,7 +57,7 @@ import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
-import org.osgi.service.http.HttpContext;
+import org.osgi.service.http.context.ServletContextHelper;
 import org.osgi.service.useradmin.Authorization;
 
 import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
@@ -362,7 +362,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
      */
     @Override
     public boolean isUserInRole(String role) {
-        Object authorization = getAttribute(HttpContext.AUTHORIZATION);
+        Object authorization = getAttribute(ServletContextHelper.AUTHORIZATION);
         return (authorization instanceof Authorization) ? ((Authorization) authorization).hasRole(role) : false;
     }
 
