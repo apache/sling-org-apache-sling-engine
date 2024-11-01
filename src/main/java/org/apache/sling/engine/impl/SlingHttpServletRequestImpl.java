@@ -18,14 +18,6 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.Part;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Serializable;
@@ -42,6 +34,13 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.Part;
 import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
@@ -57,19 +56,19 @@ import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
-import org.osgi.service.http.HttpContext;
+import org.osgi.service.servlet.context.ServletContextHelper;
 import org.osgi.service.useradmin.Authorization;
 
-import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.FORWARD_PATH_INFO;
-import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
-import static javax.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
+import static jakarta.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
+import static jakarta.servlet.RequestDispatcher.FORWARD_PATH_INFO;
+import static jakarta.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
+import static jakarta.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
+import static jakarta.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
 
 public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper implements SlingHttpServletRequest {
 
@@ -180,7 +179,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getParameter(java.lang.String)
+     * @see jakarta.servlet.ServletRequestWrapper#getParameter(java.lang.String)
      */
     @Override
     public String getParameter(String name) {
@@ -188,7 +187,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getParameterMap()
+     * @see jakarta.servlet.ServletRequestWrapper#getParameterMap()
      */
     @Override
     public Map<String, String[]> getParameterMap() {
@@ -196,7 +195,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getParameterNames()
+     * @see jakarta.servlet.ServletRequestWrapper#getParameterNames()
      */
     @Override
     public Enumeration<String> getParameterNames() {
@@ -204,7 +203,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getParameterValues(java.lang.String)
+     * @see jakarta.servlet.ServletRequestWrapper#getParameterValues(java.lang.String)
      */
     @Override
     public String[] getParameterValues(String name) {
@@ -319,7 +318,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getInputStream()
+     * @see jakarta.servlet.ServletRequestWrapper#getInputStream()
      */
     @Override
     public ServletInputStream getInputStream() throws IOException {
@@ -327,7 +326,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.ServletRequestWrapper#getReader()
+     * @see jakarta.servlet.ServletRequestWrapper#getReader()
      */
     @Override
     public BufferedReader getReader() throws UnsupportedEncodingException, IOException {
@@ -335,7 +334,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.http.HttpServletRequestWrapper#getUserPrincipal()
+     * @see jakarta.servlet.http.HttpServletRequestWrapper#getUserPrincipal()
      */
     @Override
     public Principal getUserPrincipal() {
@@ -358,11 +357,11 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     }
 
     /**
-     * @see javax.servlet.http.HttpServletRequestWrapper#isUserInRole(String)
+     * @see jakarta.servlet.http.HttpServletRequestWrapper#isUserInRole(String)
      */
     @Override
     public boolean isUserInRole(String role) {
-        Object authorization = getAttribute(HttpContext.AUTHORIZATION);
+        Object authorization = getAttribute(ServletContextHelper.AUTHORIZATION);
         return (authorization instanceof Authorization) ? ((Authorization) authorization).hasRole(role) : false;
     }
 

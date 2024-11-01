@@ -18,10 +18,9 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.ServletException;
-
 import java.io.IOException;
 
+import jakarta.servlet.ServletException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -29,7 +28,7 @@ import org.apache.sling.engine.impl.request.RequestData;
 /**
  * The <code>SlingComponentFilterChain</code> implements the filter chain for
  * component scoped filters. It is used by the
- * {@link org.apache.sling.engine.impl.SlingMainServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
+ * {@link org.apache.sling.engine.impl.SlingMainServlet#service(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse)}
  *
  * method to dispatch component processing.
  */

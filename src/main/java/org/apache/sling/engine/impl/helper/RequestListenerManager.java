@@ -18,11 +18,10 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
 import org.apache.sling.engine.impl.SlingHttpContext;

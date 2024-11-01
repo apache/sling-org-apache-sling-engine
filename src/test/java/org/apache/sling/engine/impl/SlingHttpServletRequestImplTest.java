@@ -18,11 +18,10 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.http.HttpServletRequest;
-
 import java.security.Principal;
 import java.util.Enumeration;
 
+import jakarta.servlet.http.HttpServletRequest;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.ResourceResolver;

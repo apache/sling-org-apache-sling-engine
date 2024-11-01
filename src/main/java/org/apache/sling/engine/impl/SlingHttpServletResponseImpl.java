@@ -18,18 +18,17 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.WriteListener;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Arrays;
 import java.util.Locale;
 import java.util.Optional;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -139,7 +138,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private boolean isInclude() {
         return this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE;
+                && this.requestData.getDispatchingInfo().getType() == jakarta.servlet.DispatcherType.INCLUDE;
     }
 
     private boolean isProtectHeadersOnInclude() {
@@ -348,14 +347,14 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
                             + "the RequestDispatcher.include() contract - "
-                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-jakarta.servlet.ServletRequest-jakarta.servlet.ServletResponse-.",
                     requestData.getActiveServletName(), currentContentType, setContentType);
         }
         return String.format(
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property. This is a violation of the "
                         + "RequestDispatcher.include() contract - "
-                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-jakarta.servlet.ServletRequest-jakarta.servlet.ServletResponse-.",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,

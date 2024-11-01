@@ -18,13 +18,12 @@
  */
 package org.apache.sling.engine.servlets;
 
-import javax.servlet.ServletContext;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
 import org.osgi.annotation.versioning.ConsumerType;
 import org.osgi.framework.ServiceReference;
 

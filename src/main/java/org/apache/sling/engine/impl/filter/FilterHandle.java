@@ -18,10 +18,9 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.concurrent.atomic.AtomicLong;
 
+import jakarta.servlet.Filter;
 import org.apache.sling.api.SlingHttpServletRequest;
 
 public class FilterHandle implements Comparable<FilterHandle> {

@@ -18,8 +18,6 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import javax.servlet.http.Cookie;
-
 import java.text.CharacterIterator;
 import java.text.DecimalFormat;
 import java.text.SimpleDateFormat;
@@ -31,6 +29,7 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Locale;
 
+import jakarta.servlet.http.Cookie;
 import org.apache.sling.engine.impl.request.RequestData;
 
 /**

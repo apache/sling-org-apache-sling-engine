@@ -18,10 +18,10 @@
  */
 package org.apache.sling.engine;
 
-import javax.servlet.Servlet;
-import javax.servlet.http.HttpServletRequest;
-
 import java.util.Map;
+
+import jakarta.servlet.Servlet;
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * @deprecated Use {@link org.apache.sling.api.request.RequestUtil}

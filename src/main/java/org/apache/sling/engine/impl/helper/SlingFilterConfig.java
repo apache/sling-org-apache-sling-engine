@@ -18,15 +18,14 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
 import org.osgi.framework.ServiceReference;
 
 import static org.osgi.framework.Constants.SERVICE_ID;
@@ -64,7 +63,7 @@ public class SlingFilterConfig implements FilterConfig {
     }
 
     /**
-     * @see javax.servlet.FilterConfig#getInitParameter(java.lang.String)
+     * @see jakarta.servlet.FilterConfig#getInitParameter(java.lang.String)
      */
     @Override
     public String getInitParameter(String name) {
@@ -73,7 +72,7 @@ public class SlingFilterConfig implements FilterConfig {
     }
 
     /**
-     * @see javax.servlet.FilterConfig#getInitParameterNames()
+     * @see jakarta.servlet.FilterConfig#getInitParameterNames()
      */
     @Override
     public Enumeration<String> getInitParameterNames() {
@@ -82,7 +81,7 @@ public class SlingFilterConfig implements FilterConfig {
     }
 
     /**
-     * @see javax.servlet.FilterConfig#getServletContext()
+     * @see jakarta.servlet.FilterConfig#getServletContext()
      */
     @Override
     public ServletContext getServletContext() {
@@ -110,7 +109,7 @@ public class SlingFilterConfig implements FilterConfig {
     }
 
     /**
-     * @see javax.servlet.FilterConfig#getFilterName()
+     * @see jakarta.servlet.FilterConfig#getFilterName()
      */
     @Override
     public String getFilterName() {

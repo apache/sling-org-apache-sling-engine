@@ -18,22 +18,6 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
-import javax.servlet.ServletRegistration.Dynamic;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestWrapper;
-import javax.servlet.ServletResponse;
-import javax.servlet.ServletResponseWrapper;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.descriptor.JspConfigDescriptor;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -43,6 +27,21 @@ import java.util.EventListener;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterRegistration;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRegistration;
+import jakarta.servlet.ServletRegistration.Dynamic;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletRequestWrapper;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.ServletResponseWrapper;
+import jakarta.servlet.SessionCookieConfig;
+import jakarta.servlet.SessionTrackingMode;
+import jakarta.servlet.descriptor.JspConfigDescriptor;
 import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
 
@@ -292,17 +291,18 @@ class ExternalServletContextWrapper implements ServletContext {
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
         return getServletContext().addFilter(filterName, className);
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
         return getServletContext().addFilter(filterName, filter);
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Class<? extends Filter> filterClass) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(
+            String filterName, Class<? extends Filter> filterClass) {
         return getServletContext().addFilter(filterName, filterClass);
     }
 
@@ -379,5 +379,40 @@ class ExternalServletContextWrapper implements ServletContext {
     @Override
     public String getVirtualServerName() {
         return getServletContext().getVirtualServerName();
+    }
+
+    @Override
+    public Dynamic addJspFile(final String servletName, final String jspFile) {
+        return getServletContext().addJspFile(servletName, jspFile);
+    }
+
+    @Override
+    public String getRequestCharacterEncoding() {
+        return getServletContext().getRequestCharacterEncoding();
+    }
+
+    @Override
+    public String getResponseCharacterEncoding() {
+        return getServletContext().getResponseCharacterEncoding();
+    }
+
+    @Override
+    public int getSessionTimeout() {
+        return getServletContext().getSessionTimeout();
+    }
+
+    @Override
+    public void setRequestCharacterEncoding(final String encoding) {
+        getServletContext().setRequestCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(final String encoding) {
+        getServletContext().setResponseCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setSessionTimeout(final int sessionTimeout) {
+        getServletContext().setSessionTimeout(sessionTimeout);
     }
 }

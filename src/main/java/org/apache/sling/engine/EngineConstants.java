@@ -107,7 +107,7 @@ public class EngineConstants {
      *
      * @since 2.1, Sling Engine 2.2
      */
-    public static final String FILTER_NAME = "javax.servlet.Filter";
+    public static final String FILTER_NAME = "jakarta.servlet.Filter";
 
     /**
      * The name of the service registration property of a
@@ -115,7 +115,7 @@ public class EngineConstants {
      * {@link SlingRequestProcessor}.
      * <p>
      * The specification of the <code>filter.scope</code> service registration
-     * property is required for a <code>javax.servlet.Filter</code> service to
+     * property is required for a <code>jakarta.servlet.Filter</code> service to
      * be used as a filter by the Sling Engine.
      * <p>
      * The <code>filter.scope</code> registration property is expected to be a
@@ -139,7 +139,7 @@ public class EngineConstants {
      * {@link SlingRequestProcessor}.
      * <p>
      * The specification of the <code>sling.filter.scope</code> service registration
-     * property is required for a <code>javax.servlet.Filter</code> service to
+     * property is required for a <code>jakarta.servlet.Filter</code> service to
      * be used as a filter by the Sling Engine.
      * <p>
      * The <code>sling.filter.scope</code> registration property is expected to be a

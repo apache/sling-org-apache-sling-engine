@@ -18,11 +18,10 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
 
+import jakarta.servlet.Filter;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.builder.Builders;

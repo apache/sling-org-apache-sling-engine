@@ -18,8 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.http.Part;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -27,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import jakarta.servlet.http.Part;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
 import org.slf4j.LoggerFactory;

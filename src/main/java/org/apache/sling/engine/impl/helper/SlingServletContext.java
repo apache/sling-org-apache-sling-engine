@@ -18,19 +18,6 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.ServletRegistration;
-import javax.servlet.ServletRegistration.Dynamic;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.descriptor.JspConfigDescriptor;
-
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -42,6 +29,19 @@ import java.util.Hashtable;
 import java.util.Map;
 import java.util.Set;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterRegistration;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
+import jakarta.servlet.ServletContextListener;
+import jakarta.servlet.ServletRegistration;
+import jakarta.servlet.ServletRegistration.Dynamic;
+import jakarta.servlet.SessionCookieConfig;
+import jakarta.servlet.SessionTrackingMode;
+import jakarta.servlet.descriptor.JspConfigDescriptor;
+import org.apache.sling.engine.SlingRequestProcessor;
 import org.apache.sling.engine.impl.Config;
 import org.apache.sling.engine.impl.ProductInfoProvider;
 import org.apache.sling.engine.impl.SlingHttpContext;
@@ -53,9 +53,9 @@ import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Modified;
 import org.osgi.service.component.annotations.Reference;
-import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
-import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelect;
-import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardListener;
+import org.osgi.service.servlet.whiteboard.HttpWhiteboardConstants;
+import org.osgi.service.servlet.whiteboard.propertytypes.HttpWhiteboardContextSelect;
+import org.osgi.service.servlet.whiteboard.propertytypes.HttpWhiteboardListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -726,21 +726,22 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
         // only supported in ServletContextListener.contextInitialized or
         // ServletContainerInitializer.onStartuo
         throw new IllegalStateException();
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
         // only supported in ServletContextListener.contextInitialized or
         // ServletContainerInitializer.onStartuo
         throw new IllegalStateException();
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Class<? extends Filter> filterClass) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(
+            String filterName, Class<? extends Filter> filterClass) {
         // only supported in ServletContextListener.contextInitialized or
         // ServletContainerInitializer.onStartuo
         throw new IllegalStateException();
@@ -798,6 +799,43 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     @Override
     public String getVirtualServerName() {
         return getServletContext().getVirtualServerName();
+    }
+
+    @Override
+    public Dynamic addJspFile(final String servletName, final String jspFile) {
+        // only supported in ServletContextListener.contextInitialized or
+        // ServletContainerInitializer.onStartuo
+        throw new IllegalStateException();
+    }
+
+    @Override
+    public String getRequestCharacterEncoding() {
+        return getServletContext().getRequestCharacterEncoding();
+    }
+
+    @Override
+    public String getResponseCharacterEncoding() {
+        return getServletContext().getResponseCharacterEncoding();
+    }
+
+    @Override
+    public int getSessionTimeout() {
+        return getServletContext().getSessionTimeout();
+    }
+
+    @Override
+    public void setRequestCharacterEncoding(final String encoding) {
+        getServletContext().setRequestCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(final String encoding) {
+        getServletContext().setResponseCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setSessionTimeout(final int sessionTimeout) {
+        getServletContext().setSessionTimeout(sessionTimeout);
     }
 
     // ---------- internal -----------------------------------------------------

@@ -18,16 +18,15 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
