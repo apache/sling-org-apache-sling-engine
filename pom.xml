@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>org.apache.sling.engine</artifactId>
-    <version>2.15.19-SNAPSHOT</version>
+    <version>3.0.0-SNAPSHOT</version>
 
     <name>Apache Sling Engine</name>
     <description>Bundle implementing the core of Apache Sling.</description>
