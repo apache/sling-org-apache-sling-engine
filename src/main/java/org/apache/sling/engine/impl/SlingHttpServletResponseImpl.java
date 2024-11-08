@@ -50,6 +50,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
 
+    // this regex matches TIMER_START{ followed by any characters except }, and then
+    // a closing }. The part inside the braces is captured for later use.
+    private static final String REGEX_TIMER_START = "TIMER_START\\{([^}]+)\\}";
+
+    // this regex matches TIMER_END{ followed by one or more digits, a comma, any
+    // characters except }, and then a closing }. The part after the comma and
+    // before the closing brace is captured for later use.
+    private static final String REGEX_TIMER_END = "TIMER_END\\{\\d+,([^}]+)\\}";
+
     public static class WriterAlreadyClosedException extends IllegalStateException {
         // just a marker class.
     }
@@ -359,14 +368,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         List<String> unmatchedStarts = new ArrayList<>();
         Stack<String> timerStack = new Stack<>();
 
-        // this regex matches TIMER_START{ followed by any characters except }, and then
-        // a closing }. The part inside the braces is captured for later use.
-        Pattern startPattern = Pattern.compile("TIMER_START\\{([^}]+)\\}");
-
-        // this regex matches TIMER_END{ followed by one or more digits, a comma, any
-        // characters except }, and then a closing }. The part after the comma and
-        // before the closing brace is captured for later use.
-        Pattern endPattern = Pattern.compile("TIMER_END\\{\\d+,([^}]+)\\}");
+        Pattern startPattern = Pattern.compile(REGEX_TIMER_START);
+        Pattern endPattern = Pattern.compile(REGEX_TIMER_END);
 
         while (messages.hasNext()) {
             String message = messages.next();
@@ -403,7 +406,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * include.
      *
      * @param currentContentType the current 'Content-Type' header
-     * @param setContentType     the 'Content-Type' header that is being set
+     * @param setContentType the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
