@@ -26,14 +26,15 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Spliterators;
-import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -366,7 +367,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     private String findUnmatchedTimerStarts() {
         Iterator<String> messages = requestData.getRequestProgressTracker().getMessages();
         List<String> unmatchedStarts = new ArrayList<>();
-        Stack<String> timerStack = new Stack<>();
+        Deque<String> timerDeque = new ArrayDeque<>();
 
         Pattern startPattern = Pattern.compile(REGEX_TIMER_START);
         Pattern endPattern = Pattern.compile(REGEX_TIMER_END);
@@ -376,26 +377,26 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             Matcher startMatcher = startPattern.matcher(message);
             Matcher endMatcher = endPattern.matcher(message);
 
-            // use a simple stack to keep track of the timers that have been started. When
-            // an end timer is found, it is compared to the top of the stack. If they match,
-            // the timer is popped from the stack. If they don't match, the timer is added
-            // to the list of unmatched starts. As the stack is a LIFO data structure, the
+            // use a Deque to keep track of the timers that have been started. When
+            // an end timer is found, it is compared to the top of the deque. If they match,
+            // the timer is removed from the deque. If they don't match, the timer is added
+            // to the list of unmatched starts. As the deque is a LIFO data structure, the
             // last timer that was started will be the first one to be ended. There is no
             // Start1, Start2, End1 scenario, without an End2 in between.
             if (startMatcher.find()) {
-                timerStack.push(startMatcher.group(1));
+                timerDeque.push(startMatcher.group(1));
             } else if (endMatcher.find()) {
                 String endTimer = endMatcher.group(1);
-                if (!timerStack.isEmpty() && timerStack.peek().equals(endTimer)) {
-                    timerStack.pop();
+                if (!timerDeque.isEmpty() && timerDeque.peek().equals(endTimer)) {
+                    timerDeque.pop();
                 } else {
                     unmatchedStarts.add(endTimer);
                 }
             }
         }
 
-        while (!timerStack.isEmpty()) {
-            unmatchedStarts.add(timerStack.pop());
+        while (!timerDeque.isEmpty()) {
+            unmatchedStarts.add(timerDeque.pop());
         }
 
         return unmatchedStarts.toString().trim();
