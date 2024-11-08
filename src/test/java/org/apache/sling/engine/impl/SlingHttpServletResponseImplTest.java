@@ -23,16 +23,20 @@ import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletResponse;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -42,6 +46,43 @@ import static org.mockito.Mockito.when;
 public class SlingHttpServletResponseImplTest {
 
     private static final String ACTIVE_SERVLET_NAME = "activeServlet";
+    String[] logMessages = {
+        "0 TIMER_START{Request Processing}",
+        "6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message>",
+        "17 LOG Method=GET, PathInfo=null",
+        "20 TIMER_START{handleSecurity}",
+        "2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true",
+        "2478 TIMER_START{ResourceResolution}",
+        "2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot",
+        "2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null'",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3736 LOG Applying REQUESTfilters",
+        "3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter",
+        "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
+        "3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter",
+        "4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1}",
+        "3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3774 LOG Applying Componentfilters",
+        "3797 TIMER_START{/libs/slingshot/Home/html.jsp#0}",
+        "3946 LOG Adding bindings took 18 microseconds",
+        "4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null')",
+        "4414 TIMER_START{resolveServlet(/content/slingshot)}",
+        "4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp",
+        "4673 LOG Applying Includefilters",
+        "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
+        "4749 LOG Adding bindings took 4 microseconds"
+    };
 
     @Test
     public void testReset() {
@@ -74,6 +115,9 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
         info.setProtectHeadersOnInclude(true);
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
@@ -90,12 +134,14 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setLocale(null);
         Mockito.verify(orig, never()).setBufferSize(4500);
 
-        verify(requestProgressTracker, times(1))
-                .log(String.format(
-                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null'"
-                                + " to 'text/plain'. This is a violation of the RequestDispatcher.include() contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
-                        ACTIVE_SERVLET_NAME));
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(requestProgressTracker, times(1)).log(logCaptor.capture());
+        String logMessage = logCaptor.getValue();
+        assertEquals(
+                String.format(
+                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: 0 TIMER_START{Request Processing} 6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message> 17 LOG Method=GET, PathInfo=null 20 TIMER_START{handleSecurity} 2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true 2478 TIMER_START{ResourceResolution} 2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot 2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null' 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3736 LOG Applying REQUESTfilters 3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter 4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1} 3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3774 LOG Applying Componentfilters 3797 TIMER_START{/libs/slingshot/Home/html.jsp#0} 3946 LOG Adding bindings took 18 microseconds 4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null') 4414 TIMER_START{resolveServlet(/content/slingshot)} 4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp 4673 LOG Applying Includefilters 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 4749 LOG Adding bindings took 4 microseconds",
+                        ACTIVE_SERVLET_NAME),
+                logMessage);
     }
 
     @Test
@@ -134,6 +180,8 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         when(orig.getContentType()).thenReturn("text/html");
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
         info.setCheckContentTypeOnInclude(true);
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
@@ -146,24 +194,26 @@ public class SlingHttpServletResponseImplTest {
             throwable = e;
         }
         Mockito.verify(orig, never()).setContentType("application/json");
-        verify(requestProgressTracker, times(1))
-                .log(String.format(
-                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
-                                + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
-                                + " forbids this via the sling.includes.checkcontenttype configuration property."
-                                + " This is a violation of the RequestDispatcher.include() contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
-                        ACTIVE_SERVLET_NAME));
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(requestProgressTracker, times(1)).log(logCaptor.capture());
+        String logMessage = logCaptor.getValue();
+        assertTrue(logMessage.startsWith(String.format(
+                "ERROR: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
+                        + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
+                        + " forbids this via the sling.includes.checkcontenttype configuration property."
+                        + " This is a violation of the RequestDispatcher.include() contract -"
+                        + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: 0 TIMER_START{Request Processing} 6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message> 17 LOG Method=GET, PathInfo=null 20 TIMER_START{handleSecurity} 2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true 2478 TIMER_START{ResourceResolution} 2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot 2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null' 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3736 LOG Applying REQUESTfilters 3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter 4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1} 3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3774 LOG Applying Componentfilters 3797 TIMER_START{/libs/slingshot/Home/html.jsp#0} 3946 LOG Adding bindings took 18 microseconds 4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null') 4414 TIMER_START{resolveServlet(/content/slingshot)} 4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp 4673 LOG Applying Includefilters 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 4749 LOG Adding bindings took 4 microseconds",
+                ACTIVE_SERVLET_NAME)));
         assertNotNull("Expected a RuntimeException.", throwable);
-        assertEquals(
-                String.format(
+        assertTrue(throwable
+                .getMessage()
+                .startsWith(String.format(
                         "Servlet %s tried to override the 'Content-Type' header from 'text/html' to"
                                 + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
                                 + " via the sling.includes.checkcontenttype configuration property."
                                 + " This is a violation of the RequestDispatcher.include() contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
-                        ACTIVE_SERVLET_NAME),
-                throwable.getMessage());
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: 0 TIMER_START{Request Processing} 6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message> 17 LOG Method=GET, PathInfo=null 20 TIMER_START{handleSecurity} 2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true 2478 TIMER_START{ResourceResolution} 2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot 2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null' 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3736 LOG Applying REQUESTfilters 3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter 4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1} 3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3774 LOG Applying Componentfilters 3797 TIMER_START{/libs/slingshot/Home/html.jsp#0} 3946 LOG Adding bindings took 18 microseconds 4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null') 4414 TIMER_START{resolveServlet(/content/slingshot)} 4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp 4673 LOG Applying Includefilters 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 4749 LOG Adding bindings took 4 microseconds",
+                        ACTIVE_SERVLET_NAME)));
     }
 
     @Test
@@ -175,19 +225,25 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         when(orig.getContentType()).thenReturn("text/html");
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
         Mockito.verify(orig, times(1)).setContentType("application/json");
 
-        verify(requestProgressTracker, times(1))
-                .log(String.format(
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(requestProgressTracker, times(1)).log(logCaptor.capture());
+        String logMessage = logCaptor.getValue();
+        assertEquals(
+                String.format(
                         "WARN: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
                                 + " to 'application/json'. This is a violation of the RequestDispatcher.include()"
                                 + " contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
-                        ACTIVE_SERVLET_NAME));
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: 0 TIMER_START{Request Processing} 6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message> 17 LOG Method=GET, PathInfo=null 20 TIMER_START{handleSecurity} 2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true 2478 TIMER_START{ResourceResolution} 2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot 2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null' 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3736 LOG Applying REQUESTfilters 3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter 4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1} 3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 2678 TIMER_START{ServletResolution} 2683 TIMER_START{resolveServlet(/content/slingshot)} 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp 3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp 3774 LOG Applying Componentfilters 3797 TIMER_START{/libs/slingshot/Home/html.jsp#0} 3946 LOG Adding bindings took 18 microseconds 4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null') 4414 TIMER_START{resolveServlet(/content/slingshot)} 4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp 4673 LOG Applying Includefilters 4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1} 4749 LOG Adding bindings took 4 microseconds",
+                        ACTIVE_SERVLET_NAME),
+                logMessage);
     }
 
     @Test
