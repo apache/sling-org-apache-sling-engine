@@ -416,7 +416,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
                             + "the RequestDispatcher.include() contract - "
-                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: %s. All RequestProgressTracker messages: %s",
+                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: %s. All RequestProgressTracker messages: %s",
                     requestData.getActiveServletName(),
                     currentContentType,
                     setContentType,
@@ -427,7 +427,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property. This is a violation of the "
                         + "RequestDispatcher.include() contract - "
-                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , START_TIMERS without an END: %s. All RequestProgressTracker messages: %s",
+                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: %s. All RequestProgressTracker messages: %s",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
