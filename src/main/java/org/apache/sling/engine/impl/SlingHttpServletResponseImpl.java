@@ -415,7 +415,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                         Spliterators.spliteratorUnknownSize(
                                 requestData.getRequestProgressTracker().getMessages(), 0),
                         false)
-                .collect(Collectors.joining(" "));
+                .collect(Collectors.joining(System.lineSeparator()));
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
