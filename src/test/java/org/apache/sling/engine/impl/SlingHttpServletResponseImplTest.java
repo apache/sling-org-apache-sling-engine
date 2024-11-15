@@ -140,7 +140,7 @@ public class SlingHttpServletResponseImplTest {
         String logMessage = logCaptor.getValue();
         assertEquals(
                 String.format(
-                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: %s",
+                        "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0]. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
                         Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator()))),
                 logMessage);
@@ -204,7 +204,7 @@ public class SlingHttpServletResponseImplTest {
                         + " to 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet"
                         + " forbids this via the sling.includes.checkcontenttype configuration property."
                         + " This is a violation of the RequestDispatcher.include() contract -"
-                        + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: %s",
+                        + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0]. All RequestProgressTracker messages: %s",
                 ACTIVE_SERVLET_NAME,
                 Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator())))));
         assertNotNull("Expected a RuntimeException.", throwable);
@@ -215,7 +215,7 @@ public class SlingHttpServletResponseImplTest {
                                 + " 'application/json', however the org.apache.sling.engine.impl.SlingMainServlet forbids this"
                                 + " via the sling.includes.checkcontenttype configuration property."
                                 + " This is a violation of the RequestDispatcher.include() contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: %s",
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0]. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
                         Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator())))));
     }
@@ -245,7 +245,7 @@ public class SlingHttpServletResponseImplTest {
                         "WARN: Servlet %s tried to override the 'Content-Type' header from 'text/html'"
                                 + " to 'application/json'. This is a violation of the RequestDispatcher.include()"
                                 + " contract -"
-                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0, Request Processing]. All RequestProgressTracker messages: %s",
+                                + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: [/libs/slingshot/Component/head.html.jsp#1, /libs/slingshot/Home/html.jsp#0]. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
                         Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator()))),
                 logMessage);

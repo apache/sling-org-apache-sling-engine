@@ -395,7 +395,9 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             }
         }
 
-        while (!timerDeque.isEmpty()) {
+        // ignore the first element, as it will never have a matching end, as it is the
+        // first timer started and is not finished processing
+        while (timerDeque.size() > 1) {
             unmatchedStarts.add(timerDeque.pop());
         }
 
