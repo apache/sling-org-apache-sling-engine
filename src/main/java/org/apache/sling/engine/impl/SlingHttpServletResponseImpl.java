@@ -26,9 +26,19 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Deque;
+import java.util.Iterator;
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
+import java.util.Spliterators;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -40,6 +50,17 @@ import org.slf4j.LoggerFactory;
 public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
+
+    // this regex matches TIMER_START{ followed by any characters except }, and then
+    // a closing }. The part inside the braces is captured for later use.
+    private static final String REGEX_TIMER_START = "TIMER_START\\{([^}]+)\\}";
+
+    // this regex matches TIMER_END{ followed by one or more digits, a comma, any
+    // characters except }, and then a closing }. The part after the comma and
+    // before the closing brace is captured for later use.
+    private static final String REGEX_TIMER_END = "TIMER_END\\{\\d+,([^}]+)\\}";
+
+    private static final String TIMER_SEPARATOR = " -> ";
 
     public static class WriterAlreadyClosedException extends IllegalStateException {
         // just a marker class.
@@ -316,7 +337,9 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     /**
-     * Checks if the 'Content-Type' header is being overridden and provides a message to log if it is.
+     * Checks if the 'Content-Type' header is being overridden and provides a
+     * message to log if it is.
+     *
      * @param contentType the 'Content-Type' value that is being set
      * @return an optional message to log
      */
@@ -339,28 +362,94 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     /**
-     * Retrieves the message to log when the 'Content-Type' header is changed via an include.
+     * Finds unmatched TIMER_START messages in a log of messages.
+     *
+     * @return a string containing the unmatched TIMER_START messages
+     */
+    private String findUnmatchedTimerStarts() {
+        Iterator<String> messages = requestData.getRequestProgressTracker().getMessages();
+        List<String> unmatchedStarts = new ArrayList<>();
+        Deque<String> timerDeque = new ArrayDeque<>();
+
+        Pattern startPattern = Pattern.compile(REGEX_TIMER_START);
+        Pattern endPattern = Pattern.compile(REGEX_TIMER_END);
+
+        while (messages.hasNext()) {
+            String message = messages.next();
+            Matcher startMatcher = startPattern.matcher(message);
+            Matcher endMatcher = endPattern.matcher(message);
+
+            // use a Deque to keep track of the timers that have been started. When
+            // an end timer is found, it is compared to the top of the deque. If they match,
+            // the timer is removed from the deque. If they don't match, the timer is added
+            // to the list of unmatched starts. As the deque is a LIFO data structure, the
+            // last timer that was started will be the first one to be ended. There is no
+            // Start1, Start2, End1 scenario, without an End2 in between.
+            if (startMatcher.find()) {
+                timerDeque.push(startMatcher.group(1));
+            } else if (endMatcher.find()) {
+                String endTimer = endMatcher.group(1);
+                if (!timerDeque.isEmpty() && timerDeque.peek().equals(endTimer)) {
+                    timerDeque.pop();
+                } else {
+                    unmatchedStarts.add(endTimer);
+                }
+            }
+        }
+
+        // ignore the first element, as it will never have a matching end, as it is the
+        // first timer started and is not finished processing
+        while (timerDeque.size() > 1) {
+            unmatchedStarts.add(timerDeque.pop());
+        }
+        StringBuilder sb = new StringBuilder();
+        for (String script : unmatchedStarts) {
+            sb.append(script).append(TIMER_SEPARATOR);
+        }
+        String ret = sb.toString();
+        if (ret.endsWith(TIMER_SEPARATOR)) {
+            ret = ret.substring(0, ret.length() - TIMER_SEPARATOR.length());
+        }
+        return ret;
+    }
+
+    /**
+     * Retrieves the message to log when the 'Content-Type' header is changed via an
+     * include.
+     *
      * @param currentContentType the current 'Content-Type' header
      * @param setContentType the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
+        String unmatchedStartTimers = findUnmatchedTimerStarts();
+        String allMessages = StreamSupport.stream(
+                        Spliterators.spliteratorUnknownSize(
+                                requestData.getRequestProgressTracker().getMessages(), 0),
+                        false)
+                .collect(Collectors.joining(System.lineSeparator()));
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
                             + "the RequestDispatcher.include() contract - "
-                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
-                    requestData.getActiveServletName(), currentContentType, setContentType);
+                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: %s. All RequestProgressTracker messages: %s",
+                    requestData.getActiveServletName(),
+                    currentContentType,
+                    setContentType,
+                    unmatchedStartTimers,
+                    allMessages);
         }
         return String.format(
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property. This is a violation of the "
                         + "RequestDispatcher.include() contract - "
-                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-.",
+                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: %s. All RequestProgressTracker messages: %s",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
                 Config.PID,
-                "sling.includes.checkcontenttype");
+                "sling.includes.checkcontenttype",
+                unmatchedStartTimers,
+                allMessages);
     }
 
     private static class ContentTypeChangeException extends SlingException {
