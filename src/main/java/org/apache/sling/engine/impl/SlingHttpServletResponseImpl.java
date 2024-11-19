@@ -60,6 +60,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     // before the closing brace is captured for later use.
     private static final String REGEX_TIMER_END = "TIMER_END\\{\\d+,([^}]+)\\}";
 
+    private static final String TIMER_SEPARATOR = " -> ";
+
     public static class WriterAlreadyClosedException extends IllegalStateException {
         // just a marker class.
     }
@@ -400,8 +402,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         while (timerDeque.size() > 1) {
             unmatchedStarts.add(timerDeque.pop());
         }
-
-        return unmatchedStarts.toString().trim();
+        StringBuilder sb = new StringBuilder();
+        for (String script : unmatchedStarts) {
+            sb.append(script).append(TIMER_SEPARATOR);
+        }
+        String ret = sb.toString();
+        if (ret.endsWith(TIMER_SEPARATOR)) {
+            ret = ret.substring(0, ret.length() - TIMER_SEPARATOR.length());
+        }
+        return ret;
     }
 
     /**
@@ -422,7 +431,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
                             + "the RequestDispatcher.include() contract - "
-                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: %s. All RequestProgressTracker messages: %s",
+                            + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: %s. All RequestProgressTracker messages: %s",
                     requestData.getActiveServletName(),
                     currentContentType,
                     setContentType,
@@ -433,7 +442,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s', however the"
                         + " %s forbids this via the %s configuration property. This is a violation of the "
                         + "RequestDispatcher.include() contract - "
-                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Including scripts: %s. All RequestProgressTracker messages: %s",
+                        + "https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: %s. All RequestProgressTracker messages: %s",
                 requestData.getActiveServletName(),
                 currentContentType,
                 setContentType,
