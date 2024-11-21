@@ -208,6 +208,10 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     private void runAsync(final Runnable r, final String action) {
         final Thread thread = new Thread(r, this.getClass().getSimpleName() + "-" + action);
         thread.setDaemon(true);
+        thread.setUncaughtExceptionHandler((t, exception) -> {
+            String msg = String.format("Exception while async %s", action);
+            log.error(msg, exception);
+        });
         thread.start();
     }
 
@@ -238,29 +242,31 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         }
         if (delegatee != null) {
             // async registration
-            this.runAsync(
-                    () -> {
-                        final boolean register;
-                        synchronized (SlingServletContext.this) {
-                            register = SlingServletContext.this.servletContext == delegatee;
-                        }
-                        if (register) {
-                            final ServiceRegistration<ServletContext> reg = registerServletContext();
-                            boolean immediatelyUnregister = false;
-                            synchronized (SlingServletContext.this) {
-                                if (SlingServletContext.this.initCounter == counter) {
-                                    SlingServletContext.this.registration = reg;
-                                } else {
-                                    immediatelyUnregister = true;
-                                }
-                            }
-                            if (immediatelyUnregister) {
-                                unregisterServletContext(reg);
-                            }
-                        }
-                    },
-                    "registration");
+            this.runAsync(registerContext(delegatee, counter), "registration");
         }
+    }
+
+    Runnable registerContext(final ServletContext delegatee, final long counter) {
+        return () -> {
+            final boolean register;
+            synchronized (SlingServletContext.this) {
+                register = SlingServletContext.this.servletContext == delegatee;
+            }
+            if (register) {
+                final ServiceRegistration<ServletContext> reg = registerServletContext();
+                boolean immediatelyUnregister = false;
+                synchronized (SlingServletContext.this) {
+                    if (SlingServletContext.this.initCounter == counter) {
+                        SlingServletContext.this.registration = reg;
+                    } else {
+                        immediatelyUnregister = true;
+                    }
+                }
+                if (immediatelyUnregister) {
+                    unregisterServletContext(reg);
+                }
+            }
+        };
     }
 
     @Override
