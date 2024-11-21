@@ -208,7 +208,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     private void runAsync(final Runnable r, final String action) {
         final Thread thread = new Thread(r, this.getClass().getSimpleName() + "-" + action);
         thread.setDaemon(true);
-        thread.setUncaughtExceptionHandler((t,exception) -> {
+        thread.setUncaughtExceptionHandler((t, exception) -> {
             String msg = String.format("Exception while async %s", action);
             log.error(msg, exception);
         });
