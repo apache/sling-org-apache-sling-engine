@@ -18,18 +18,17 @@
  */
 package org.apache.sling.engine.impl.debug;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Iterator;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.EngineConstants;
@@ -112,8 +111,8 @@ public class RequestProgressTrackerLogFilter implements Filter {
 
         chain.doFilter(request, response);
 
-        if (request instanceof SlingHttpServletRequest) {
-            final SlingHttpServletRequest slingRequest = (SlingHttpServletRequest) request;
+        if (request instanceof SlingJakartaHttpServletRequest) {
+            final SlingJakartaHttpServletRequest slingRequest = (SlingJakartaHttpServletRequest) request;
             final RequestProgressTracker rpt = slingRequest.getRequestProgressTracker();
             rpt.done();
 
@@ -151,7 +150,7 @@ public class RequestProgressTrackerLogFilter implements Filter {
         }
     }
 
-    private String extractExtension(SlingHttpServletRequest request) {
+    private String extractExtension(SlingJakartaHttpServletRequest request) {
         final RequestPathInfo requestPathInfo = request.getRequestPathInfo();
         String extension = requestPathInfo.getExtension();
         if (extension == null) {

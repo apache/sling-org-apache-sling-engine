@@ -18,15 +18,14 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.FilterChain;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.slf4j.Logger;
@@ -62,8 +61,8 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         // the previous filter may have wrapped non-Sling request and response
         // wrappers (e.g. WebCastellum does this), so we have to make
         // sure the request and response are Sling types again
-        SlingHttpServletRequest slingRequest = toSlingRequest(request);
-        SlingHttpServletResponse slingResponse = toSlingResponse(response);
+        SlingJakartaHttpServletRequest slingRequest = toSlingRequest(request);
+        SlingJakartaHttpServletResponse slingResponse = toSlingResponse(response);
 
         try {
 
@@ -98,7 +97,7 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         }
     }
 
-    protected abstract void render(SlingHttpServletRequest request, SlingHttpServletResponse response)
+    protected abstract void render(SlingJakartaHttpServletRequest request, SlingJakartaHttpServletResponse response)
             throws IOException, ServletException;
 
     // ---------- internal helper
@@ -131,18 +130,18 @@ public abstract class AbstractSlingFilterChain implements FilterChain {
         }
     }
 
-    private SlingHttpServletRequest toSlingRequest(ServletRequest request) {
-        if (request instanceof SlingHttpServletRequest) {
-            return (SlingHttpServletRequest) request;
+    private SlingJakartaHttpServletRequest toSlingRequest(ServletRequest request) {
+        if (request instanceof SlingJakartaHttpServletRequest) {
+            return (SlingJakartaHttpServletRequest) request;
         }
 
         // wrap
         return RequestData.toSlingHttpServletRequest(request);
     }
 
-    private SlingHttpServletResponse toSlingResponse(ServletResponse response) {
-        if (response instanceof SlingHttpServletResponse) {
-            return (SlingHttpServletResponse) response;
+    private SlingJakartaHttpServletResponse toSlingResponse(ServletResponse response) {
+        if (response instanceof SlingJakartaHttpServletResponse) {
+            return (SlingJakartaHttpServletResponse) response;
         }
 
         // wrap

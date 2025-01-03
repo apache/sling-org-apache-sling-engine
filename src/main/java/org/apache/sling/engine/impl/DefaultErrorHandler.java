@@ -18,17 +18,22 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.ResponseUtil;
 import org.apache.sling.api.servlets.ErrorHandler;
+import org.apache.sling.api.servlets.JakartaErrorHandler;
+import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
+import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
+import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,7 +46,7 @@ import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
  * in combination with the error filter chain. If a {@link ErrorHandler} service
  * is registered, the actual response generated is delegated to that service.
  */
-public class DefaultErrorHandler implements ErrorHandler {
+public class DefaultErrorHandler implements JakartaErrorHandler {
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -49,14 +54,69 @@ public class DefaultErrorHandler implements ErrorHandler {
     private volatile String serverInfo = ProductInfoProvider.PRODUCT_NAME;
 
     /** Use this if not null, and if that fails output a report about that failure */
-    private volatile ErrorHandler delegate;
+    private volatile JakartaErrorHandler delegate;
+
+    private volatile JakartaErrorHandler errorHandler;
+    private volatile JakartaErrorHandler jakartaErrorHandler;
+    private volatile ServiceReference<?> errorHandlerRef;
+    private volatile ServiceReference<?> jakartaErrorHandlerRef;
 
     void setServerInfo(final String serverInfo) {
         this.serverInfo = (serverInfo != null) ? serverInfo : ProductInfoProvider.PRODUCT_NAME;
     }
 
-    public void setDelegate(final ErrorHandler eh) {
-        delegate = eh;
+    public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
+        if (eh != null) {
+            this.errorHandler = new JakartaErrorHandler() {
+                @Override
+                public void handleError(
+                        int status,
+                        String message,
+                        SlingJakartaHttpServletRequest request,
+                        SlingJakartaHttpServletResponse response)
+                        throws IOException {
+                    eh.handleError(
+                            status,
+                            message,
+                            (SlingHttpServletRequest) JakartaToJavaxRequestWrapper.toJavaxRequest(request),
+                            (SlingHttpServletResponse) JakartaToJavaxResponseWrapper.toJavaxResponse(response));
+                }
+
+                @Override
+                public void handleError(
+                        Throwable throwable,
+                        SlingJakartaHttpServletRequest request,
+                        SlingJakartaHttpServletResponse response)
+                        throws IOException {
+                    eh.handleError(
+                            throwable,
+                            (SlingHttpServletRequest) JakartaToJavaxRequestWrapper.toJavaxRequest(request),
+                            (SlingHttpServletResponse) JakartaToJavaxResponseWrapper.toJavaxResponse(response));
+                }
+            };
+            this.errorHandlerRef = ref;
+            if (this.jakartaErrorHandlerRef == null || this.jakartaErrorHandlerRef.compareTo(ref) < 0) {
+                this.delegate = this.errorHandler;
+            }
+        } else {
+            this.errorHandler = null;
+            this.errorHandlerRef = null;
+            this.delegate = this.jakartaErrorHandler;
+        }
+    }
+
+    public synchronized void setDelegate(final ServiceReference<?> ref, final JakartaErrorHandler eh) {
+        if (eh != null) {
+            this.jakartaErrorHandler = eh;
+            this.jakartaErrorHandlerRef = ref;
+            if (this.errorHandlerRef == null || this.errorHandlerRef.compareTo(ref) < 0) {
+                this.delegate = this.jakartaErrorHandler;
+            }
+        } else {
+            this.jakartaErrorHandler = null;
+            this.jakartaErrorHandlerRef = null;
+            this.delegate = this.errorHandler;
+        }
     }
 
     private void delegateFailed(
@@ -98,8 +158,8 @@ public class DefaultErrorHandler implements ErrorHandler {
     public void handleError(
             final int status,
             String message,
-            final SlingHttpServletRequest request,
-            final SlingHttpServletResponse response)
+            final SlingJakartaHttpServletRequest request,
+            final SlingJakartaHttpServletResponse response)
             throws IOException {
         // If we have a delegate let it handle the error
         if (delegate != null) {
@@ -133,7 +193,9 @@ public class DefaultErrorHandler implements ErrorHandler {
      */
     @Override
     public void handleError(
-            final Throwable throwable, final SlingHttpServletRequest request, final SlingHttpServletResponse response)
+            final Throwable throwable,
+            final SlingJakartaHttpServletRequest request,
+            final SlingJakartaHttpServletResponse response)
             throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
@@ -200,7 +262,8 @@ public class DefaultErrorHandler implements ErrorHandler {
             escapingWriter.flush();
             pw.println("</pre>");
 
-            final RequestProgressTracker tracker = ((SlingHttpServletRequest) request).getRequestProgressTracker();
+            final RequestProgressTracker tracker =
+                    ((SlingJakartaHttpServletRequest) request).getRequestProgressTracker();
             pw.println("<h3>Request Progress:</h3>");
             pw.println("<pre>");
             pw.flush();

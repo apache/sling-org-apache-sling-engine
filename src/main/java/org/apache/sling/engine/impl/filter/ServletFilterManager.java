@@ -18,16 +18,16 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import org.apache.felix.http.jakartawrappers.FilterWrapper;
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
@@ -130,7 +130,7 @@ public class ServletFilterManager {
             updated = "updatedFilter",
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE,
-            target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
+            target = "(" + EngineConstants.SLING_FILTER_SCOPE + "=*)")
     public void bindFilter(final ServiceReference<Filter> reference, final Filter filter) {
         initFilter(reference, filter);
     }
@@ -149,6 +149,43 @@ public class ServletFilterManager {
 
     public void unbindFilter(final ServiceReference<Filter> reference, final Filter service) {
         destroyFilter(reference, service);
+    }
+
+    @Reference(
+            service = javax.servlet.Filter.class,
+            updated = "updatedFilter",
+            policy = ReferencePolicy.DYNAMIC,
+            cardinality = ReferenceCardinality.MULTIPLE,
+            target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
+    public void bindFilter(final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter filter) {
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
+        final Filter s = new FilterWrapper(filter);
+        initFilter(ref, s);
+    }
+
+    public void updatedFilter(
+            final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
+        final Filter s = new FilterWrapper(service);
+        // only if the filter name has changed, we need to do a service re-registration
+        final String newFilterName = SlingFilterConfig.getName(ref);
+        if (newFilterName.equals(getUsedFilterName(ref))) {
+            removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
+            addFilterToChains(s, ref);
+        } else {
+            destroyFilter(ref, s);
+            initFilter(ref, s);
+        }
+    }
+
+    public void unbindFilter(
+            final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
+        @SuppressWarnings({"rawtypes", "unchecked"})
+        final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
+        final Filter s = new FilterWrapper(service);
+        destroyFilter(ref, s);
     }
 
     private void initFilter(final ServiceReference<Filter> reference, final Filter filter) {

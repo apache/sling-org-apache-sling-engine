@@ -43,7 +43,7 @@ import static org.junit.Assert.assertTrue;
 
 public class SlingHttpServletRequestImplTest {
 
-    SlingHttpServletRequestImpl slingHttpServletRequestImpl;
+    SlingJakartaHttpServletRequestImpl slingHttpServletRequestImpl;
 
     private Mockery context = new JUnit4Mockery() {
         {
@@ -80,7 +80,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(
                 "UserPrincipal: remoteUser",
                 slingHttpServletRequestImpl.getUserPrincipal().toString());
@@ -116,7 +116,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(
                 "UserPrincipal: remoteUser",
                 slingHttpServletRequestImpl.getUserPrincipal().toString());
@@ -152,7 +152,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertNull(slingHttpServletRequestImpl.getUserPrincipal());
     }
 
@@ -187,7 +187,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertSame(principal, slingHttpServletRequestImpl.getUserPrincipal());
     }
 
@@ -221,7 +221,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(principal, slingHttpServletRequestImpl.getUserPrincipal());
     }
 
@@ -255,7 +255,7 @@ public class SlingHttpServletRequestImplTest {
             }
         });
 
-        slingHttpServletRequestImpl = new SlingHttpServletRequestImpl(requestData, servletRequest);
+        slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(principal, slingHttpServletRequestImpl.getUserPrincipal());
     }
 
@@ -285,29 +285,29 @@ public class SlingHttpServletRequestImplTest {
         Mockito.when(processor.getMimeType(Mockito.anyString())).thenReturn(null);
 
         Mockito.when(rpi.getExtension()).thenReturn(null);
-        SlingHttpServletRequest request = new SlingHttpServletRequestImpl(rd, baseRequest);
+        SlingHttpServletRequest request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
         assertEmptyEnumerator(request.getResponseContentTypes());
 
         Mockito.when(rpi.getExtension()).thenReturn("jpg");
-        request = new SlingHttpServletRequestImpl(rd, baseRequest);
+        request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
         assertEmptyEnumerator(request.getResponseContentTypes());
 
         // second tests - processor returning footype for jpg
         Mockito.when(processor.getMimeType("dummy.jpg")).thenReturn("footype");
         Mockito.when(rpi.getExtension()).thenReturn(null);
-        request = new SlingHttpServletRequestImpl(rd, baseRequest);
+        request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
         assertEmptyEnumerator(request.getResponseContentTypes());
 
         Mockito.when(rpi.getExtension()).thenReturn("jpg");
-        request = new SlingHttpServletRequestImpl(rd, baseRequest);
+        request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertEquals("footype", request.getResponseContentType());
         assertSingletonEnumerator(request.getResponseContentTypes(), "footype");
 
         Mockito.when(rpi.getExtension()).thenReturn("pdf");
-        request = new SlingHttpServletRequestImpl(rd, baseRequest);
+        request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
         assertEmptyEnumerator(request.getResponseContentTypes());
     }

@@ -33,8 +33,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.TooManyCallsException;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -112,8 +112,8 @@ public class RequestDataTest {
             }
         };
 
-        slingRequest = new SlingHttpServletRequestImpl(requestData, req);
-        slingResponse = new SlingHttpServletResponseImpl(requestData, resp);
+        slingRequest = new SlingJakartaHttpServletRequestImpl(requestData, req);
+        slingResponse = new SlingJakartaHttpServletResponseImpl(requestData, resp);
     }
 
     private void assertTooManyCallsException(int failAtCall) throws Exception {

@@ -18,12 +18,11 @@
  */
 package org.apache.sling.engine;
 
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.osgi.annotation.versioning.ProviderType;
 
@@ -60,8 +59,35 @@ public interface SlingRequestProcessor {
      *             <code>null</code>
      * @throws IOException if an error occurrs reading from the request input or
      *             writing the response
-     * @throws ServletException if another servlet related problem occurrs
      */
     void processRequest(HttpServletRequest request, HttpServletResponse response, ResourceResolver resourceResolver)
-            throws ServletException, IOException;
+            throws IOException;
+
+    /**
+     * Process an HTTP request through the Sling request processing engine.
+     * <p>
+     * This method does <b>not</b> close the provided resource resolver!
+     * <p>
+     * The org.apache.sling.servlet-helpers module provides synthetic
+     * request/response classes which can be useful when using this service.
+     *
+     * @param request Usually a "synthetic" request, i.e. not supplied by
+     *            servlet container
+     * @param response Usually a "synthetic" response, i.e. not supplied by
+     *            servlet container
+     * @param resourceResolver The <code>ResourceResolver</code> used for the
+     *            Sling request processing.
+     * @throws NullPointerException if either of the parameters is
+     *             <code>null</code>
+     * @throws IOException if an error occurrs reading from the request input or
+     *             writing the response
+     * @throws ServletException if another servlet related problem occurrs
+     * @deprecated Use {@link #processRequest(HttpServletRequest, HttpServletResponse, ResourceResolver)}
+     */
+    @Deprecated
+    void processRequest(
+            javax.servlet.http.HttpServletRequest request,
+            javax.servlet.http.HttpServletResponse response,
+            ResourceResolver resourceResolver)
+            throws javax.servlet.ServletException, IOException;
 }

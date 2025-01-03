@@ -31,7 +31,7 @@ import java.io.IOException;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
@@ -67,7 +67,7 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
         HttpServletRequest httpReq = whateverRequest();
         final RequestData requestData = new RequestData(
                 new SlingRequestProcessorImpl(), httpReq, context.mock(HttpServletResponse.class), false, false, true);
-        final SlingHttpServletRequestImpl req = new SlingHttpServletRequestImpl(requestData, httpReq);
+        final SlingJakartaHttpServletRequestImpl req = new SlingJakartaHttpServletRequestImpl(requestData, httpReq);
         boolean illegalStateCaught = false;
         try {
             chain.doFilter(req, context.mock(SlingHttpServletResponse.class));

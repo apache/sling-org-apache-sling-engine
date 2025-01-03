@@ -93,7 +93,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         when(orig.isCommitted()).thenReturn(false);
         include.reset();
@@ -121,7 +121,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.setContentLength(54);
         include.setContentLengthLong(33L);
@@ -156,7 +156,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.setContentLength(54);
         include.setContentLengthLong(33L);
@@ -186,7 +186,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
         info.setCheckContentTypeOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
 
         Throwable throwable = null;
@@ -232,7 +232,7 @@ public class SlingHttpServletResponseImplTest {
         ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
         when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
         Mockito.verify(orig, times(1)).setContentType("application/json");
@@ -263,7 +263,7 @@ public class SlingHttpServletResponseImplTest {
         when(orig.getContentType()).thenReturn("application/json");
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
         Mockito.verify(orig, times(1)).setContentType("application/json");
@@ -278,7 +278,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.addCookie(new Cookie("foo", "bar"));
 
@@ -293,7 +293,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.sendError(500);
         include.sendError(500, "Error");
@@ -310,7 +310,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.setStatus(500);
         include.setStatus(500, "Error");
@@ -326,7 +326,7 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getDispatchingInfo()).thenReturn(info);
         info.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.setDateHeader("foo-d", 2000L);
         include.addDateHeader("bar-d", 3000L);

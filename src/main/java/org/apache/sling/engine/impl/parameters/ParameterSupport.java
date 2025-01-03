@@ -18,9 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,6 +29,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
 import org.apache.commons.fileupload.FileItem;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.RequestContext;

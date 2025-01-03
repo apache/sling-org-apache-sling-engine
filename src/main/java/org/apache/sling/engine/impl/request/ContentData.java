@@ -18,8 +18,7 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import javax.servlet.Servlet;
-
+import jakarta.servlet.Servlet;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 

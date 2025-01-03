@@ -35,8 +35,8 @@ import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.servlets.ServletResolver;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
@@ -117,8 +117,9 @@ public class SlingRequestDispatcherTest {
 
         RequestData requestData =
                 new RequestData(slingRequestProcessor, httpServletRequest, httpServletResponse, false, false, false);
-        SlingHttpServletRequest request = spy(new SlingHttpServletRequestImpl(requestData, httpServletRequest));
-        SlingHttpServletResponse response = spy(new SlingHttpServletResponseImpl(requestData, httpServletResponse));
+        SlingHttpServletRequest request = spy(new SlingJakartaHttpServletRequestImpl(requestData, httpServletRequest));
+        SlingHttpServletResponse response =
+                spy(new SlingJakartaHttpServletResponseImpl(requestData, httpServletResponse));
         Resource initialResource = getMockedResource("/initial");
         when(request.getResource()).thenReturn(initialResource);
 

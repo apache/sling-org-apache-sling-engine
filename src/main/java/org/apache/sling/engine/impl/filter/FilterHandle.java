@@ -18,11 +18,10 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.Filter;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 
 public class FilterHandle implements Comparable<FilterHandle> {
 
@@ -75,7 +74,7 @@ public class FilterHandle implements Comparable<FilterHandle> {
         return orderSource;
     }
 
-    boolean select(SlingHttpServletRequest slingHttpServletRequest) {
+    boolean select(SlingJakartaHttpServletRequest slingHttpServletRequest) {
         if (predicate != null) {
             return predicate.test(slingHttpServletRequest);
         }

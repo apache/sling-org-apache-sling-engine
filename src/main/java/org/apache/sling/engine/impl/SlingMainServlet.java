@@ -18,20 +18,19 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.GenericServlet;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Objects;
 
-import org.apache.sling.api.request.SlingRequestEvent;
+import jakarta.servlet.GenericServlet;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.request.SlingJakartaRequestEvent;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
@@ -50,8 +49,8 @@ import org.osgi.service.component.annotations.ReferencePolicy;
 import org.osgi.service.component.annotations.ReferencePolicyOption;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceVendor;
-import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
 import org.osgi.service.metatype.annotations.Designate;
+import org.osgi.service.servlet.whiteboard.HttpWhiteboardConstants;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -108,7 +107,7 @@ public class SlingMainServlet extends GenericServlet {
 
             final RequestListenerManager localRLM = requestListenerManager;
             if (localRLM != null) {
-                localRLM.sendEvent(request, SlingRequestEvent.EventType.EVENT_INIT);
+                localRLM.sendEvent(request, SlingJakartaRequestEvent.EventType.EVENT_INIT);
             }
 
             ResourceResolver resolver = null;
@@ -151,7 +150,7 @@ public class SlingMainServlet extends GenericServlet {
                 }
 
                 if (localRLM != null) {
-                    localRLM.sendEvent(request, SlingRequestEvent.EventType.EVENT_DESTROY);
+                    localRLM.sendEvent(request, SlingJakartaRequestEvent.EventType.EVENT_DESTROY);
                 }
 
                 // reset the thread name

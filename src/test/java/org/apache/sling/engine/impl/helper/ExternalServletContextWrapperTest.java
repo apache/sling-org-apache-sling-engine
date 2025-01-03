@@ -31,8 +31,8 @@ import javax.servlet.http.HttpServletResponseWrapper;
 
 import java.util.Collections;
 
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.helper.ExternalServletContextWrapper.RequestDispatcherWrapper;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -131,7 +131,7 @@ public class ExternalServletContextWrapperTest {
 
         final HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(req);
         final HttpServletRequestWrapper wrapper2 = new HttpServletRequestWrapper(wrapper);
-        final SlingHttpServletRequestImpl slingRequest = new SlingHttpServletRequestImpl(null, wrapper2);
+        final SlingJakartaHttpServletRequestImpl slingRequest = new SlingJakartaHttpServletRequestImpl(null, wrapper2);
 
         ServletRequest unwrapped =
                 ExternalServletContextWrapper.RequestDispatcherWrapper.unwrapServletRequest(slingRequest);
@@ -158,7 +158,7 @@ public class ExternalServletContextWrapperTest {
 
         final HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(req);
         final HttpServletRequestWrapper wrapper2 = new HttpServletRequestWrapper(wrapper);
-        final SlingHttpServletRequestImpl slingRequest = new SlingHttpServletRequestImpl(null, wrapper2);
+        final SlingJakartaHttpServletRequestImpl slingRequest = new SlingJakartaHttpServletRequestImpl(null, wrapper2);
         final HttpServletRequestWrapper slingWrapper = new HttpServletRequestWrapper(slingRequest);
 
         ServletRequest unwrapped =
@@ -225,7 +225,7 @@ public class ExternalServletContextWrapperTest {
             }
         });
 
-        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(rd, wrapper2);
+        final SlingJakartaHttpServletResponseImpl slingResponse = new SlingJakartaHttpServletResponseImpl(rd, wrapper2);
 
         ServletResponse unwrapped =
                 ExternalServletContextWrapper.RequestDispatcherWrapper.unwrapServletResponse(slingResponse);
@@ -253,7 +253,7 @@ public class ExternalServletContextWrapperTest {
             }
         });
 
-        final SlingHttpServletResponseImpl slingResponse = new SlingHttpServletResponseImpl(rd, wrapper2);
+        final SlingJakartaHttpServletResponseImpl slingResponse = new SlingJakartaHttpServletResponseImpl(rd, wrapper2);
         final HttpServletResponseWrapper slingWrapper = new HttpServletResponseWrapper(slingResponse);
 
         ServletResponse unwrapped =

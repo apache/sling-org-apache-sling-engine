@@ -18,17 +18,16 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;
@@ -131,7 +130,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
         }
     }
 
-    private String getAbsolutePath(SlingHttpServletRequest request, String path) {
+    private String getAbsolutePath(SlingJakartaHttpServletRequest request, String path) {
         // path is already absolute
         if (path.startsWith("/")) {
             return path;
@@ -157,7 +156,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
     private void dispatch(
             final ServletRequest request, final ServletResponse response, final DispatchingInfo dispatchingInfo)
             throws ServletException, IOException {
-        SlingHttpServletRequest cRequest = RequestData.unwrap(request);
+        SlingJakartaHttpServletRequest cRequest = RequestData.unwrap(request);
         RequestData rd = RequestData.getRequestData(cRequest);
         String absPath = getAbsolutePath(cRequest, path);
         RequestProgressTracker requestProgressTracker = cRequest.getRequestProgressTracker();
@@ -211,7 +210,7 @@ public class SlingRequestDispatcher implements RequestDispatcher {
      * may be wrapped with a {@link TypeOverwritingResourceWrapper} as a result
      * of calling this method.
      */
-    private SlingRequestPathInfo getMergedRequestPathInfo(final SlingHttpServletRequest cRequest) {
+    private SlingRequestPathInfo getMergedRequestPathInfo(final SlingJakartaHttpServletRequest cRequest) {
         SlingRequestPathInfo info = new SlingRequestPathInfo(resource);
         info = info.merge(cRequest.getRequestPathInfo());
 
