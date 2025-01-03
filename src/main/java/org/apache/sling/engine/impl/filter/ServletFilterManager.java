@@ -153,18 +153,19 @@ public class ServletFilterManager {
 
     @Reference(
             service = javax.servlet.Filter.class,
-            updated = "updatedFilter",
+            updated = "updatedJavaxFilter",
             policy = ReferencePolicy.DYNAMIC,
             cardinality = ReferenceCardinality.MULTIPLE,
             target = "(|(" + EngineConstants.SLING_FILTER_SCOPE + "=*)(" + EngineConstants.FILTER_SCOPE + "=*))")
-    public void bindFilter(final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter filter) {
+    public void bindJavaxFilter(
+            final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter filter) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
         final Filter s = new FilterWrapper(filter);
         initFilter(ref, s);
     }
 
-    public void updatedFilter(
+    public void updatedJavaxFilter(
             final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
@@ -180,7 +181,7 @@ public class ServletFilterManager {
         }
     }
 
-    public void unbindFilter(
+    public void unbindJavaxFilter(
             final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;

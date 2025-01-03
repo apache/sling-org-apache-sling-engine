@@ -59,6 +59,7 @@ public interface SlingRequestProcessor {
      *             <code>null</code>
      * @throws IOException if an error occurrs reading from the request input or
      *             writing the response
+     * @since 2.7.0
      */
     void processRequest(HttpServletRequest request, HttpServletResponse response, ResourceResolver resourceResolver)
             throws IOException;

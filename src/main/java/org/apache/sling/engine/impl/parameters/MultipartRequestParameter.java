@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
-import org.apache.commons.fileupload.FileItem;
+import org.apache.commons.fileupload2.core.DiskFileItem;
 
 /**
  * The <code>MultipartRequestParameter</code> represents a request parameter
@@ -34,22 +34,22 @@ import org.apache.commons.fileupload.FileItem;
  */
 public class MultipartRequestParameter extends AbstractRequestParameter {
 
-    private final FileItem delegatee;
+    private final DiskFileItem delegatee;
 
     private String encodedFileName;
 
     private String cachedValue;
 
-    public MultipartRequestParameter(FileItem delegatee) {
+    public MultipartRequestParameter(DiskFileItem delegatee) {
         super(delegatee.getFieldName(), null);
         this.delegatee = delegatee;
     }
 
-    void dispose() {
+    void dispose() throws IOException {
         this.delegatee.delete();
     }
 
-    FileItem getFileItem() {
+    DiskFileItem getFileItem() {
         return this.delegatee;
     }
 
@@ -121,7 +121,7 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public String getString(String enc) throws UnsupportedEncodingException {
-        return this.delegatee.getString(enc);
+        return new String(this.get(), enc);
     }
 
     public boolean isFormField() {

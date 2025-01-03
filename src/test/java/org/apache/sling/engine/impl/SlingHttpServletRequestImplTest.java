@@ -18,12 +18,11 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.http.HttpServletRequest;
-
 import java.security.Principal;
 import java.util.Enumeration;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.impl.request.ContentData;
@@ -285,7 +284,7 @@ public class SlingHttpServletRequestImplTest {
         Mockito.when(processor.getMimeType(Mockito.anyString())).thenReturn(null);
 
         Mockito.when(rpi.getExtension()).thenReturn(null);
-        SlingHttpServletRequest request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
+        SlingJakartaHttpServletRequest request = new SlingJakartaHttpServletRequestImpl(rd, baseRequest);
         assertNull(request.getResponseContentType());
         assertEmptyEnumerator(request.getResponseContentTypes());
 

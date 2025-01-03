@@ -18,16 +18,15 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
 
-import org.apache.sling.api.SlingHttpServletResponse;
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -87,7 +86,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testReset() {
-        final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -109,7 +108,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentMethods() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -148,7 +147,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentMethodsOnForward() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -175,7 +174,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentTypeOverrideEnabled() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -222,7 +221,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentTypeOverrideDisabled() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -253,7 +252,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testNoOverrideProtectHeadersContentTypeOverride() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -272,7 +271,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testCookies() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -287,7 +286,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testSendError() throws IOException {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -301,10 +300,9 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoInteractions(orig);
     }
 
-    @Deprecated
     @Test
     public void testSetStatus() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -313,14 +311,13 @@ public class SlingHttpServletResponseImplTest {
         final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
 
         include.setStatus(500);
-        include.setStatus(500, "Error");
 
         Mockito.verifyNoInteractions(orig);
     }
 
     @Test
     public void testHeaders() {
-        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);

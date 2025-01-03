@@ -18,13 +18,6 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.WriteListener;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -37,6 +30,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicLong;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.WriteListener;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 
 class RequestLoggerResponse extends HttpServletResponseWrapper {
@@ -148,12 +147,6 @@ class RequestLoggerResponse extends HttpServletResponseWrapper {
     @Override
     public void sendError(int status, String message) throws IOException {
         super.sendError(status, message);
-        this.status = status;
-    }
-
-    @Override
-    public void setStatus(int status, String message) {
-        super.setStatus(status, message);
         this.status = status;
     }
 

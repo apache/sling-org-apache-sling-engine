@@ -57,7 +57,7 @@ import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
-import org.osgi.service.http.context.ServletContextHelper;
+import org.osgi.service.servlet.context.ServletContextHelper;
 import org.osgi.service.useradmin.Authorization;
 
 import static jakarta.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;

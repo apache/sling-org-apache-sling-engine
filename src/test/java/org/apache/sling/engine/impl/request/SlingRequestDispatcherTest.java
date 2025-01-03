@@ -18,19 +18,18 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
@@ -117,14 +116,15 @@ public class SlingRequestDispatcherTest {
 
         RequestData requestData =
                 new RequestData(slingRequestProcessor, httpServletRequest, httpServletResponse, false, false, false);
-        SlingHttpServletRequest request = spy(new SlingJakartaHttpServletRequestImpl(requestData, httpServletRequest));
-        SlingHttpServletResponse response =
+        SlingJakartaHttpServletRequest request =
+                spy(new SlingJakartaHttpServletRequestImpl(requestData, httpServletRequest));
+        SlingJakartaHttpServletResponse response =
                 spy(new SlingJakartaHttpServletResponseImpl(requestData, httpServletResponse));
         Resource initialResource = getMockedResource("/initial");
         when(request.getResource()).thenReturn(initialResource);
 
         ServletResolver servletResolver = mock(ServletResolver.class);
-        when(servletResolver.resolveServlet(any(SlingHttpServletRequest.class))).thenReturn(servlet);
+        when(servletResolver.resolve(any(SlingJakartaHttpServletRequest.class))).thenReturn(servlet);
         Field servletResolverField = slingRequestProcessor.getClass().getDeclaredField("servletResolver");
         servletResolverField.setAccessible(true);
         servletResolverField.set(slingRequestProcessor, servletResolver);
