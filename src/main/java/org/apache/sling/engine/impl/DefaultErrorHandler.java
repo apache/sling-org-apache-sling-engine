@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.SlingHttpServletRequest;
@@ -36,9 +37,6 @@ import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
 import org.osgi.framework.ServiceReference;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import static org.apache.sling.api.SlingConstants.ERROR_REQUEST_URI;
-import static org.apache.sling.api.SlingConstants.ERROR_SERVLET_NAME;
 
 /**
  * The <code>DefaultErrorHandler</code> is used by the
@@ -162,9 +160,10 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final SlingJakartaHttpServletResponse response)
             throws IOException {
         // If we have a delegate let it handle the error
-        if (delegate != null) {
+        final JakartaErrorHandler local = this.delegate;
+        if (local != null) {
             try {
-                delegate.handleError(status, message, request, response);
+                local.handleError(status, message, request, response);
             } catch (final Exception e) {
                 delegateFailed(status, message, e, request, response);
             }
@@ -199,9 +198,10 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
-        if (delegate != null) {
+        final JakartaErrorHandler local = this.delegate;
+        if (local != null) {
             try {
-                delegate.handleError(throwable, request, response);
+                local.handleError(throwable, request, response);
             } catch (final Exception e) {
                 delegateFailed(status, throwable.toString(), e, request, response);
             }
@@ -219,8 +219,8 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final HttpServletResponse response)
             throws IOException {
         // error situation
-        final String servletName = (String) request.getAttribute(ERROR_SERVLET_NAME);
-        String requestURI = (String) request.getAttribute(ERROR_REQUEST_URI);
+        final String servletName = (String) request.getAttribute(RequestDispatcher.ERROR_SERVLET_NAME);
+        String requestURI = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
         if (requestURI == null) {
             requestURI = request.getRequestURI();
         }
