@@ -32,6 +32,7 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.propertytypes.ServiceRanking;
 import org.osgi.service.http.context.ServletContextHelper;
+import org.osgi.service.http.whiteboard.HttpWhiteboardConstants;
 import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
 import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContext;
 
@@ -51,7 +52,9 @@ public class SlingJakartaHttpContext extends ServletContextHelper {
 
     @Activate
     public SlingJakartaHttpContext(
-            @Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+            @Reference(
+                            target = "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "="
+                                    + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
                     org.osgi.service.servlet.context.ServletContextHelper delegate) {
         this.delegate = delegate;
     }

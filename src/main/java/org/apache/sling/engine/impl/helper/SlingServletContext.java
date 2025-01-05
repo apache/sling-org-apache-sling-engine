@@ -47,6 +47,7 @@ import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.SlingMainServlet;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -89,7 +90,8 @@ import org.slf4j.LoggerFactory;
  */
 @Component(service = ServletContextListener.class, configurationPid = Config.PID)
 @HttpWhiteboardContextSelect(
-        "(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
+        "(&(" + HttpWhiteboardConstants.HTTP_WHITEBOARD_CONTEXT_NAME + "=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")"
+                + "(" + Constants.OBJECTCLASS + "=org.osgi.service.servlet.context.ServletContextHelper))")
 @HttpWhiteboardListener
 public class SlingServletContext implements ServletContext, ServletContextListener {
 
