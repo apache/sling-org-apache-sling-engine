@@ -41,7 +41,6 @@ import jakarta.servlet.ServletRegistration.Dynamic;
 import jakarta.servlet.SessionCookieConfig;
 import jakarta.servlet.SessionTrackingMode;
 import jakarta.servlet.descriptor.JspConfigDescriptor;
-import org.apache.felix.http.javaxwrappers.ServletContextWrapper;
 import org.apache.sling.engine.impl.Config;
 import org.apache.sling.engine.impl.ProductInfoProvider;
 import org.apache.sling.engine.impl.SlingHttpContext;
@@ -122,7 +121,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     private volatile ServletContext servletContext;
 
     private volatile ServiceRegistration<ServletContext> registration;
-    private volatile ServiceRegistration<javax.servlet.ServletContext> javaxRegistration;
 
     private final boolean protectHeadersOnInclude;
     private final boolean checkContentTypeOnInclude;
@@ -222,22 +220,7 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         return bundleContext.registerService(ServletContext.class, SlingServletContext.this, props);
     }
 
-    private ServiceRegistration<javax.servlet.ServletContext> registerJavaxServletContext() {
-        final Dictionary<String, Object> props = new Hashtable<String, Object>();
-        props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME); // property to identify this context
-        return bundleContext.registerService(
-                javax.servlet.ServletContext.class, new ServletContextWrapper(this), props);
-    }
-
     private void unregisterServletContext(final ServiceRegistration<ServletContext> reg) {
-        try {
-            reg.unregister();
-        } catch (final IllegalStateException ise) {
-            // ignore
-        }
-    }
-
-    private void unregisterJavaxServletContext(final ServiceRegistration<javax.servlet.ServletContext> reg) {
         try {
             reg.unregister();
         } catch (final IllegalStateException ise) {
@@ -280,8 +263,6 @@ public class SlingServletContext implements ServletContext, ServletContextListen
                 }
                 if (immediatelyUnregister) {
                     unregisterServletContext(reg);
-                } else {
-                    SlingServletContext.this.javaxRegistration = SlingServletContext.this.registerJavaxServletContext();
                 }
             }
         };
@@ -290,26 +271,16 @@ public class SlingServletContext implements ServletContext, ServletContextListen
     @Override
     public void contextDestroyed(final ServletContextEvent sce) {
         final ServiceRegistration<ServletContext> reg;
-        final ServiceRegistration<javax.servlet.ServletContext> javaxReg;
         synchronized (this) {
             this.initCounter++;
             reg = this.registration;
-            javaxReg = this.javaxRegistration;
             this.registration = null;
-            this.javaxRegistration = null;
             this.servletContext = null;
             this.setServerInfo();
         }
         if (reg != null) {
             // async unregistration
-            this.runAsync(
-                    () -> {
-                        unregisterServletContext(reg);
-                        if (javaxReg != null) {
-                            unregisterJavaxServletContext(javaxReg);
-                        }
-                    },
-                    "unregistration");
+            this.runAsync(() -> unregisterServletContext(reg), "unregistration");
         }
     }
 
