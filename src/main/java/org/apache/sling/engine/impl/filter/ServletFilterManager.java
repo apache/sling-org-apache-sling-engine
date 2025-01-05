@@ -27,7 +27,7 @@ import jakarta.servlet.Filter;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
-import org.apache.felix.http.jakartawrappers.FilterWrapper;
+import org.apache.sling.api.wrappers.JavaxToJakartaFilterWrapper;
 import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.helper.SlingFilterConfig;
@@ -161,7 +161,7 @@ public class ServletFilterManager {
             final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter filter) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
-        final Filter s = new FilterWrapper(filter);
+        final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(filter);
         initFilter(ref, s);
     }
 
@@ -169,7 +169,7 @@ public class ServletFilterManager {
             final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
-        final Filter s = new FilterWrapper(service);
+        final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(service);
         // only if the filter name has changed, we need to do a service re-registration
         final String newFilterName = SlingFilterConfig.getName(ref);
         if (newFilterName.equals(getUsedFilterName(ref))) {
@@ -185,7 +185,7 @@ public class ServletFilterManager {
             final ServiceReference<javax.servlet.Filter> reference, final javax.servlet.Filter service) {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
-        final Filter s = new FilterWrapper(service);
+        final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(service);
         destroyFilter(ref, s);
     }
 

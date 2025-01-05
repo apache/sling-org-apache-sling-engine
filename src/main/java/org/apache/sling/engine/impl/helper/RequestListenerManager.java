@@ -22,12 +22,12 @@ import java.util.List;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
-import org.apache.felix.http.javaxwrappers.HttpServletRequestWrapper;
 import org.apache.felix.http.javaxwrappers.ServletContextWrapper;
 import org.apache.sling.api.request.SlingJakartaRequestEvent;
 import org.apache.sling.api.request.SlingJakartaRequestListener;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
+import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -86,7 +86,9 @@ public class RequestListenerManager {
                     ? SlingRequestEvent.EventType.EVENT_INIT
                     : SlingRequestEvent.EventType.EVENT_DESTROY;
             final SlingRequestEvent event = new SlingRequestEvent(
-                    new ServletContextWrapper(this.servletContext), new HttpServletRequestWrapper(request), eventType);
+                    new ServletContextWrapper(this.servletContext),
+                    JakartaToJavaxRequestWrapper.toJavaxRequest(request),
+                    eventType);
             for (final SlingRequestListener service : localDep) {
                 try {
                     service.onEvent(event);

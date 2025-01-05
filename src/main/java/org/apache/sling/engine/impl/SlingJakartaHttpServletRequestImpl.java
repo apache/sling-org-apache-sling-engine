@@ -41,7 +41,6 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.Part;
-import org.apache.felix.http.javaxwrappers.ServletWrapper;
 import org.apache.sling.api.SlingConstants;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
@@ -51,6 +50,7 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.wrappers.JakartaToJavaxServletWrapper;
 import org.apache.sling.engine.impl.helper.NullResourceBundle;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
@@ -405,7 +405,7 @@ public class SlingJakartaHttpServletRequestImpl extends HttpServletRequestWrappe
             if (SlingConstants.ATTR_REQUEST_CONTENT.equals(name)) {
                 return dispatchingInfo.getRequestContent();
             } else if (SlingConstants.ATTR_REQUEST_SERVLET.equals(name)) {
-                return new ServletWrapper(dispatchingInfo.getRequestServlet());
+                return JakartaToJavaxServletWrapper.toJavaxServlet(dispatchingInfo.getRequestServlet());
             } else if (SlingConstants.ATTR_REQUEST_JAKARTA_SERVLET.equals(name)) {
                 return dispatchingInfo.getRequestServlet();
             } else if (SlingConstants.ATTR_REQUEST_PATH_INFO.equals(name)) {
