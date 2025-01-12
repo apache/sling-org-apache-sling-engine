@@ -82,7 +82,7 @@ public interface SlingRequestProcessor {
      *             <code>null</code>
      * @throws IOException if an error occurrs reading from the request input or
      *             writing the response
-     * @throws ServletException if another servlet related problem occurrs
+     * @throws javax.servlet.ServletException if another servlet related problem occurrs
      * @deprecated Use {@link #processRequest(HttpServletRequest, HttpServletResponse, ResourceResolver)}
      */
     @Deprecated
