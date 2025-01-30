@@ -103,27 +103,17 @@ public class ServletFilterManagerTest {
     }
 
     @Test
-    public void registerFilterWithNoScope() throws Exception {
-        TestFilter testFilter = registerFilterForScopes(osgiContext.bundleContext());
-
-        // TODO - should not be registered in any scope
-        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
-    }
-
-    @Test
     public void registerFilterWithInvalidScope() throws Exception {
         TestFilter testFilter = registerFilterForValues(osgiContext.bundleContext(), "disabled");
 
-        // TODO - should not be registered in any scope
-        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
+        assertFilterInScopes(servletFilterManager, testFilter);
     }
 
     @Test
     public void registerFilterWithInvalidScopes() throws Exception {
         TestFilter testFilter = registerFilterForValues(osgiContext.bundleContext(), "disabled1", "disabled2");
 
-        // TODO - should not be registered in any scope
-        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
+        assertFilterInScopes(servletFilterManager, testFilter);
     }
 
     @Test
