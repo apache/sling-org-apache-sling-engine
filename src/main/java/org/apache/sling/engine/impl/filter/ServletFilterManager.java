@@ -313,7 +313,6 @@ public class ServletFilterManager {
         boolean used = false;
         for (String scope : scopes) {
             scope = scope.toUpperCase();
-            used = true;
             try {
                 FilterChainType type = FilterChainType.valueOf(scope.toString());
                 getFilterChain(type).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
@@ -324,6 +323,7 @@ public class ServletFilterManager {
                     getFilterChain(FilterChainType.FORWARD)
                             .addFilter(filter, predicate, serviceId, order, orderSource, mbean);
                 }
+                used = true;
             } catch (final IllegalArgumentException iae) {
                 log.warn("Filter service {} has invalid value {} for scope. Value is ignored", reference, scope);
             }
@@ -333,7 +333,6 @@ public class ServletFilterManager {
                     "Filter service {} has been registered without a valid {} property. Using default value.",
                     serviceId,
                     EngineConstants.SLING_FILTER_SCOPE);
-            getFilterChain(FilterChainType.REQUEST).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
         }
     }
 
