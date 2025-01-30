@@ -102,15 +102,64 @@ public class ServletFilterManagerTest {
         assertFilterInScopes(servletFilterManager, testFilter, allScopes);
     }
 
+    @Test
+    public void registerFilterWithNoScope() throws Exception {
+        TestFilter testFilter = registerFilterForScopes(osgiContext.bundleContext());
+
+        // TODO - should not be registered in any scope
+        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
+    }
+
+    @Test
+    public void registerFilterWithInvalidScope() throws Exception {
+        TestFilter testFilter = registerFilterForValues(osgiContext.bundleContext(), "disabled");
+
+        // TODO - should not be registered in any scope
+        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
+    }
+
+    @Test
+    public void registerFilterWithInvalidScopes() throws Exception {
+        TestFilter testFilter = registerFilterForValues(osgiContext.bundleContext(), "disabled1", "disabled2");
+
+        // TODO - should not be registered in any scope
+        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.REQUEST);
+    }
+
+    @Test
+    public void registerFilterWithValidAndInvalidScope() throws Exception {
+        TestFilter testFilter =
+                registerFilterForValues(osgiContext.bundleContext(), "disabled1", FilterChainType.ERROR.name());
+
+        assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.ERROR);
+    }
+
     private static TestFilter registerFilterForScopes(BundleContext bundleContext, FilterChainType... scopes) {
-        String[] scopeNames = new String[scopes.length];
-        for (int i = 0; i < scopes.length; i++) {
-            scopeNames[i] = scopes[i].name();
+        Hashtable<String, Object> properties = new Hashtable<>();
+        if (scopes != null) {
+            String[] scopeNames = new String[scopes.length];
+            for (int i = 0; i < scopes.length; i++) {
+                scopeNames[i] = scopes[i].name();
+            }
+            properties.put(EngineConstants.SLING_FILTER_SCOPE, scopeNames);
         }
 
         TestFilter testFilter = new TestFilter();
+        bundleContext.registerService(Filter.class, testFilter, properties);
+        return testFilter;
+    }
+
+    private static TestFilter registerFilterForValues(BundleContext bundleContext, String... scopes) {
         Hashtable<String, Object> properties = new Hashtable<>();
-        properties.put(EngineConstants.SLING_FILTER_SCOPE, scopeNames);
+        if (scopes != null) {
+            String[] scopeNames = new String[scopes.length];
+            for (int i = 0; i < scopes.length; i++) {
+                scopeNames[i] = scopes[i];
+            }
+            properties.put(EngineConstants.SLING_FILTER_SCOPE, scopeNames);
+        }
+
+        TestFilter testFilter = new TestFilter();
         bundleContext.registerService(Filter.class, testFilter, properties);
         return testFilter;
     }
@@ -118,7 +167,7 @@ public class ServletFilterManagerTest {
     private static void assertFilterInScopes(
             ServletFilterManager mgr, Filter filterInstance, FilterChainType... scopes) {
         for (FilterChainType scope : FilterChainType.values()) {
-            if (ArrayUtils.contains(scopes, scope)) {
+            if (scopes != null && ArrayUtils.contains(scopes, scope)) {
                 assertTrue("Expected filter in scope " + scope.name(), hasFilterInScope(mgr, filterInstance, scope));
             } else {
                 assertFalse("Unexpected filter in scope " + scope.name(), hasFilterInScope(mgr, filterInstance, scope));
