@@ -292,7 +292,7 @@ public class ServletFilterManager {
         }
         if (!used) {
             log.warn(
-                    "Filter service {} has been registered without a valid {} property. Using default value.",
+                    "Filter service {} has been registered without a valid {} property. The filter is ignored and not used.",
                     serviceId,
                     EngineConstants.SLING_FILTER_SCOPE);
         }
