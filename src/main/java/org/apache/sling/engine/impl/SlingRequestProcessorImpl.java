@@ -164,11 +164,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
-    void setJakartaErrorHandler(final ServiceReference<?> ref, final JakartaErrorHandler handler) {
+    void setJakartaErrorHandler(final JakartaErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, handler);
     }
 
-    void unsetJakartaErrorHandler(final ServiceReference<?> ref, final JakartaErrorHandler handler) {
+    void unsetJakartaErrorHandler(final JakartaErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (JakartaErrorHandler) null);
     }
 
@@ -177,11 +177,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
-    void setErrorHandler(final ServiceReference<?> ref, final ErrorHandler handler) {
+    void setErrorHandler(final ErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, handler);
     }
 
-    void unsetErrorHandler(final ServiceReference<?> ref, final ErrorHandler handler) {
+    void unsetErrorHandler(final ErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (ErrorHandler) null);
     }
 
