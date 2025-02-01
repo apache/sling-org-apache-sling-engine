@@ -18,14 +18,6 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.DispatcherType;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-import javax.servlet.http.Part;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Serializable;
@@ -42,8 +34,15 @@ import java.util.Map;
 import java.util.ResourceBundle;
 import java.util.Set;
 
+import jakarta.servlet.DispatcherType;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.Part;
 import org.apache.sling.api.SlingConstants;
-import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestDispatcherOptions;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
@@ -51,27 +50,29 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.wrappers.JakartaToJavaxServletWrapper;
 import org.apache.sling.engine.impl.helper.NullResourceBundle;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.apache.sling.engine.impl.request.SlingRequestDispatcher;
-import org.osgi.service.http.context.ServletContextHelper;
+import org.osgi.service.servlet.context.ServletContextHelper;
 import org.osgi.service.useradmin.Authorization;
 
-import static javax.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.FORWARD_PATH_INFO;
-import static javax.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
-import static javax.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
-import static javax.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
-import static javax.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
-import static javax.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
+import static jakarta.servlet.RequestDispatcher.FORWARD_CONTEXT_PATH;
+import static jakarta.servlet.RequestDispatcher.FORWARD_PATH_INFO;
+import static jakarta.servlet.RequestDispatcher.FORWARD_QUERY_STRING;
+import static jakarta.servlet.RequestDispatcher.FORWARD_REQUEST_URI;
+import static jakarta.servlet.RequestDispatcher.FORWARD_SERVLET_PATH;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_CONTEXT_PATH;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_PATH_INFO;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_QUERY_STRING;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_REQUEST_URI;
+import static jakarta.servlet.RequestDispatcher.INCLUDE_SERVLET_PATH;
 
-public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper implements SlingHttpServletRequest {
+public class SlingJakartaHttpServletRequestImpl extends HttpServletRequestWrapper
+        implements SlingJakartaHttpServletRequest {
 
     private static final List<String> FORWARD_ATTRIBUTES = Arrays.asList(
             FORWARD_CONTEXT_PATH, FORWARD_PATH_INFO, FORWARD_QUERY_STRING, FORWARD_REQUEST_URI, FORWARD_SERVLET_PATH);
@@ -79,6 +80,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     private static final List<String> INCLUDE_ATTRIBUTES = Arrays.asList(
             SlingConstants.ATTR_REQUEST_CONTENT,
             SlingConstants.ATTR_REQUEST_SERVLET,
+            SlingConstants.ATTR_REQUEST_JAKARTA_SERVLET,
             SlingConstants.ATTR_REQUEST_PATH_INFO,
             INCLUDE_CONTEXT_PATH,
             INCLUDE_PATH_INFO,
@@ -90,7 +92,7 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
     private final String pathInfo;
     private String responseContentType;
 
-    public SlingHttpServletRequestImpl(RequestData requestData, HttpServletRequest servletRequest) {
+    public SlingJakartaHttpServletRequestImpl(RequestData requestData, HttpServletRequest servletRequest) {
         super(servletRequest);
         this.requestData = requestData;
 
@@ -403,6 +405,8 @@ public class SlingHttpServletRequestImpl extends HttpServletRequestWrapper imple
             if (SlingConstants.ATTR_REQUEST_CONTENT.equals(name)) {
                 return dispatchingInfo.getRequestContent();
             } else if (SlingConstants.ATTR_REQUEST_SERVLET.equals(name)) {
+                return JakartaToJavaxServletWrapper.toJavaxServlet(dispatchingInfo.getRequestServlet());
+            } else if (SlingConstants.ATTR_REQUEST_JAKARTA_SERVLET.equals(name)) {
                 return dispatchingInfo.getRequestServlet();
             } else if (SlingConstants.ATTR_REQUEST_PATH_INFO.equals(name)) {
                 return dispatchingInfo.getRequestPathInfo();

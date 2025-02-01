@@ -18,19 +18,18 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.ServletException;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
+import jakarta.servlet.ServletException;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 
 /**
  * The <code>RequestSlingFilterChain</code> implements the filter chain for
  * request scoped filters. It is used by the
- * {@link org.apache.sling.engine.impl.SlingMainServlet#service(javax.servlet.ServletRequest, javax.servlet.ServletResponse)}
+ * {@link org.apache.sling.engine.impl.SlingMainServlet#service(jakarta.servlet.ServletRequest, jakarta.servlet.ServletResponse)}
  * method to dispatch request processing.
  */
 public class RequestSlingFilterChain extends AbstractSlingFilterChain {
@@ -43,7 +42,7 @@ public class RequestSlingFilterChain extends AbstractSlingFilterChain {
     }
 
     @Override
-    protected void render(SlingHttpServletRequest request, SlingHttpServletResponse response)
+    protected void render(SlingJakartaHttpServletRequest request, SlingJakartaHttpServletResponse response)
             throws ServletException, IOException {
         handler.processComponent(request, response, FilterChainType.COMPONENT);
     }

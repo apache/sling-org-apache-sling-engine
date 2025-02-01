@@ -18,13 +18,12 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.ServletException;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.ErrorHandler;
+import jakarta.servlet.ServletException;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.engine.impl.DefaultErrorHandler;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -45,11 +44,11 @@ public class ErrorFilterChainTest {
     @Test
     public void testResponseCommitted() throws IOException, ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final ErrorHandler errorHandler = Mockito.mock(ErrorHandler.class);
-        handler.setDelegate(errorHandler);
+        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        handler.setDelegate(null, errorHandler);
 
-        final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
-        final SlingHttpServletResponse response = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponse response = Mockito.mock(SlingJakartaHttpServletResponse.class);
         Mockito.when(response.isCommitted()).thenReturn(true);
 
         final ErrorFilterChain chain1 = new ErrorFilterChain(new FilterHandle[0], handler, new Exception());
@@ -65,11 +64,11 @@ public class ErrorFilterChainTest {
     @Test
     public void testResponseNotCommitted() throws IOException, ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final ErrorHandler errorHandler = Mockito.mock(ErrorHandler.class);
-        handler.setDelegate(errorHandler);
+        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        handler.setDelegate(null, errorHandler);
 
-        final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
-        final SlingHttpServletResponse response = Mockito.mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponse response = Mockito.mock(SlingJakartaHttpServletResponse.class);
         Mockito.when(response.isCommitted()).thenReturn(false);
 
         final ErrorFilterChain chain1 = new ErrorFilterChain(new FilterHandle[0], handler, new Exception());

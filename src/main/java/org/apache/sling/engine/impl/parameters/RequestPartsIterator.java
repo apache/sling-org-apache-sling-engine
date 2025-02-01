@@ -18,9 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.Part;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -29,10 +26,11 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileItemStream;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
+import org.apache.commons.fileupload2.core.FileItemInput;
+import org.apache.commons.fileupload2.core.FileItemInputIterator;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletDiskFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -43,7 +41,7 @@ public class RequestPartsIterator implements Iterator<Part> {
     private static final Logger LOG = LoggerFactory.getLogger(RequestPartsIterator.class);
 
     /** The CommonsFile Upload streaming API iterator */
-    private final FileItemIterator itemIterator;
+    private final FileItemInputIterator itemIterator;
 
     /**
      * Create and initialse the iterator using the request. The request must be fresh. Headers can have been read but the stream
@@ -52,8 +50,8 @@ public class RequestPartsIterator implements Iterator<Part> {
      * @throws IOException when there is a problem reading the request.
      * @throws FileUploadException when there is a problem parsing the request.
      */
-    public RequestPartsIterator(HttpServletRequest servletRequest) throws IOException, FileUploadException {
-        ServletFileUpload upload = new ServletFileUpload();
+    public RequestPartsIterator(HttpServletRequest servletRequest) throws IOException {
+        JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
         upload.setFileCountMax(50);
         itemIterator = upload.getItemIterator(servletRequest);
     }
@@ -62,8 +60,6 @@ public class RequestPartsIterator implements Iterator<Part> {
     public boolean hasNext() {
         try {
             return itemIterator.hasNext();
-        } catch (FileUploadException e) {
-            LOG.error("hasNext Item failed cause:" + e.getMessage(), e);
         } catch (IOException e) {
             LOG.error("hasNext Item failed cause:" + e.getMessage(), e);
         }
@@ -75,8 +71,6 @@ public class RequestPartsIterator implements Iterator<Part> {
         try {
             return new StreamedRequestPart(itemIterator.next());
         } catch (IOException e) {
-            LOG.error("next Item failed cause:" + e.getMessage(), e);
-        } catch (FileUploadException e) {
             LOG.error("next Item failed cause:" + e.getMessage(), e);
         }
         return null;
@@ -91,12 +85,12 @@ public class RequestPartsIterator implements Iterator<Part> {
      * Internal implementation of the Part API from Servlet 3 wrapping the Commons File Upload FIleItemStream object.
      */
     private static class StreamedRequestPart implements Part {
-        private final FileItemStream fileItem;
+        private final FileItemInput fileItem;
         private final InputStream inputStream;
 
-        public StreamedRequestPart(FileItemStream fileItem) throws IOException {
+        public StreamedRequestPart(FileItemInput fileItem) throws IOException {
             this.fileItem = fileItem;
-            inputStream = fileItem.openStream();
+            inputStream = fileItem.getInputStream();
         }
 
         @Override

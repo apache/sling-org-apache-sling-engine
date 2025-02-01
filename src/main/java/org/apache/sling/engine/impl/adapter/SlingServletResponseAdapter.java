@@ -18,17 +18,16 @@
  */
 package org.apache.sling.engine.impl.adapter;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.Locale;
 
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.api.wrappers.SlingJakartaHttpServletResponseWrapper;
 
 /**
  * The <code>SlingServletResponseAdapter</code> class is a
@@ -40,11 +39,11 @@ import org.apache.sling.api.wrappers.SlingHttpServletResponseWrapper;
  * <code>SlingHttpServletResponseWrapper</code>. One such case is the Jasper
  * runtime which does this.
  */
-public class SlingServletResponseAdapter extends SlingHttpServletResponseWrapper {
+public class SlingServletResponseAdapter extends SlingJakartaHttpServletResponseWrapper {
 
     private final HttpServletResponse response;
 
-    public SlingServletResponseAdapter(SlingHttpServletResponse delegatee, HttpServletResponse response) {
+    public SlingServletResponseAdapter(SlingJakartaHttpServletResponse delegatee, HttpServletResponse response) {
         super(delegatee);
         this.response = response;
     }
@@ -85,20 +84,8 @@ public class SlingServletResponseAdapter extends SlingHttpServletResponseWrapper
     }
 
     @Override
-    @Deprecated
-    public String encodeRedirectUrl(String url) {
-        return response.encodeRedirectUrl(url);
-    }
-
-    @Override
     public String encodeRedirectURL(String url) {
         return response.encodeRedirectURL(url);
-    }
-
-    @Override
-    @Deprecated
-    public String encodeUrl(String url) {
-        return response.encodeUrl(url);
     }
 
     @Override
@@ -137,12 +124,6 @@ public class SlingServletResponseAdapter extends SlingHttpServletResponseWrapper
     }
 
     @Override
-    @Deprecated
-    public void setStatus(int sc, String sm) {
-        response.setStatus(sc, sm);
-    }
-
-    @Override
     public void setStatus(int sc) {
         response.setStatus(sc);
     }
@@ -178,12 +159,12 @@ public class SlingServletResponseAdapter extends SlingHttpServletResponseWrapper
     }
 
     @Override
-    public SlingHttpServletResponse getSlingResponse() {
+    public SlingJakartaHttpServletResponse getSlingResponse() {
         // overwrite base class getSlingResponse since that method
         // calls getResponse which is overwritten here to return the
         // HttpServletResponse - we have to get the actual underlying
         // response object which is available from the base class
-        return (SlingHttpServletResponse) super.getResponse();
+        return (SlingJakartaHttpServletResponse) super.getResponse();
     }
 
     @Override

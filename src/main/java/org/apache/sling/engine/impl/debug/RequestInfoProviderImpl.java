@@ -29,7 +29,7 @@ import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Pattern;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.engine.RequestInfo;
 import org.apache.sling.engine.RequestInfoProvider;
 import org.apache.sling.engine.impl.Config;
@@ -88,14 +88,14 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
         this.patterns = Collections.emptyList();
     }
 
-    public static void recordRequest(final SlingHttpServletRequest r) {
+    public static void recordRequest(final SlingJakartaHttpServletRequest r) {
         final RequestInfoProviderImpl local = INSTANCE;
         if (local != null) {
             local.addRequest(r);
         }
     }
 
-    private void addRequest(final SlingHttpServletRequest r) {
+    private void addRequest(final SlingJakartaHttpServletRequest r) {
         final ConcurrentNavigableMap<String, RequestInfo> local = requests;
         if (local != null && isEnabledFor(r.getPathInfo())) {
             final RequestInfo info = new RequestInfoImpl(r);
@@ -178,7 +178,7 @@ public class RequestInfoProviderImpl implements RequestInfoProvider {
 
         private final String log;
 
-        RequestInfoImpl(final SlingHttpServletRequest request) {
+        RequestInfoImpl(final SlingJakartaHttpServletRequest request) {
             this.id = String.valueOf(System.currentTimeMillis())
                     .concat("-")
                     .concat(String.valueOf(requestCounter.incrementAndGet()));

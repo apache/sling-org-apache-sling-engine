@@ -18,11 +18,10 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-
-import org.osgi.service.http.context.ServletContextHelper;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import org.osgi.service.servlet.context.ServletContextHelper;
 
 class RequestLoggerRequest extends HttpServletRequestWrapper {
 

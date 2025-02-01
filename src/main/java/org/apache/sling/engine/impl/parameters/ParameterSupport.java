@@ -18,9 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletRequestWrapper;
-
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -32,14 +29,19 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.commons.fileupload.FileItem;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.RequestContext;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
-import org.apache.commons.fileupload.servlet.ServletRequestContext;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequestWrapper;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload2.core.DiskFileItemFactory;
+import org.apache.commons.fileupload2.core.FileUploadException;
+import org.apache.commons.fileupload2.core.RequestContext;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletDiskFileUpload;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletFileUpload;
+import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletRequestContext;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
+import org.apache.sling.api.resource.ResourceResolver;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -301,7 +303,8 @@ public class ParameterSupport {
                 }
 
                 // Multipart POST
-                if (ServletFileUpload.isMultipartContent(new ServletRequestContext(this.getServletRequest()))) {
+                if (JakartaServletFileUpload.isMultipartContent(
+                        new JakartaServletRequestContext(this.getServletRequest()))) {
                     if (isStreamed(parameters, this.getServletRequest())) {
                         // special case, the request is Multipart and streamed processing has been requested
                         try {
@@ -312,9 +315,6 @@ public class ParameterSupport {
                             this.log.debug(
                                     "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
                         } catch (IOException e) {
-                            this.log.error(
-                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
-                        } catch (FileUploadException e) {
                             this.log.error(
                                     "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
                         }
@@ -396,13 +396,15 @@ public class ParameterSupport {
     private void parseMultiPartPost(ParameterMap parameters) {
 
         // Create a new file upload handler
-        ServletFileUpload upload = new ServletFileUpload();
+        JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
         upload.setSizeMax(ParameterSupport.maxRequestSize);
         upload.setFileSizeMax(ParameterSupport.maxFileSize);
-        upload.setFileItemFactory(
-                new DiskFileItemFactory(ParameterSupport.fileSizeThreshold, ParameterSupport.location));
+        upload.setFileItemFactory(DiskFileItemFactory.builder()
+                .setBufferSize(ParameterSupport.fileSizeThreshold)
+                .setPath(ParameterSupport.location.toPath())
+                .get());
         upload.setFileCountMax(ParameterSupport.maxFileCount);
-        RequestContext rc = new ServletRequestContext(this.getServletRequest()) {
+        RequestContext rc = new JakartaServletRequestContext(this.getServletRequest()) {
             @Override
             public String getCharacterEncoding() {
                 String enc = super.getCharacterEncoding();
@@ -420,7 +422,7 @@ public class ParameterSupport {
 
         if (items != null && items.size() > 0) {
             for (Iterator<?> ii = items.iterator(); ii.hasNext(); ) {
-                FileItem fileItem = (FileItem) ii.next();
+                DiskFileItem fileItem = (DiskFileItem) ii.next();
                 RequestParameter pp = new MultipartRequestParameter(fileItem);
                 parameters.addParameter(pp, false);
             }

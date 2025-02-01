@@ -18,12 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.Dictionary;
 import java.util.Hashtable;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.Filter;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.builder.Builders;
 import org.jmock.Expectations;
@@ -82,7 +81,7 @@ public abstract class AbstractFilterTest {
         return ref;
     }
 
-    protected SlingHttpServletRequest mockRequest(
+    protected SlingJakartaHttpServletRequest mockRequest(
             final String path,
             final String extension,
             final String[] selectors,
@@ -102,8 +101,8 @@ public abstract class AbstractFilterTest {
             }
         });
 
-        final SlingHttpServletRequest req =
-                context.mock(SlingHttpServletRequest.class, "req " + path + extension + method + suffix);
+        final SlingJakartaHttpServletRequest req =
+                context.mock(SlingJakartaHttpServletRequest.class, "req " + path + extension + method + suffix);
         context.checking(new Expectations() {
             {
                 allowing(req).getRequestProgressTracker();
@@ -123,7 +122,7 @@ public abstract class AbstractFilterTest {
         return req;
     }
 
-    protected SlingHttpServletRequest mockRequest(
+    protected SlingJakartaHttpServletRequest mockRequest(
             final String resourcePath, final String requestPath, final String extension) {
         final RequestPathInfo info =
                 context.mock(RequestPathInfo.class, "info " + resourcePath + requestPath + extension);
@@ -140,8 +139,8 @@ public abstract class AbstractFilterTest {
             }
         });
 
-        final SlingHttpServletRequest req =
-                context.mock(SlingHttpServletRequest.class, "req " + resourcePath + requestPath + extension);
+        final SlingJakartaHttpServletRequest req =
+                context.mock(SlingJakartaHttpServletRequest.class, "req " + resourcePath + requestPath + extension);
         context.checking(new Expectations() {
             {
                 allowing(req).getRequestPathInfo();
@@ -160,7 +159,7 @@ public abstract class AbstractFilterTest {
         return predicate;
     }
 
-    protected SlingHttpServletRequest whateverRequest() {
+    protected SlingJakartaHttpServletRequest whateverRequest() {
         return mockRequest("/content/test/what/ever", "json", new String[] {"test"}, "GET", null);
     }
 }
