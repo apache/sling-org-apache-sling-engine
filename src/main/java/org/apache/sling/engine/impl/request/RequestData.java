@@ -36,6 +36,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.ServletResponseWrapper;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RecursionTooDeepException;
@@ -47,6 +49,10 @@ import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
+import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
+import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
+import org.apache.sling.api.wrappers.JavaxToJakartaRequestWrapper;
+import org.apache.sling.api.wrappers.JavaxToJakartaResponseWrapper;
 import org.apache.sling.api.wrappers.SlingJakartaHttpServletRequestWrapper;
 import org.apache.sling.api.wrappers.SlingJakartaHttpServletResponseWrapper;
 import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
@@ -285,14 +291,14 @@ public class RequestData {
     // ---------- Request Helper
 
     /**
-     * Unwraps the ServletRequest to a SlingHttpServletRequest.
+     * Unwraps the ServletRequest to a SlingJakartaHttpServletRequest.
      *
      * @param request the request
      * @return the unwrapped request
      * @throws IllegalArgumentException If the <code>request</code> is not a
-     *             <code>SlingHttpServletRequest</code> and not a
+     *             <code>SlingJakartaHttpServletRequest</code> and not a
      *             <code>ServletRequestWrapper</code> wrapping a
-     *             <code>SlingHttpServletRequest</code>.
+     *             <code>SlingJakartaHttpServletRequest</code>.
      */
     public static SlingJakartaHttpServletRequest unwrap(ServletRequest request) {
 
@@ -312,41 +318,56 @@ public class RequestData {
         }
 
         // if we unwrapped everything and did not find a
-        // SlingHttpServletRequest, we lost
-        throw new IllegalArgumentException("ServletRequest not wrapping SlingHttpServletRequest");
+        // SlingJakartaHttpServletRequest, we lost
+        throw new IllegalArgumentException("ServletRequest not wrapping SlingJakartaHttpServletRequest: " + request);
     }
 
     /**
-     * Unwraps the SlingHttpServletRequest to a SlingHttpServletRequestImpl
+     * Unwraps the SlingJakartaHttpServletRequest to a SlingJakartaHttpServletRequestImpl
      *
      * @param request the request
      * @return the unwrapped request
      * @throws IllegalArgumentException If <code>request</code> is not a
-     *             <code>SlingHttpServletRequestImpl</code> and not
-     *             <code>SlingHttpServletRequestWrapper</code> wrapping a
-     *             <code>SlingHttpServletRequestImpl</code>.
+     *             <code>SlingJakartaHttpServletRequestImpl</code> and not
+     *             <code>SlingJakartaHttpServletRequestWrapper</code> wrapping a
+     *             <code>SlingJakartaHttpServletRequestImpl</code>.
      */
     public static SlingJakartaHttpServletRequestImpl unwrap(SlingJakartaHttpServletRequest request) {
         while (request instanceof SlingJakartaHttpServletRequestWrapper) {
             request = ((SlingJakartaHttpServletRequestWrapper) request).getSlingRequest();
         }
 
+        // javax to jakarta wrapper?
+        if (request instanceof JavaxToJakartaRequestWrapper) {
+            javax.servlet.ServletRequest req = ((JavaxToJakartaRequestWrapper) request).getRequest();
+            while (req instanceof javax.servlet.ServletRequestWrapper) {
+                req = ((javax.servlet.ServletRequestWrapper) req).getRequest();
+            }
+            if (req instanceof JakartaToJavaxRequestWrapper) {
+                final ServletRequest r = ((JakartaToJavaxRequestWrapper) req).getRequest();
+                if (r instanceof SlingJakartaHttpServletRequest) {
+                    return unwrap((SlingJakartaHttpServletRequest) r);
+                }
+                throw new IllegalArgumentException("SlingJakartaHttpServletRequest not of correct type: " + r);
+            }
+            throw new IllegalArgumentException("SlingJakartaHttpServletRequest not of correct type: " + req);
+        }
         if (request instanceof SlingJakartaHttpServletRequestImpl) {
             return (SlingJakartaHttpServletRequestImpl) request;
         }
 
-        throw new IllegalArgumentException("SlingHttpServletRequest not of correct type");
+        throw new IllegalArgumentException("SlingJakartaHttpServletRequest not of correct type: " + request);
     }
 
     /**
-     * Unwraps the ServletRequest to a SlingHttpServletRequest.
+     * Unwraps the ServletResponse to a SlingJakartaHttpServletResponse.
      *
      * @param response the response
      * @return the unwrapped response
      * @throws IllegalArgumentException If the <code>response</code> is not a
-     *             <code>SlingHttpServletResponse</code> and not a
+     *             <code>SlingJakartaHttpServletResponse</code> and not a
      *             <code>ServletResponseWrapper</code> wrapping a
-     *             <code>SlingHttpServletResponse</code>.
+     *             <code>SlingJakartaHttpServletResponse</code>.
      */
     public static SlingJakartaHttpServletResponse unwrap(ServletResponse response) {
 
@@ -366,30 +387,45 @@ public class RequestData {
         }
 
         // if we unwrapped everything and did not find a
-        // SlingHttpServletResponse, we lost
-        throw new IllegalArgumentException("ServletResponse not wrapping SlingHttpServletResponse");
+        // SlingJakartaHttpServletResponse, we lost
+        throw new IllegalArgumentException("ServletResponse not wrapping SlingJakartaHttpServletResponse: " + response);
     }
 
     /**
-     * Unwraps a SlingHttpServletResponse to a SlingHttpServletResponseImpl
+     * Unwraps a SlingJakartaHttpServletResponse to a SlingJakartaHttpServletResponseImpl
      *
      * @param response the response
      * @return the unwrapped response
      * @throws IllegalArgumentException If <code>response</code> is not a
-     *             <code>SlingHttpServletResponseImpl</code> and not
-     *             <code>SlingHttpServletResponseWrapper</code> wrapping a
-     *             <code>SlingHttpServletResponseImpl</code>.
+     *             <code>SlingJakartaHttpServletResponseImpl</code> and not
+     *             <code>SlingJakartaHttpServletResponse</code> wrapping a
+     *             <code>SlingJakartaHttpServletResponseImpl</code>.
      */
     public static SlingJakartaHttpServletResponseImpl unwrap(SlingJakartaHttpServletResponse response) {
         while (response instanceof SlingJakartaHttpServletResponseWrapper) {
             response = ((SlingJakartaHttpServletResponseWrapper) response).getSlingResponse();
         }
 
+        // javax to jakarta wrapper?
+        if (response instanceof JavaxToJakartaResponseWrapper) {
+            javax.servlet.ServletResponse res = ((JavaxToJakartaResponseWrapper) response).getResponse();
+            while (res instanceof javax.servlet.ServletResponseWrapper) {
+                res = ((javax.servlet.ServletResponseWrapper) res).getResponse();
+            }
+            if (res instanceof JakartaToJavaxResponseWrapper) {
+                final ServletResponse r = ((JakartaToJavaxResponseWrapper) res).getResponse();
+                if (r instanceof SlingJakartaHttpServletResponse) {
+                    return unwrap((SlingJakartaHttpServletResponse) r);
+                }
+                throw new IllegalArgumentException("SlingJakartaHttpServletResponse not of correct type: " + r);
+            }
+            throw new IllegalArgumentException("SlingJakartaHttpServletResponse not of correct type: " + res);
+        }
         if (response instanceof SlingJakartaHttpServletResponseImpl) {
             return (SlingJakartaHttpServletResponseImpl) response;
         }
 
-        throw new IllegalArgumentException("SlingHttpServletResponse not of correct type");
+        throw new IllegalArgumentException("SlingJakartaHttpServletResponse not of correct type: " + response);
     }
 
     /**
