@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -84,6 +85,72 @@ public class SlingHttpServletResponseImplTest {
         "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
         "4749 LOG Adding bindings took 4 microseconds"
     };
+
+    @Test
+    public void testRecursiveCalls() {
+        String[] recursivePartStrings = {
+            "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
+            "3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter",
+            "4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1}",
+            "3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter",
+            "2678 TIMER_START{ServletResolution}",
+            "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+            "2678 TIMER_START{ServletResolution}",
+            "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+            "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+            "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+            "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+            "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+            "3774 LOG Applying Componentfilters",
+            "3797 TIMER_START{/libs/slingshot/Home/html.jsp#0}",
+            "3946 LOG Adding bindings took 18 microseconds",
+            "4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null')",
+            "4414 TIMER_START{resolveServlet(/content/slingshot)}",
+            "4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp",
+            "4673 LOG Applying Includefilters"
+        };
+
+        String[] concatenatedArray = Stream.concat(Arrays.stream(logMessages), Arrays.stream(recursivePartStrings))
+                .toArray(String[]::new);
+        for (int i = 0; i < 50; i++) {
+            concatenatedArray = Stream.concat(Arrays.stream(concatenatedArray), Arrays.stream(recursivePartStrings))
+                    .toArray(String[]::new);
+        }
+
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(concatenatedArray));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setProtectHeadersOnInclude(true);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+
+        include.setContentLength(54);
+        include.setContentLengthLong(33L);
+        include.setContentType("text/plain");
+        include.setLocale(null);
+        include.setBufferSize(4500);
+
+        Mockito.verify(orig, never()).setContentLength(54);
+        Mockito.verify(orig, never()).setContentLengthLong(33L);
+        Mockito.verify(orig, never()).setContentType("text/plain");
+        Mockito.verify(orig, never()).setLocale(null);
+        Mockito.verify(orig, never()).setBufferSize(4500);
+
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(requestProgressTracker, times(1)).log(logCaptor.capture());
+        String logMessage = logCaptor.getValue();
+
+        // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
+        // remain in the log message, check for the cut message
+        assertTrue(logMessage.contains("... cut"));
+    }
 
     @Test
     public void testReset() {
