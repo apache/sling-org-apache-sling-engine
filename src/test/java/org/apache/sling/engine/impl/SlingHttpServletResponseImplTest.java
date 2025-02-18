@@ -86,6 +86,28 @@ public class SlingHttpServletResponseImplTest {
         "4749 LOG Adding bindings took 4 microseconds"
     };
 
+    @Test
+    public void testReset() {
+        final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+
+        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+
+        when(orig.isCommitted()).thenReturn(false);
+        include.reset();
+        verify(orig, times(1)).isCommitted();
+        Mockito.verifyNoMoreInteractions(orig);
+
+        when(orig.isCommitted()).thenReturn(true);
+        include.reset();
+        verify(orig, times(2)).isCommitted();
+        verify(orig, times(1)).reset();
+        Mockito.verifyNoMoreInteractions(orig);
+    }
+
     private String callTesteeAndGetLogMessage(String[] logMessages) {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
@@ -136,28 +158,6 @@ public class SlingHttpServletResponseImplTest {
         // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
         // remain in the log message, check for the cut message
         assertTrue(logMessage.contains("... cut 504 messages ..."));
-    }
-
-    @Test
-    public void testReset() {
-        final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
-        final RequestData requestData = mock(RequestData.class);
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setProtectHeadersOnInclude(true);
-
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
-
-        when(orig.isCommitted()).thenReturn(false);
-        include.reset();
-        verify(orig, times(1)).isCommitted();
-        Mockito.verifyNoMoreInteractions(orig);
-
-        when(orig.isCommitted()).thenReturn(true);
-        include.reset();
-        verify(orig, times(2)).isCommitted();
-        verify(orig, times(1)).reset();
-        Mockito.verifyNoMoreInteractions(orig);
     }
 
     @Test
