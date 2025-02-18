@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
@@ -107,8 +108,7 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoMoreInteractions(orig);
     }
 
-    @Test
-    public void testContentMethods() {
+    private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -137,7 +137,32 @@ public class SlingHttpServletResponseImplTest {
 
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());
-        String logMessage = logCaptor.getValue();
+        return logCaptor.getValue();
+    }
+
+    @Test
+    public void testRecursiveCalls() {
+
+        // build a string array which resembles the log of recursive includes (50 levels
+        // deep)
+        String[] recursivePartStrings = Arrays.copyOfRange(logMessages, 14, logMessages.length - 2);
+        String[] concatenatedArray = Stream.concat(Arrays.stream(logMessages), Arrays.stream(recursivePartStrings))
+                .toArray(String[]::new);
+        for (int i = 0; i < 50; i++) {
+            concatenatedArray = Stream.concat(Arrays.stream(concatenatedArray), Arrays.stream(recursivePartStrings))
+                    .toArray(String[]::new);
+        }
+
+        String logMessage = callTesteeAndGetRequestProgressTrackerMessage(concatenatedArray);
+
+        // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
+        // remain in the log message, check for the cut message
+        assertTrue(logMessage.contains("... cut 504 messages ..."));
+    }
+
+    @Test
+    public void testContentMethods() {
+        String logMessage = callTesteeAndGetRequestProgressTrackerMessage(logMessages);
         assertEquals(
                 String.format(
                         "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",

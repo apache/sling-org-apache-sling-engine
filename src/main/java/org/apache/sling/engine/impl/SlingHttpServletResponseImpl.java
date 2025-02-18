@@ -31,14 +31,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Spliterators;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -67,6 +66,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private static final Exception FLUSHER_STACK_DUMMY = new Exception();
+
+    private static final int MAX_NR_OF_MESSAGES = 500;
 
     private Exception flusherStacktrace;
 
@@ -361,13 +362,36 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         return Optional.empty();
     }
 
+    private List<String> getLastMessagesOfProgressTracker() {
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker to prevent excessive memory
+        // consumption errors when close to infinite recursive calls are made
+        int nrOfOriginalMessages = 0;
+        boolean gotCut = false;
+        Iterator<String> messagesIterator =
+                requestData.getRequestProgressTracker().getMessages();
+        LinkedList<String> lastMessages = new LinkedList<>();
+        while (messagesIterator.hasNext()) {
+            nrOfOriginalMessages++;
+            if (gotCut || lastMessages.size() >= MAX_NR_OF_MESSAGES) {
+                lastMessages.removeFirst();
+                gotCut = true;
+            }
+            lastMessages.add(messagesIterator.next());
+        }
+
+        if (gotCut) {
+            lastMessages.addFirst("... cut " + (nrOfOriginalMessages - MAX_NR_OF_MESSAGES) + " messages ...");
+        }
+        return lastMessages;
+    }
+
     /**
      * Finds unmatched TIMER_START messages in a log of messages.
      *
      * @return a string containing the unmatched TIMER_START messages
      */
     private String findUnmatchedTimerStarts() {
-        Iterator<String> messages = requestData.getRequestProgressTracker().getMessages();
+        Iterator<String> messages = getLastMessagesOfProgressTracker().iterator();
         List<String> unmatchedStarts = new ArrayList<>();
         Deque<String> timerDeque = new ArrayDeque<>();
 
@@ -418,15 +442,14 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * include.
      *
      * @param currentContentType the current 'Content-Type' header
-     * @param setContentType the 'Content-Type' header that is being set
+     * @param setContentType     the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
-        String allMessages = StreamSupport.stream(
-                        Spliterators.spliteratorUnknownSize(
-                                requestData.getRequestProgressTracker().getMessages(), 0),
-                        false)
-                .collect(Collectors.joining(System.lineSeparator()));
+
+        String allMessages =
+                getLastMessagesOfProgressTracker().stream().collect(Collectors.joining(System.lineSeparator()));
+
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
