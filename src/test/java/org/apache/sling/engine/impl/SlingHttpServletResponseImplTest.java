@@ -108,7 +108,7 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verifyNoMoreInteractions(orig);
     }
 
-    private String callTesteeAndGetLogMessage(String[] logMessages) {
+    private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -153,7 +153,7 @@ public class SlingHttpServletResponseImplTest {
                     .toArray(String[]::new);
         }
 
-        String logMessage = callTesteeAndGetLogMessage(concatenatedArray);
+        String logMessage = callTesteeAndGetRequestProgressTrackerMessage(concatenatedArray);
 
         // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
         // remain in the log message, check for the cut message
@@ -162,7 +162,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentMethods() {
-        String logMessage = callTesteeAndGetLogMessage(logMessages);
+        String logMessage = callTesteeAndGetRequestProgressTrackerMessage(logMessages);
         assertEquals(
                 String.format(
                         "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",
