@@ -363,7 +363,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
-        // Collect the last N messages from the RequestProgressTracker to avoid OOM
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker to prevent excessive memory consumption
         // errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;

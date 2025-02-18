@@ -110,6 +110,7 @@ public class SlingHttpServletResponseImplTest {
             "4673 LOG Applying Includefilters"
         };
 
+// build a string array which resembles the log of recursive includes (50 levels deep)
         String[] concatenatedArray = Stream.concat(Arrays.stream(logMessages), Arrays.stream(recursivePartStrings))
                 .toArray(String[]::new);
         for (int i = 0; i < 50; i++) {
