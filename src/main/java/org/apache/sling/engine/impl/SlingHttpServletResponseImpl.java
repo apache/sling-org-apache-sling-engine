@@ -345,8 +345,13 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * @return an optional message to log
      */
     private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+        if (requestData.getSlingRequestProcessor().getXssContentTypeHeader() == XSSContentTypeHeader.VIOLATED) {
+            return Optional.empty();
+        }
+
         String currentContentType = getContentType();
         if (contentType == null) {
+            requestData.getSlingRequestProcessor().setXSSContentTypeHeader(XSSContentTypeHeader.VIOLATED);
             return Optional.of(getMessage(currentContentType, null));
         } else {
             Optional<String> currentMime = currentContentType == null
@@ -356,6 +361,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (currentMime.isPresent()
                     && setMime.isPresent()
                     && !currentMime.get().equals(setMime.get())) {
+                requestData.getSlingRequestProcessor().setXSSContentTypeHeader(XSSContentTypeHeader.VIOLATED);
                 return Optional.of(getMessage(currentContentType, contentType));
             }
         }

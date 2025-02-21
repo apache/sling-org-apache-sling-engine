@@ -117,6 +117,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private volatile boolean checkContentTypeOnInclude;
     private volatile boolean disableCheckCompliantGetUserPrincipal;
 
+    private static final ThreadLocal<XSSContentTypeHeader> xssContentTypeHeader =
+            ThreadLocal.withInitial(() -> XSSContentTypeHeader.UNSET);
+
     @Activate
     public void activate(final Config config) {
         this.modified(config);
@@ -236,6 +239,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
         try {
+            if (getXssContentTypeHeader() != XSSContentTypeHeader.UNSET) {
+                log.error(
+                        "XSS Content Type Header has not been cleared properly, is set to {}",
+                        getXssContentTypeHeader());
+            }
+            setXSSContentTypeHeader(XSSContentTypeHeader.NOT_VIOLATED);
+
             // initialize the request data - resolve resource and servlet
             final Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
@@ -307,6 +317,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if (localBean != null) {
                 localBean.addRequestData(requestData);
             }
+
+            setXSSContentTypeHeader(XSSContentTypeHeader.UNSET);
         }
     }
 
@@ -522,5 +534,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         log.debug("getMimeType: MimeTypeService not available, cannot resolve mime type for {}", name);
         return null;
+    }
+
+    public XSSContentTypeHeader getXssContentTypeHeader() {
+        return xssContentTypeHeader.get();
+    }
+
+    public void setXSSContentTypeHeader(XSSContentTypeHeader newState) {
+        xssContentTypeHeader.set(newState);
     }
 }
