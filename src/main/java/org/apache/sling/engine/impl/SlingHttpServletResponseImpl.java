@@ -314,7 +314,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private String getCurrentStackTrace() {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        StringBuilder stackTraceBuilder = new StringBuilder("Stack trace of the current XSS violation:\n");
+        StringBuilder stackTraceBuilder = new StringBuilder("Stack trace of the current content type header change:\n");
         for (StackTraceElement element : stackTraceElements) {
             stackTraceBuilder.append(element.toString()).append("\n");
         }
@@ -357,13 +357,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * @return an optional message to log
      */
     private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
-        if (requestData.getSlingRequestProcessor().getXssContentTypeHeader() == XSSContentTypeHeader.VIOLATED) {
+        if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
+            // return immediatly as the content type header has already been violated
+            // prevoiously, no more checks needed
             return Optional.empty();
         }
 
         String currentContentType = getContentType();
         if (contentType == null) {
-            requestData.getSlingRequestProcessor().setXSSContentTypeHeader(XSSContentTypeHeader.VIOLATED);
+            requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
             return Optional.of(getMessage(currentContentType, null));
         } else {
             Optional<String> currentMime = currentContentType == null
@@ -373,7 +375,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (currentMime.isPresent()
                     && setMime.isPresent()
                     && !currentMime.get().equals(setMime.get())) {
-                requestData.getSlingRequestProcessor().setXSSContentTypeHeader(XSSContentTypeHeader.VIOLATED);
+                requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
                 return Optional.of(getMessage(currentContentType, contentType));
             }
         }

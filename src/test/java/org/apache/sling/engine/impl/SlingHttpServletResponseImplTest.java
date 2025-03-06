@@ -139,7 +139,7 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setLocale(null);
         Mockito.verify(orig, never()).setBufferSize(4500);
 
-        Mockito.verify(requestProcessor, atMostOnce()).setXSSContentTypeHeader(Mockito.any());
+        Mockito.verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(Mockito.any());
 
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());

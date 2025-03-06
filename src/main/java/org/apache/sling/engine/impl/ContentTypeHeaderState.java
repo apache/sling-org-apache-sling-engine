@@ -20,9 +20,9 @@ package org.apache.sling.engine.impl;
 
 /**
  * This enumeration defines states hold in a ThreadLocal to indicate a
- * previously detected XSS violation.
+ * previously detected violation to change the content type header.
  */
-public enum XSSContentTypeHeader {
+public enum ContentTypeHeaderState {
     UNSET,
     VIOLATED,
     NOT_VIOLATED
