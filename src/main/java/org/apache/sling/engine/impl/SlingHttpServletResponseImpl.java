@@ -312,6 +312,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
+    private String getCurrentStackTrace() {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        StringBuilder stackTraceBuilder = new StringBuilder("Stack trace of the current XSS violation:\n");
+        for (StackTraceElement element : stackTraceElements) {
+            stackTraceBuilder.append(element.toString()).append("\n");
+        }
+        return stackTraceBuilder.toString();
+    }
+
     @Override
     public void setContentType(final String type) {
         if (!isInclude()) {
@@ -321,14 +330,17 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (message.isPresent()) {
                 if (isCheckContentTypeOnInclude()) {
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                    LOG.error(getCurrentStackTrace());
                     throw new ContentTypeChangeException(message.get());
                 }
                 if (isProtectHeadersOnInclude()) {
                     LOG.error(message.get());
+                    LOG.error(getCurrentStackTrace());
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
                     return;
                 }
                 LOG.warn(message.get());
+                LOG.warn(getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("WARN: " + message.get());
                 super.setContentType(type);
             } else {
@@ -369,7 +381,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
-        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker to prevent excessive memory
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker
+        // to prevent excessive memory
         // consumption errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;
