@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory;
 
 public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
 
+    private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
+
     private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
 
     // this regex matches TIMER_START{ followed by any characters except }, and then
@@ -316,7 +318,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
         StringBuilder stackTraceBuilder = new StringBuilder("Stack trace of the current content type header change:\n");
         for (StackTraceElement element : stackTraceElements) {
-            stackTraceBuilder.append(element.toString()).append("\n");
+            stackTraceBuilder.append(element.toString()).append(System.lineSeparator());
         }
         return stackTraceBuilder.toString();
     }
@@ -330,17 +332,17 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (message.isPresent()) {
                 if (isCheckContentTypeOnInclude()) {
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
-                    LOG.error(getCurrentStackTrace());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     throw new ContentTypeChangeException(message.get());
                 }
                 if (isProtectHeadersOnInclude()) {
                     LOG.error(message.get());
-                    LOG.error(getCurrentStackTrace());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
                     return;
                 }
                 LOG.warn(message.get());
-                LOG.warn(getCurrentStackTrace());
+                LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("WARN: " + message.get());
                 super.setContentType(type);
             } else {
