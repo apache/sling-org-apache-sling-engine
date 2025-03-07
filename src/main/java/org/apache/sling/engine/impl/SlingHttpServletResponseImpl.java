@@ -316,7 +316,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private String getCurrentStackTrace() {
         StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
-        StringBuilder stackTraceBuilder = new StringBuilder("Stack trace of the current content type header change:\n");
+        StringBuilder stackTraceBuilder = new StringBuilder();
         for (StackTraceElement element : stackTraceElements) {
             stackTraceBuilder.append(element.toString()).append(System.lineSeparator());
         }
