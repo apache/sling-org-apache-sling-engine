@@ -41,6 +41,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -85,6 +86,24 @@ public class SlingHttpServletResponseImplTest {
         "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
         "4749 LOG Adding bindings took 4 microseconds"
     };
+
+    @Test
+    public void testNoViolationChecksOnCommitedResponse() throws IOException {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        Mockito.when(orig.isCommitted()).thenReturn(true);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingHttpServletResponseImpl include = new SlingHttpServletResponseImpl(requestData, orig);
+        SlingHttpServletResponseImpl spyInclude = spy(include);
+
+        spyInclude.setContentType("someOtherType");
+        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
+        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+    }
 
     @Test
     public void testReset() {

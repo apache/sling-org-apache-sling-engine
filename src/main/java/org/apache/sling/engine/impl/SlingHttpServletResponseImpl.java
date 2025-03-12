@@ -314,7 +314,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (!isInclude()) {
+        if (super.getResponse().isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
@@ -344,7 +344,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * @param contentType the 'Content-Type' value that is being set
      * @return an optional message to log
      */
-    private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+    protected Optional<String> checkContentTypeOverride(@Nullable String contentType) {
         String currentContentType = getContentType();
         if (contentType == null) {
             return Optional.of(getMessage(currentContentType, null));
@@ -363,7 +363,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
-        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker to prevent excessive memory
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker
+        // to prevent excessive memory
         // consumption errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;
