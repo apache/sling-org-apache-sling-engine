@@ -39,6 +39,7 @@ import org.mockito.Mockito;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -117,6 +118,9 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
 
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
         ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
         when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
         info.setProtectHeadersOnInclude(true);
@@ -134,6 +138,8 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setContentType("text/plain");
         Mockito.verify(orig, never()).setLocale(null);
         Mockito.verify(orig, never()).setBufferSize(4500);
+
+        Mockito.verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(Mockito.any());
 
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());
@@ -214,6 +220,9 @@ public class SlingHttpServletResponseImplTest {
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
 
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
         Throwable throwable = null;
         try {
             include.setContentType("application/json");
@@ -257,6 +266,9 @@ public class SlingHttpServletResponseImplTest {
         ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
         when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
 
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
@@ -287,6 +299,9 @@ public class SlingHttpServletResponseImplTest {
         info.setCheckContentTypeOnInclude(true);
         when(orig.getContentType()).thenReturn("application/json");
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
 
         final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);

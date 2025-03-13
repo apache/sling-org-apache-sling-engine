@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory;
 
 public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
 
+    private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
+
     private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
 
     // this regex matches TIMER_START{ followed by any characters except }, and then
@@ -312,6 +314,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
+    private String getCurrentStackTrace() {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        StringBuilder stackTraceBuilder = new StringBuilder();
+        for (StackTraceElement element : stackTraceElements) {
+            stackTraceBuilder.append(element.toString()).append(System.lineSeparator());
+        }
+        return stackTraceBuilder.toString();
+    }
+
     @Override
     public void setContentType(final String type) {
         if (!isInclude()) {
@@ -321,14 +332,17 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (message.isPresent()) {
                 if (isCheckContentTypeOnInclude()) {
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     throw new ContentTypeChangeException(message.get());
                 }
                 if (isProtectHeadersOnInclude()) {
                     LOG.error(message.get());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
                     return;
                 }
                 LOG.warn(message.get());
+                LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("WARN: " + message.get());
                 super.setContentType(type);
             } else {
@@ -345,8 +359,15 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * @return an optional message to log
      */
     private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+        if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
+            // return immediatly as the content type header has already been violated
+            // prevoiously, no more checks needed
+            return Optional.empty();
+        }
+
         String currentContentType = getContentType();
         if (contentType == null) {
+            requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
             return Optional.of(getMessage(currentContentType, null));
         } else {
             Optional<String> currentMime = currentContentType == null
@@ -356,6 +377,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             if (currentMime.isPresent()
                     && setMime.isPresent()
                     && !currentMime.get().equals(setMime.get())) {
+                requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
                 return Optional.of(getMessage(currentContentType, contentType));
             }
         }
@@ -363,7 +385,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
-        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker to prevent excessive memory
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker
+        // to prevent excessive memory
         // consumption errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;

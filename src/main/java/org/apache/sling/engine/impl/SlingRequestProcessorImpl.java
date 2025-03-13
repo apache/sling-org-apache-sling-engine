@@ -117,6 +117,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private volatile boolean checkContentTypeOnInclude;
     private volatile boolean disableCheckCompliantGetUserPrincipal;
 
+    private static final ThreadLocal<ContentTypeHeaderState> contentTypeHeaderState =
+            ThreadLocal.withInitial(() -> ContentTypeHeaderState.UNSET);
+
     @Activate
     public void activate(final Config config) {
         this.modified(config);
@@ -206,7 +209,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         if (resourceResolver == null || sr == null) {
             // Dependencies are missing
             // In this case we must not use the Sling error handling infrastructure but
-            // just return a 503 status response handled by the servlet container environment
+            // just return a 503 status response handled by the servlet container
+            // environment
 
             final int status = HttpServletResponse.SC_SERVICE_UNAVAILABLE;
             String errorMessage = "Required service missing (";
@@ -236,6 +240,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingHttpServletResponse response = requestData.getSlingResponse();
 
         try {
+            if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
+                log.error(
+                        "Content Type Header state has not been cleared properly, is set to {}",
+                        getContentTypeHeaderState());
+            }
+            setContentTypeHeaderState(ContentTypeHeaderState.NOT_VIOLATED);
+
             // initialize the request data - resolve resource and servlet
             final Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
@@ -307,6 +318,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if (localBean != null) {
                 localBean.addRequestData(requestData);
             }
+
+            setContentTypeHeaderState(ContentTypeHeaderState.UNSET);
         }
     }
 
@@ -328,7 +341,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     // ---------- SlingRequestProcessor interface
 
     /**
-     * @see org.apache.sling.engine.SlingRequestProcessor#processRequest(javax.servlet.http.HttpServletRequest, javax.servlet.http.HttpServletResponse, org.apache.sling.api.resource.ResourceResolver)
+     * @see org.apache.sling.engine.SlingRequestProcessor#processRequest(javax.servlet.http.HttpServletRequest,
+     *      javax.servlet.http.HttpServletResponse,
+     *      org.apache.sling.api.resource.ResourceResolver)
      */
     @Override
     public void processRequest(
@@ -379,10 +394,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     /**
      * Dispatches the request on behalf of the
      * {@link org.apache.sling.engine.impl.request.SlingRequestDispatcher}.
-     * @param request The request
-     * @param response The response
-     * @param resource The resource
-     * @param resolvedURL Request path info
+     *
+     * @param request         The request
+     * @param response        The response
+     * @param resource        The resource
+     * @param resolvedURL     Request path info
      * @param DispatchingInfo dispatching info
      */
     public void dispatchRequest(
@@ -522,5 +538,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         log.debug("getMimeType: MimeTypeService not available, cannot resolve mime type for {}", name);
         return null;
+    }
+
+    public ContentTypeHeaderState getContentTypeHeaderState() {
+        return contentTypeHeaderState.get();
+    }
+
+    public void setContentTypeHeaderState(ContentTypeHeaderState newState) {
+        contentTypeHeaderState.set(newState);
     }
 }
