@@ -88,7 +88,7 @@ public class SlingHttpServletResponseImplTest {
     };
 
     @Test
-    public void testNoViolationChecksOnCommitedResponse() throws IOException {
+    public void testNoViolationChecksOnCommitedResponse() {
         final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
         Mockito.when(orig.isCommitted()).thenReturn(true);
 
