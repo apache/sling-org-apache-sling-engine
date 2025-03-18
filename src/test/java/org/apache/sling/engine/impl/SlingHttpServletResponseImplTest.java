@@ -88,6 +88,24 @@ public class SlingHttpServletResponseImplTest {
     };
 
     @Test
+    public void testNoViolationChecksOnCommitedResponse() throws IOException {
+        final SlingHttpServletResponse orig = Mockito.mock(SlingHttpServletResponse.class);
+        Mockito.when(orig.isCommitted()).thenReturn(true);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingHttpServletResponseImpl include = new SlingHttpServletResponseImpl(requestData, orig);
+        SlingHttpServletResponseImpl spyInclude = Mockito.spy(include);
+
+        spyInclude.setContentType("someOtherType");
+        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
+        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+    }
+
+    @Test
     public void testReset() {
         final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);

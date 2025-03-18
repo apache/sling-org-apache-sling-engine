@@ -325,7 +325,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (!isInclude()) {
+        if (super.getResponse().isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
@@ -358,7 +358,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * @param contentType the 'Content-Type' value that is being set
      * @return an optional message to log
      */
-    private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+    protected Optional<String> checkContentTypeOverride(@Nullable String contentType) {
         if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
             // return immediatly as the content type header has already been violated
             // prevoiously, no more checks needed
