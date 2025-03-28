@@ -25,14 +25,13 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
-import java.util.Spliterators;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
@@ -41,6 +40,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl.WriterAlreadyClosedException;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -48,6 +48,8 @@ import org.slf4j.LoggerFactory;
 
 public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrapper
         implements SlingJakartaHttpServletResponse {
+
+    private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingJakartaHttpServletResponseImpl.class);
 
@@ -67,6 +69,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     }
 
     private static final Exception FLUSHER_STACK_DUMMY = new Exception();
+
+    private static final int MAX_NR_OF_MESSAGES = 500;
 
     private Exception flusherStacktrace;
 
@@ -285,23 +289,35 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         }
     }
 
+    private String getCurrentStackTrace() {
+        StackTraceElement[] stackTraceElements = Thread.currentThread().getStackTrace();
+        StringBuilder stackTraceBuilder = new StringBuilder();
+        for (StackTraceElement element : stackTraceElements) {
+            stackTraceBuilder.append(element.toString()).append(System.lineSeparator());
+        }
+        return stackTraceBuilder.toString();
+    }
+
     @Override
     public void setContentType(final String type) {
-        if (!isInclude()) {
+        if (super.getResponse().isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
             if (message.isPresent()) {
                 if (isCheckContentTypeOnInclude()) {
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     throw new ContentTypeChangeException(message.get());
                 }
                 if (isProtectHeadersOnInclude()) {
                     LOG.error(message.get());
+                    LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
                     requestData.getRequestProgressTracker().log("ERROR: " + message.get());
                     return;
                 }
                 LOG.warn(message.get());
+                LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("WARN: " + message.get());
                 super.setContentType(type);
             } else {
@@ -317,9 +333,15 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * @param contentType the 'Content-Type' value that is being set
      * @return an optional message to log
      */
-    private Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+    protected Optional<String> checkContentTypeOverride(@Nullable String contentType) {
+        if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
+            // return immediatly as the content type header has already been violated
+            // prevoiously, no more checks needed
+            return Optional.empty();
+        }
         String currentContentType = getContentType();
         if (contentType == null) {
+            requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
             return Optional.of(getMessage(currentContentType, null));
         } else {
             Optional<String> currentMime = currentContentType == null
@@ -329,10 +351,35 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
             if (currentMime.isPresent()
                     && setMime.isPresent()
                     && !currentMime.get().equals(setMime.get())) {
+                requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
                 return Optional.of(getMessage(currentContentType, contentType));
             }
         }
         return Optional.empty();
+    }
+
+    private List<String> getLastMessagesOfProgressTracker() {
+        // Collect the last MAX_NR_OF_MESSAGES messages from the RequestProgressTracker
+        // to prevent excessive memory
+        // consumption errors when close to infinite recursive calls are made
+        int nrOfOriginalMessages = 0;
+        boolean gotCut = false;
+        Iterator<String> messagesIterator =
+                requestData.getRequestProgressTracker().getMessages();
+        LinkedList<String> lastMessages = new LinkedList<>();
+        while (messagesIterator.hasNext()) {
+            nrOfOriginalMessages++;
+            if (gotCut || lastMessages.size() >= MAX_NR_OF_MESSAGES) {
+                lastMessages.removeFirst();
+                gotCut = true;
+            }
+            lastMessages.add(messagesIterator.next());
+        }
+
+        if (gotCut) {
+            lastMessages.addFirst("... cut " + (nrOfOriginalMessages - MAX_NR_OF_MESSAGES) + " messages ...");
+        }
+        return lastMessages;
     }
 
     /**
@@ -341,7 +388,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * @return a string containing the unmatched TIMER_START messages
      */
     private String findUnmatchedTimerStarts() {
-        Iterator<String> messages = requestData.getRequestProgressTracker().getMessages();
+        Iterator<String> messages = getLastMessagesOfProgressTracker().iterator();
         List<String> unmatchedStarts = new ArrayList<>();
         Deque<String> timerDeque = new ArrayDeque<>();
 
@@ -396,11 +443,10 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
-        String allMessages = StreamSupport.stream(
-                        Spliterators.spliteratorUnknownSize(
-                                requestData.getRequestProgressTracker().getMessages(), 0),
-                        false)
-                .collect(Collectors.joining(System.lineSeparator()));
+
+        String allMessages =
+                getLastMessagesOfProgressTracker().stream().collect(Collectors.joining(System.lineSeparator()));
+
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
                     "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "

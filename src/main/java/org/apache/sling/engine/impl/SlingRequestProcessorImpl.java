@@ -119,6 +119,9 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
     private volatile boolean checkContentTypeOnInclude;
     private volatile boolean disableCheckCompliantGetUserPrincipal;
 
+    private static final ThreadLocal<ContentTypeHeaderState> contentTypeHeaderState =
+            ThreadLocal.withInitial(() -> ContentTypeHeaderState.UNSET);
+
     @Activate
     public void activate(final Config config) {
         this.modified(config);
@@ -251,6 +254,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingJakartaHttpServletResponse response = requestData.getSlingResponse();
 
         try {
+            if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
+                log.error(
+                        "Content Type Header state has not been cleared properly, is set to {}",
+                        getContentTypeHeaderState());
+            }
+            setContentTypeHeaderState(ContentTypeHeaderState.NOT_VIOLATED);
+
             // initialize the request data - resolve resource and servlet
             final Resource resource = requestData.initResource(resourceResolver);
             requestData.initServlet(resource, sr);
@@ -322,6 +332,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if (localBean != null) {
                 localBean.addRequestData(requestData);
             }
+
+            setContentTypeHeaderState(ContentTypeHeaderState.UNSET);
         }
     }
 
@@ -550,5 +562,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         log.debug("getMimeType: MimeTypeService not available, cannot resolve mime type for {}", name);
         return null;
+    }
+
+    public ContentTypeHeaderState getContentTypeHeaderState() {
+        return contentTypeHeaderState.get();
+    }
+
+    public void setContentTypeHeaderState(ContentTypeHeaderState newState) {
+        contentTypeHeaderState.set(newState);
     }
 }
