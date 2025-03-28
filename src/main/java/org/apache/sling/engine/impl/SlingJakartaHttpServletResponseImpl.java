@@ -18,12 +18,6 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.WriteListener;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpServletResponseWrapper;
-
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayDeque;
@@ -39,18 +33,25 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.api.SlingException;
-import org.apache.sling.api.SlingHttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl.WriterAlreadyClosedException;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
+public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrapper
+        implements SlingJakartaHttpServletResponse {
 
     private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
 
-    private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
+    private static final Logger LOG = LoggerFactory.getLogger(SlingJakartaHttpServletResponseImpl.class);
 
     // this regex matches TIMER_START{ followed by any characters except }, and then
     // a closing }. The part inside the braces is captured for later use.
@@ -77,10 +78,10 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private final boolean firstSlingResponse;
 
-    public SlingHttpServletResponseImpl(RequestData requestData, HttpServletResponse response) {
+    public SlingJakartaHttpServletResponseImpl(RequestData requestData, HttpServletResponse response) {
         super(response);
         this.requestData = requestData;
-        this.firstSlingResponse = !(response instanceof SlingHttpServletResponse);
+        this.firstSlingResponse = !(response instanceof SlingJakartaHttpServletResponse);
 
         if (firstSlingResponse) {
             for (final StaticResponseHeader mapping :
@@ -133,18 +134,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     @Override
-    @Deprecated
-    public String encodeUrl(final String url) {
-        return encodeURL(url);
-    }
-
-    @Override
-    @Deprecated
-    public String encodeRedirectUrl(final String url) {
-        return encodeRedirectURL(url);
-    }
-
-    @Override
     public void flushBuffer() throws IOException {
         initFlusherStacktrace();
         super.flushBuffer();
@@ -163,7 +152,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     private boolean isInclude() {
         return this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE;
+                && this.requestData.getDispatchingInfo().getType() == jakarta.servlet.DispatcherType.INCLUDE;
     }
 
     private boolean isProtectHeadersOnInclude() {
@@ -182,16 +171,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             // ignore
             return;
         }
-        setStatus(sc, null);
-    }
-
-    @Override
-    public void setStatus(final int sc, final String msg) {
-        if (this.isProtectHeadersOnInclude()) {
-            // ignore
-            return;
-        }
-
         if (isCommitted()) {
             if (flusherStacktrace != null && flusherStacktrace != FLUSHER_STACK_DUMMY) {
                 LOG.warn(
@@ -210,11 +189,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                         explanation);
             }
         } else { // response is not yet committed, so the statuscode can be changed
-            if (msg == null) {
-                super.setStatus(sc);
-            } else {
-                super.setStatus(sc, msg);
-            }
+            super.setStatus(sc);
         }
     }
 
@@ -364,7 +339,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
             // prevoiously, no more checks needed
             return Optional.empty();
         }
-
         String currentContentType = getContentType();
         if (contentType == null) {
             requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
@@ -465,7 +439,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
      * include.
      *
      * @param currentContentType the current 'Content-Type' header
-     * @param setContentType     the 'Content-Type' header that is being set
+     * @param setContentType the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();

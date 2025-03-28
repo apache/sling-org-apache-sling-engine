@@ -18,17 +18,16 @@
  */
 package org.apache.sling.engine.impl.log;
 
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-
 import java.io.IOException;
 
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.propertytypes.ServiceRanking;
-import org.osgi.service.http.whiteboard.Preprocessor;
+import org.osgi.service.servlet.whiteboard.Preprocessor;
 
 /**
  * Record the starting time of the request and make it available to the request logger

@@ -18,15 +18,14 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.api.servlets.ErrorHandler;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.api.servlets.JakartaErrorHandler;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
 
@@ -45,7 +44,7 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
 
     private final String message;
 
-    private final ErrorHandler errorHandler;
+    private final JakartaErrorHandler errorHandler;
 
     private final Throwable throwable;
 
@@ -54,7 +53,10 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
     private boolean firstCall = true;
 
     public ErrorFilterChain(
-            final FilterHandle[] filters, final ErrorHandler errorHandler, final int status, final String message) {
+            final FilterHandle[] filters,
+            final JakartaErrorHandler errorHandler,
+            final int status,
+            final String message) {
         super(filters);
         this.mode = Mode.STATUS;
         this.status = status;
@@ -63,7 +65,7 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
         this.throwable = null;
     }
 
-    public ErrorFilterChain(final FilterHandle[] filters, final ErrorHandler errorHandler, final Throwable t) {
+    public ErrorFilterChain(final FilterHandle[] filters, final JakartaErrorHandler errorHandler, final Throwable t) {
         super(filters);
         this.mode = Mode.THROWABLE;
         this.status = 0;
@@ -123,7 +125,7 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
         super.doFilter(request, response);
     }
 
-    protected void render(final SlingHttpServletRequest request, final SlingHttpServletResponse response)
+    protected void render(final SlingJakartaHttpServletRequest request, final SlingJakartaHttpServletResponse response)
             throws IOException, ServletException {
         if (this.mode == Mode.STATUS) {
             this.errorHandler.handleError(this.status, this.message, request, response);

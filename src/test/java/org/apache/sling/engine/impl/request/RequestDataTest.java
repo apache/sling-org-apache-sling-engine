@@ -18,23 +18,22 @@
  */
 package org.apache.sling.engine.impl.request;
 
-import javax.servlet.Servlet;
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.util.Collections;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.TooManyCallsException;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.jmock.Expectations;
 import org.jmock.Mockery;
@@ -50,8 +49,8 @@ public class RequestDataTest {
     private RequestData requestData;
     private HttpServletRequest req;
     private HttpServletResponse resp;
-    private SlingHttpServletRequest slingRequest;
-    private SlingHttpServletResponse slingResponse;
+    private SlingJakartaHttpServletRequest slingRequest;
+    private SlingJakartaHttpServletResponse slingResponse;
 
     @Before
     public void setup() throws ServletException, IOException {
@@ -112,8 +111,8 @@ public class RequestDataTest {
             }
         };
 
-        slingRequest = new SlingHttpServletRequestImpl(requestData, req);
-        slingResponse = new SlingHttpServletResponseImpl(requestData, resp);
+        slingRequest = new SlingJakartaHttpServletRequestImpl(requestData, req);
+        slingResponse = new SlingJakartaHttpServletResponseImpl(requestData, resp);
     }
 
     private void assertTooManyCallsException(int failAtCall) throws Exception {

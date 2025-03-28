@@ -18,18 +18,17 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.settings.SlingSettingsService;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -37,11 +36,11 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.propertytypes.ServiceDescription;
 import org.osgi.service.component.propertytypes.ServiceRanking;
 import org.osgi.service.component.propertytypes.ServiceVendor;
-import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContextSelect;
-import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardFilterPattern;
 import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
+import org.osgi.service.servlet.whiteboard.propertytypes.HttpWhiteboardContextSelect;
+import org.osgi.service.servlet.whiteboard.propertytypes.HttpWhiteboardFilterPattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -62,7 +61,7 @@ public class RequestParameterSupportConfigurer implements Filter {
             throws IOException, ServletException {
         if (request instanceof HttpServletRequest
                 && !(request instanceof ParameterSupportHttpServletRequestWrapper)
-                && !(request instanceof SlingHttpServletRequest)) {
+                && !(request instanceof SlingJakartaHttpServletRequest)) {
             chain.doFilter(ParameterSupport.getParameterSupportRequestWrapper((HttpServletRequest) request), response);
         } else {
             chain.doFilter(request, response);

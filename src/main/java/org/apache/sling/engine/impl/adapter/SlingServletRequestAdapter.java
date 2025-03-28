@@ -18,13 +18,6 @@
  */
 package org.apache.sling.engine.impl.adapter;
 
-import javax.servlet.RequestDispatcher;
-import javax.servlet.ServletInputStream;
-import javax.servlet.ServletRequest;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpSession;
-
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
@@ -33,8 +26,14 @@ import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Map;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.ServletInputStream;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.wrappers.SlingJakartaHttpServletRequestWrapper;
 
 /**
  * The <code>SlingServletRequestAdapter</code> class is a
@@ -45,11 +44,11 @@ import org.apache.sling.api.wrappers.SlingHttpServletRequestWrapper;
  * <code>HttpServletRequestWrapper</code> instead of a
  * <code>ComponentRequestWrapper</code>.
  */
-public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
+public class SlingServletRequestAdapter extends SlingJakartaHttpServletRequestWrapper {
 
     private final HttpServletRequest request;
 
-    public SlingServletRequestAdapter(SlingHttpServletRequest delegatee, HttpServletRequest request) {
+    public SlingServletRequestAdapter(SlingJakartaHttpServletRequest delegatee, HttpServletRequest request) {
         super(delegatee);
         this.request = request;
     }
@@ -185,12 +184,6 @@ public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
     }
 
     @Override
-    @Deprecated
-    public boolean isRequestedSessionIdFromUrl() {
-        return request.isRequestedSessionIdFromUrl();
-    }
-
-    @Override
     public boolean isRequestedSessionIdValid() {
         return request.isRequestedSessionIdValid();
     }
@@ -271,12 +264,6 @@ public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
     }
 
     @Override
-    @Deprecated
-    public String getRealPath(String path) {
-        return request.getRealPath(path);
-    }
-
-    @Override
     public String getRemoteAddr() {
         return request.getRemoteAddr();
     }
@@ -292,12 +279,12 @@ public class SlingServletRequestAdapter extends SlingHttpServletRequestWrapper {
     }
 
     @Override
-    public SlingHttpServletRequest getSlingRequest() {
+    public SlingJakartaHttpServletRequest getSlingRequest() {
         // overwrite base class getSlingRequest since that method
         // calls getRequest which is overwritten here to return the
         // HttpServletRequest - we have to get the actual underlying
         // request object which is available from the base class
-        return (SlingHttpServletRequest) super.getRequest();
+        return (SlingJakartaHttpServletRequest) super.getRequest();
     }
 
     @Override

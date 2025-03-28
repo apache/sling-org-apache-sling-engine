@@ -18,7 +18,7 @@
  */
 package org.apache.sling.engine.impl.debug;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.engine.RequestInfo;
 import org.apache.sling.engine.impl.Config;
@@ -37,7 +37,7 @@ public class RequestInfoProviderImplTest {
         final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(0);
 
-        final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
         Mockito.when(request.getPathInfo()).thenReturn("/content");
         Mockito.when(request.getRemoteUser()).thenReturn("admin");
         Mockito.when(request.getMethod()).thenReturn("GET");
@@ -55,7 +55,7 @@ public class RequestInfoProviderImplTest {
         final Config config = Mockito.mock(Config.class);
         Mockito.when(config.sling_max_record_requests()).thenReturn(5);
 
-        final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
         Mockito.when(request.getPathInfo()).thenReturn("/content");
         Mockito.when(request.getRemoteUser()).thenReturn("admin");
         Mockito.when(request.getMethod()).thenReturn("GET");
