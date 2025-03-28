@@ -106,7 +106,9 @@ public class EngineConstants {
      * {@link SlingRequestProcessor}.
      *
      * @since 2.1, Sling Engine 2.2
+     * @deprecated Register the filter with their respective type
      */
+    @Deprecated
     public static final String FILTER_NAME = "javax.servlet.Filter";
 
     /**

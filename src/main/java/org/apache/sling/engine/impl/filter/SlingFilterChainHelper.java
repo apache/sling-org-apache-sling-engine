@@ -18,11 +18,11 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.Iterator;
 import java.util.SortedSet;
 import java.util.TreeSet;
+
+import jakarta.servlet.Filter;
 
 /**
  * The <code>SlingFilterChainHelper</code> class is used by Sling to

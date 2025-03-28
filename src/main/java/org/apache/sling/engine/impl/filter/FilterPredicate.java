@@ -18,13 +18,12 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-
 import java.util.Collection;
 import java.util.Collections;
 import java.util.regex.Pattern;
 
-import org.apache.sling.api.SlingHttpServletRequest;
+import jakarta.servlet.Filter;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.Resource;
 import org.osgi.framework.ServiceReference;
@@ -114,7 +113,7 @@ public class FilterPredicate {
      * @return true if the request's resource is of one of the types, or if not or misconfigured
      */
     private boolean anyResourceTypeMatches(
-            final Collection<String> resourceTypes, final SlingHttpServletRequest request) {
+            final Collection<String> resourceTypes, final SlingJakartaHttpServletRequest request) {
         if (resourceTypes == null) {
             return true;
         }
@@ -142,7 +141,7 @@ public class FilterPredicate {
      * @param req request that is tested upon this predicate
      * @return true if this predicate's configuration match the request
      */
-    boolean test(final SlingHttpServletRequest req) {
+    boolean test(final SlingJakartaHttpServletRequest req) {
         LOG.debug("starting filter test against {} request", req);
         final RequestPathInfo requestPathInfo = req.getRequestPathInfo();
         final String path = requestPathInfo.getResourcePath();

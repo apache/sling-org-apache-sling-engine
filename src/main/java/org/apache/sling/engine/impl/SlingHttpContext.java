@@ -18,12 +18,11 @@
  */
 package org.apache.sling.engine.impl;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 import java.net.URL;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -35,9 +34,9 @@ import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
-import org.osgi.service.http.context.ServletContextHelper;
-import org.osgi.service.http.whiteboard.annotations.RequireHttpWhiteboard;
-import org.osgi.service.http.whiteboard.propertytypes.HttpWhiteboardContext;
+import org.osgi.service.servlet.context.ServletContextHelper;
+import org.osgi.service.servlet.whiteboard.annotations.RequireHttpWhiteboard;
+import org.osgi.service.servlet.whiteboard.propertytypes.HttpWhiteboardContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

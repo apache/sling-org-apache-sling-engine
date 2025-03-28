@@ -18,22 +18,6 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterRegistration;
-import javax.servlet.RequestDispatcher;
-import javax.servlet.Servlet;
-import javax.servlet.ServletContext;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRegistration;
-import javax.servlet.ServletRegistration.Dynamic;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletRequestWrapper;
-import javax.servlet.ServletResponse;
-import javax.servlet.ServletResponseWrapper;
-import javax.servlet.SessionCookieConfig;
-import javax.servlet.SessionTrackingMode;
-import javax.servlet.descriptor.JspConfigDescriptor;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
@@ -43,8 +27,23 @@ import java.util.EventListener;
 import java.util.Map;
 import java.util.Set;
 
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
-import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterRegistration;
+import jakarta.servlet.RequestDispatcher;
+import jakarta.servlet.Servlet;
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRegistration;
+import jakarta.servlet.ServletRegistration.Dynamic;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletRequestWrapper;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.ServletResponseWrapper;
+import jakarta.servlet.SessionCookieConfig;
+import jakarta.servlet.SessionTrackingMode;
+import jakarta.servlet.descriptor.JspConfigDescriptor;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 
 /**
  * Wrapper around a ServletContext for an external servlet context, i.e. one
@@ -107,33 +106,9 @@ class ExternalServletContextWrapper implements ServletContext {
         return new RequestDispatcherWrapper(getServletContext().getNamedDispatcher(s));
     }
 
-    @Deprecated
-    @Override
-    public Servlet getServlet(String s) throws ServletException {
-        return getServletContext().getServlet(s);
-    }
-
-    @Deprecated
-    @Override
-    public Enumeration<Servlet> getServlets() {
-        return getServletContext().getServlets();
-    }
-
-    @Deprecated
-    @Override
-    public Enumeration<String> getServletNames() {
-        return getServletContext().getServletNames();
-    }
-
     @Override
     public void log(String s) {
         getServletContext().log(s);
-    }
-
-    @Deprecated
-    @Override
-    public void log(Exception exception, String s) {
-        getServletContext().log(exception, s);
     }
 
     @Override
@@ -218,8 +193,8 @@ class ExternalServletContextWrapper implements ServletContext {
         static ServletRequest unwrapServletRequest(ServletRequest request) {
             ServletRequest lastRequest = request;
             while (request != null) {
-                if (request instanceof SlingHttpServletRequestImpl) {
-                    return ((SlingHttpServletRequestImpl) request).getRequest();
+                if (request instanceof SlingJakartaHttpServletRequestImpl) {
+                    return ((SlingJakartaHttpServletRequestImpl) request).getRequest();
                 } else if (request instanceof ServletRequestWrapper) {
                     lastRequest = request;
                     request = ((ServletRequestWrapper) request).getRequest();
@@ -233,8 +208,8 @@ class ExternalServletContextWrapper implements ServletContext {
         static ServletResponse unwrapServletResponse(ServletResponse response) {
             ServletResponse lastResponse = response;
             while (response != null) {
-                if (response instanceof SlingHttpServletResponseImpl) {
-                    return ((SlingHttpServletResponseImpl) response).getResponse();
+                if (response instanceof SlingJakartaHttpServletResponseImpl) {
+                    return ((SlingJakartaHttpServletResponseImpl) response).getResponse();
                 } else if (response instanceof ServletResponseWrapper) {
                     lastResponse = response;
                     response = ((ServletResponseWrapper) response).getResponse();
@@ -292,17 +267,18 @@ class ExternalServletContextWrapper implements ServletContext {
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, String className) {
         return getServletContext().addFilter(filterName, className);
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(String filterName, Filter filter) {
         return getServletContext().addFilter(filterName, filter);
     }
 
     @Override
-    public javax.servlet.FilterRegistration.Dynamic addFilter(String filterName, Class<? extends Filter> filterClass) {
+    public jakarta.servlet.FilterRegistration.Dynamic addFilter(
+            String filterName, Class<? extends Filter> filterClass) {
         return getServletContext().addFilter(filterName, filterClass);
     }
 
@@ -379,5 +355,40 @@ class ExternalServletContextWrapper implements ServletContext {
     @Override
     public String getVirtualServerName() {
         return getServletContext().getVirtualServerName();
+    }
+
+    @Override
+    public Dynamic addJspFile(String servletName, String jspFile) {
+        return getServletContext().addJspFile(servletName, jspFile);
+    }
+
+    @Override
+    public String getRequestCharacterEncoding() {
+        return getServletContext().getRequestCharacterEncoding();
+    }
+
+    @Override
+    public String getResponseCharacterEncoding() {
+        return getServletContext().getResponseCharacterEncoding();
+    }
+
+    @Override
+    public int getSessionTimeout() {
+        return getServletContext().getSessionTimeout();
+    }
+
+    @Override
+    public void setRequestCharacterEncoding(String encoding) {
+        getServletContext().setRequestCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setResponseCharacterEncoding(String encoding) {
+        getServletContext().setResponseCharacterEncoding(encoding);
+    }
+
+    @Override
+    public void setSessionTimeout(int sessionTimeout) {
+        getServletContext().setSessionTimeout(sessionTimeout);
     }
 }

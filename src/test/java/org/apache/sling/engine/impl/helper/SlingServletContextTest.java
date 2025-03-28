@@ -18,13 +18,12 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.ServletContext;
-import javax.servlet.ServletContextEvent;
-
 import java.util.Dictionary;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicReference;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.ServletContextEvent;
 import org.apache.sling.engine.impl.Config;
 import org.apache.sling.engine.impl.ProductInfoProvider;
 import org.junit.Test;

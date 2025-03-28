@@ -18,13 +18,13 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import javax.servlet.http.Part;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
+
+import jakarta.servlet.http.Part;
 
 public class SlingPart implements Part {
 
@@ -61,7 +61,11 @@ public class SlingPart implements Part {
 
     @Override
     public void delete() {
-        this.param.getFileItem().delete();
+        try {
+            this.param.getFileItem().delete();
+        } catch (final IOException e) {
+            // ignore, nothing we can do
+        }
     }
 
     @Override

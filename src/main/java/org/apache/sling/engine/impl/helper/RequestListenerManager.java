@@ -18,13 +18,16 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import javax.servlet.ServletContext;
-import javax.servlet.http.HttpServletRequest;
-
 import java.util.List;
 
+import jakarta.servlet.ServletContext;
+import jakarta.servlet.http.HttpServletRequest;
+import org.apache.felix.http.javaxwrappers.ServletContextWrapper;
+import org.apache.sling.api.request.SlingJakartaRequestEvent;
+import org.apache.sling.api.request.SlingJakartaRequestListener;
 import org.apache.sling.api.request.SlingRequestEvent;
 import org.apache.sling.api.request.SlingRequestListener;
+import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -52,6 +55,12 @@ public class RequestListenerManager {
             fieldOption = FieldOption.REPLACE)
     private volatile List<SlingRequestListener> listeners;
 
+    @Reference(
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC,
+            fieldOption = FieldOption.REPLACE)
+    private volatile List<SlingJakartaRequestListener> jakartaListeners;
+
     @Activate
     public RequestListenerManager(
             @Reference(target = "(name=" + SlingHttpContext.SERVLET_CONTEXT_NAME + ")")
@@ -59,11 +68,28 @@ public class RequestListenerManager {
         this.servletContext = servletContext;
     }
 
-    public void sendEvent(final HttpServletRequest request, final SlingRequestEvent.EventType type) {
-        final List<SlingRequestListener> local = listeners;
+    public void sendEvent(final HttpServletRequest request, final SlingJakartaRequestEvent.EventType type) {
+        final List<SlingJakartaRequestListener> local = jakartaListeners;
         if (local != null && !local.isEmpty()) {
-            final SlingRequestEvent event = new SlingRequestEvent(this.servletContext, request, type);
-            for (final SlingRequestListener service : local) {
+            final SlingJakartaRequestEvent event = new SlingJakartaRequestEvent(this.servletContext, request, type);
+            for (final SlingJakartaRequestListener service : local) {
+                try {
+                    service.onEvent(event);
+                } catch (final Throwable t) {
+                    logger.error("Error invoking sling request listener " + service + " : " + t.getMessage(), t);
+                }
+            }
+        }
+        final List<SlingRequestListener> localDep = listeners;
+        if (localDep != null && !localDep.isEmpty()) {
+            final SlingRequestEvent.EventType eventType = type == SlingJakartaRequestEvent.EventType.EVENT_INIT
+                    ? SlingRequestEvent.EventType.EVENT_INIT
+                    : SlingRequestEvent.EventType.EVENT_DESTROY;
+            final SlingRequestEvent event = new SlingRequestEvent(
+                    new ServletContextWrapper(this.servletContext),
+                    JakartaToJavaxRequestWrapper.toJavaxRequest(request),
+                    eventType);
+            for (final SlingRequestListener service : localDep) {
                 try {
                     service.onEvent(event);
                 } catch (final Throwable t) {

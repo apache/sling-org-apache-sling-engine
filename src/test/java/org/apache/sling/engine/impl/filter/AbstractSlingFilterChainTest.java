@@ -18,20 +18,19 @@
  */
 package org.apache.sling.engine.impl.filter;
 
-import javax.servlet.Filter;
-import javax.servlet.FilterChain;
-import javax.servlet.FilterConfig;
-import javax.servlet.ServletException;
-import javax.servlet.ServletRequest;
-import javax.servlet.ServletResponse;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-
 import java.io.IOException;
 
-import org.apache.sling.api.SlingHttpServletRequest;
-import org.apache.sling.api.SlingHttpServletResponse;
-import org.apache.sling.engine.impl.SlingHttpServletRequestImpl;
+import jakarta.servlet.Filter;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.FilterConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.ServletRequest;
+import jakarta.servlet.ServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
@@ -61,16 +60,16 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
 
         AbstractSlingFilterChain chain = new AbstractSlingFilterChain(new FilterHandle[] {handle}) {
             @Override
-            protected void render(SlingHttpServletRequest request, SlingHttpServletResponse response)
+            protected void render(SlingJakartaHttpServletRequest request, SlingJakartaHttpServletResponse response)
                     throws IOException, ServletException {}
         };
         HttpServletRequest httpReq = whateverRequest();
         final RequestData requestData = new RequestData(
                 new SlingRequestProcessorImpl(), httpReq, context.mock(HttpServletResponse.class), false, false, true);
-        final SlingHttpServletRequestImpl req = new SlingHttpServletRequestImpl(requestData, httpReq);
+        final SlingJakartaHttpServletRequestImpl req = new SlingJakartaHttpServletRequestImpl(requestData, httpReq);
         boolean illegalStateCaught = false;
         try {
-            chain.doFilter(req, context.mock(SlingHttpServletResponse.class));
+            chain.doFilter(req, context.mock(SlingJakartaHttpServletResponse.class));
         } catch (IllegalStateException e) {
             illegalStateCaught = true;
         }
