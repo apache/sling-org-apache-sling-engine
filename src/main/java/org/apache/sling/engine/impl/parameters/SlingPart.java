@@ -46,7 +46,7 @@ public class SlingPart implements Part {
 
     @Override
     public String getName() {
-        return this.param.getFileItem().getFieldName();
+        return this.param.getPart().getName();
     }
 
     @Override
@@ -62,7 +62,7 @@ public class SlingPart implements Part {
     @Override
     public void delete() {
         try {
-            this.param.getFileItem().delete();
+            this.param.dispose();
         } catch (final IOException e) {
             // ignore, nothing we can do
         }
@@ -70,14 +70,14 @@ public class SlingPart implements Part {
 
     @Override
     public String getHeader(String name) {
-        return this.param.getFileItem().getHeaders().getHeader(name);
+        return this.param.getPart().getHeader(name);
     }
 
     @Override
     public Collection<String> getHeaders(String name) {
         final ArrayList<String> headers = new ArrayList<String>();
         final Iterator<String> itemHeaders =
-                this.param.getFileItem().getHeaders().getHeaders(name);
+                this.param.getPart().getHeaders(name).iterator();
         while (itemHeaders.hasNext()) {
             headers.add(itemHeaders.next());
         }
@@ -88,7 +88,7 @@ public class SlingPart implements Part {
     public Collection<String> getHeaderNames() {
         final ArrayList<String> headers = new ArrayList<String>();
         final Iterator<String> itemHeaders =
-                this.param.getFileItem().getHeaders().getHeaderNames();
+                this.param.getPart().getHeaderNames().iterator();
         while (itemHeaders.hasNext()) {
             headers.add(itemHeaders.next());
         }

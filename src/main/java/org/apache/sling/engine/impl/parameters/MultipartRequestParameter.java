@@ -21,8 +21,9 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.Charset;
 
-import org.apache.commons.fileupload2.core.DiskFileItem;
+import jakarta.servlet.http.Part;
 
 /**
  * The <code>MultipartRequestParameter</code> represents a request parameter
@@ -34,23 +35,35 @@ import org.apache.commons.fileupload2.core.DiskFileItem;
  */
 public class MultipartRequestParameter extends AbstractRequestParameter {
 
-    private final DiskFileItem delegatee;
+    private final Part part;
 
     private String encodedFileName;
 
     private String cachedValue;
 
-    public MultipartRequestParameter(DiskFileItem delegatee) {
-        super(delegatee.getFieldName(), null);
-        this.delegatee = delegatee;
+    private byte[] cachedContent;
+
+    public static final String FORM_DATA = "form-data";
+
+    public static final String ATTACHMENT = "attachment";
+
+    private static final String FILENAME_KEY = "filename";
+
+    public MultipartRequestParameter(Part part) {
+        this(part, null);
+    }
+
+    public MultipartRequestParameter(Part part, String encoding) {
+        super(part.getName(), encoding);
+        this.part = part;
     }
 
     void dispose() throws IOException {
-        this.delegatee.delete();
+        this.part.delete();
     }
 
-    DiskFileItem getFileItem() {
-        return this.delegatee;
+    Part getPart() {
+        return this.part;
     }
 
     @Override
@@ -60,36 +73,32 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public byte[] get() {
-        return this.delegatee.get();
+        if (cachedContent != null) {
+            return cachedContent;
+        }
+        // read the content of the part into a byte array
+        try (InputStream in = part.getInputStream()) {
+            cachedContent = in.readAllBytes();
+            return cachedContent;
+        } catch (IOException ioe) {
+            throw new RuntimeException(ioe);
+        }
     }
 
     public String getContentType() {
-        return this.delegatee.getContentType();
+        return this.part.getContentType();
     }
 
     public InputStream getInputStream() throws IOException {
-        return this.delegatee.getInputStream();
+        return this.part.getInputStream();
     }
 
     public String getFileName() {
-        if (this.encodedFileName == null && this.delegatee.getName() != null) {
-            String tmpFileName = this.delegatee.getName();
-            if (this.getEncoding() != null) {
-                try {
-                    byte[] rawName = tmpFileName.getBytes(Util.ENCODING_DIRECT);
-                    tmpFileName = new String(rawName, this.getEncoding());
-                } catch (UnsupportedEncodingException uee) {
-                    // might log, but actually don't care
-                }
-            }
-            this.encodedFileName = tmpFileName;
-        }
-
-        return this.encodedFileName;
+        return this.part.getSubmittedFileName();
     }
 
     public long getSize() {
-        return this.delegatee.getSize();
+        return this.part.getSize();
     }
 
     public String getString() {
@@ -117,7 +126,7 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
             return this.cachedValue;
         }
 
-        return this.delegatee.getString();
+        return new String(this.get(), getCharset());
     }
 
     public String getString(String enc) throws UnsupportedEncodingException {
@@ -125,7 +134,7 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public boolean isFormField() {
-        return this.delegatee.isFormField();
+        return getFileName() == null;
     }
 
     public String toString() {
@@ -134,5 +143,17 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
         }
 
         return "File: " + this.getFileName() + " (" + this.getSize() + " bytes)";
+    }
+
+    private Charset getCharset() {
+        final String contentType = getContentType();
+        if (contentType != null) {
+            for (String param : contentType.split(";")) {
+                if (param.trim().toLowerCase().startsWith("charset=")) {
+                    return Charset.forName(param.trim().substring("charset=".length()));
+                }
+            }
+        }
+        return Charset.forName(Util.ENCODING_DIRECT);
     }
 }

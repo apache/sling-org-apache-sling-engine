@@ -20,17 +20,12 @@ package org.apache.sling.engine.impl.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
-import java.util.List;
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
-import org.apache.commons.fileupload2.core.FileItemInput;
-import org.apache.commons.fileupload2.core.FileItemInputIterator;
-import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletDiskFileUpload;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -41,35 +36,35 @@ public class RequestPartsIterator implements Iterator<Part> {
     private static final Logger LOG = LoggerFactory.getLogger(RequestPartsIterator.class);
 
     /** The CommonsFile Upload streaming API iterator */
-    private final FileItemInputIterator itemIterator;
+    private final Iterator<Part> partsIterator;
 
     /**
      * Create and initialse the iterator using the request. The request must be fresh. Headers can have been read but the stream
      * must not have been parsed.
      * @param servletRequest the request
      * @throws IOException when there is a problem reading the request.
-     * @throws FileUploadException when there is a problem parsing the request.
+     * @throws ServletException when there is a problem parsing the request.
      */
-    public RequestPartsIterator(HttpServletRequest servletRequest) throws IOException {
-        JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
-        upload.setFileCountMax(50);
-        itemIterator = upload.getItemIterator(servletRequest);
+    public RequestPartsIterator(HttpServletRequest servletRequest) throws IOException, ServletException {
+        Collection<Part> parts = servletRequest.getParts();
+        // TODO: needed?
+        long fileCount =
+                parts.stream().filter(p -> p.getSubmittedFileName() != null).count();
+        if (fileCount > 50) {
+            throw new ServletException("Too many files uploaded. Limit is 50.");
+        }
+        this.partsIterator = parts.iterator();
     }
 
     @Override
     public boolean hasNext() {
-        try {
-            return itemIterator.hasNext();
-        } catch (IOException e) {
-            LOG.error("hasNext Item failed cause:" + e.getMessage(), e);
-        }
-        return false;
+        return this.partsIterator.hasNext();
     }
 
     @Override
     public Part next() {
         try {
-            return new StreamedRequestPart(itemIterator.next());
+            return new StreamedRequestPart(partsIterator.next());
         } catch (IOException e) {
             LOG.error("next Item failed cause:" + e.getMessage(), e);
         }
@@ -85,12 +80,12 @@ public class RequestPartsIterator implements Iterator<Part> {
      * Internal implementation of the Part API from Servlet 3 wrapping the Commons File Upload FIleItemStream object.
      */
     private static class StreamedRequestPart implements Part {
-        private final FileItemInput fileItem;
+        private final Part part;
         private final InputStream inputStream;
 
-        public StreamedRequestPart(FileItemInput fileItem) throws IOException {
-            this.fileItem = fileItem;
-            inputStream = fileItem.getInputStream();
+        public StreamedRequestPart(Part part) throws IOException {
+            this.part = part;
+            inputStream = part.getInputStream();
         }
 
         @Override
@@ -100,12 +95,12 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         @Override
         public String getContentType() {
-            return fileItem.getContentType();
+            return part.getContentType();
         }
 
         @Override
         public String getName() {
-            return fileItem.getFieldName();
+            return part.getName();
         }
 
         @Override
@@ -126,34 +121,22 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         @Override
         public String getHeader(String headerName) {
-            return fileItem.getHeaders().getHeader(headerName);
+            return this.part.getHeader(headerName);
         }
 
         @Override
         public Collection<String> getHeaders(String headerName) {
-            return toCollection(fileItem.getHeaders().getHeaders(headerName));
+            return this.part.getHeaders(headerName);
         }
 
         @Override
         public Collection<String> getHeaderNames() {
-            return toCollection(fileItem.getHeaders().getHeaderNames());
+            return this.part.getHeaderNames();
         }
 
         @Override
         public String getSubmittedFileName() {
-            return fileItem.getName();
-        }
-
-        private <T> Collection<T> toCollection(Iterator<T> i) {
-            if (i == null) {
-                return Collections.emptyList();
-            } else {
-                List<T> c = new ArrayList<T>();
-                while (i.hasNext()) {
-                    c.add(i.next());
-                }
-                return c;
-            }
+            return this.part.getSubmittedFileName();
         }
     }
 }
