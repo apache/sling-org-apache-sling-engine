@@ -120,6 +120,10 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                 return;
             }
             // reset the response to clear headers and body
+            if (response instanceof SlingHttpServletResponseImpl) {
+                final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
+                ((SlingHttpServletResponseImpl) response).getRequestData().setDispatchingInfo(dispatchInfo);
+            }
             response.reset();
         }
         super.doFilter(request, response);
