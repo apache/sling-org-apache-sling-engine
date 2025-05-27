@@ -90,7 +90,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
         }
     }
 
-    protected final RequestData getRequestData() {
+    public final RequestData getRequestData() {
         return requestData;
     }
 
@@ -166,6 +166,11 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
                 && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.INCLUDE;
     }
 
+    private boolean isError() {
+        return this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.ERROR;
+    }
+
     private boolean isProtectHeadersOnInclude() {
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
@@ -220,12 +225,12 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void reset() {
-        if (!this.isProtectHeadersOnInclude()) {
+        if (!this.isProtectHeadersOnInclude() || isError()) {
             super.reset();
         } else {
             // ignore if not committed
-            if (getResponse().isCommitted()) {
-                getResponse().reset();
+            if (super.isCommitted()) {
+                super.reset();
             }
         }
     }
@@ -325,7 +330,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (super.getResponse().isCommitted() || !isInclude()) {
+        if (super.isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);

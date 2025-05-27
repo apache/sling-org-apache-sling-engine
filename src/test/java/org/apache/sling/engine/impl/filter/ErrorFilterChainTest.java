@@ -18,6 +18,7 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 
 import java.io.IOException;
@@ -26,6 +27,8 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.engine.impl.DefaultErrorHandler;
+import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -35,6 +38,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * This class tests the error filter chain in combination with the
@@ -79,5 +84,24 @@ public class ErrorFilterChainTest {
         final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 500, "message");
         chain2.doFilter(request, response);
         Mockito.verify(errorHandler, times(1)).handleError(anyInt(), anyString(), eq(request), eq(response));
+    }
+
+    @Test
+    public void testResponseDispatcherInfoOnError() throws IOException, ServletException {
+        // mocks a final method in SlingHttpServletResponseImpl, needs mockito-inline
+        final DefaultErrorHandler handler = new DefaultErrorHandler();
+        final ErrorHandler errorHandler = Mockito.mock(ErrorHandler.class);
+        handler.setDelegate(errorHandler);
+
+        final SlingHttpServletRequest request = Mockito.mock(SlingHttpServletRequest.class);
+        final SlingHttpServletResponseImpl response = Mockito.mock(SlingHttpServletResponseImpl.class);
+        RequestData requestData = Mockito.mock(RequestData.class);
+        when(response.getRequestData()).thenReturn(requestData);
+
+        final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 404, "not found");
+        chain2.doFilter(request, response);
+        verify(response, times(1)).reset();
+        verify(requestData, times(1))
+                .setDispatchingInfo(Mockito.argThat(info -> info.getType() == DispatcherType.ERROR));
     }
 }

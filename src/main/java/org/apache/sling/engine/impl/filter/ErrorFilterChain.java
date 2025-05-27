@@ -18,6 +18,7 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.ErrorHandler;
+import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.request.DispatchingInfo;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
 
@@ -118,6 +121,10 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                 return;
             }
             // reset the response to clear headers and body
+            if (response instanceof SlingHttpServletResponseImpl) {
+                final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
+                ((SlingHttpServletResponseImpl) response).getRequestData().setDispatchingInfo(dispatchInfo);
+            }
             response.reset();
         }
         super.doFilter(request, response);
