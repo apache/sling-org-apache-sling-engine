@@ -202,8 +202,10 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         if (!this.isProtectHeadersOnInclude() || isError()) {
             super.reset();
         } else {
-            // ignore if not committed
-            if (super.isCommitted()) {
+            // ignore if not committed: because we want the exception to be thrown when the
+            // response is committed. but we do not want to call reset when the headers
+            // should be protected, as this would reset them as well
+            if (this.isCommitted()) {
                 super.reset();
             }
         }
@@ -304,7 +306,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void setContentType(final String type) {
-        if (super.isCommitted() || !isInclude()) {
+        if (this.isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);

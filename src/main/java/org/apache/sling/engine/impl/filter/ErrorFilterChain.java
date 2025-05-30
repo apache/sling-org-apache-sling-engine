@@ -119,12 +119,30 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                 }
                 return;
             }
+
             // reset the response to clear headers and body
             if (response instanceof SlingHttpServletResponseImpl) {
-                final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
-                ((SlingHttpServletResponseImpl) response).getRequestData().setDispatchingInfo(dispatchInfo);
+                SlingHttpServletResponseImpl slingResponse = (SlingHttpServletResponseImpl) response;
+                /*
+                 * Below section stores the original dispatching info for later restoration.
+                 * This is necessary to ensure that the dispatching info is set to ERROR
+                 * while the error is being handled and the response is reset, but restored to
+                 * its original state after the error handling is complete. This is important
+                 * for correct request processing and to avoid side effects on subsequent
+                 * filters or request processing steps.
+                 */
+                DispatchingInfo originalInfo = null;
+                try {
+                    originalInfo = slingResponse.getRequestData().getDispatchingInfo();
+                    final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
+                    slingResponse.getRequestData().setDispatchingInfo(dispatchInfo);
+                    response.reset();
+                } finally {
+                    slingResponse.getRequestData().setDispatchingInfo(originalInfo);
+                }
+            } else {
+                response.reset();
             }
-            response.reset();
         }
         super.doFilter(request, response);
     }
