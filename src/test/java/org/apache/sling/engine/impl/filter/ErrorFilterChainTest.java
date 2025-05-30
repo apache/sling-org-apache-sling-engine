@@ -101,7 +101,13 @@ public class ErrorFilterChainTest {
         final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 404, "not found");
         chain2.doFilter(request, response);
         verify(response, times(1)).reset();
+
+        // called ones with thew error dispatcher info
         verify(requestData, times(1))
-                .setDispatchingInfo(Mockito.argThat(info -> info.getType() == DispatcherType.ERROR));
+                .setDispatchingInfo(Mockito.argThat(info -> info != null && info.getType() == DispatcherType.ERROR));
+
+        // called once with the original request dispatcher info that is restored after
+        // the error handling, in this case null
+        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(info -> info == null));
     }
 }
