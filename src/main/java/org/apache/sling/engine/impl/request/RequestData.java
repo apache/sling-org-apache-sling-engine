@@ -49,8 +49,6 @@ import org.apache.sling.api.request.builder.Builders;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ServletResolver;
-import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
-import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
 import org.apache.sling.api.wrappers.JavaxToJakartaRequestWrapper;
 import org.apache.sling.api.wrappers.JavaxToJakartaResponseWrapper;
 import org.apache.sling.api.wrappers.SlingJakartaHttpServletRequestWrapper;
@@ -300,6 +298,7 @@ public class RequestData {
      *             <code>ServletRequestWrapper</code> wrapping a
      *             <code>SlingJakartaHttpServletRequest</code>.
      */
+    @SuppressWarnings("deprecation")
     public static SlingJakartaHttpServletRequest unwrap(ServletRequest request) {
 
         // early check for most cases
@@ -315,6 +314,33 @@ public class RequestData {
             if (request instanceof SlingJakartaHttpServletRequest) {
                 return (SlingJakartaHttpServletRequest) request;
             }
+        }
+        // javax to jakarta wrapper?
+        if (request instanceof org.apache.felix.http.jakartawrappers.HttpServletRequestWrapper) {
+            javax.servlet.ServletRequest req =
+                    ((org.apache.felix.http.jakartawrappers.HttpServletRequestWrapper) request).getRequest();
+            while (req instanceof javax.servlet.ServletRequestWrapper) {
+                req = ((javax.servlet.ServletRequestWrapper) req).getRequest();
+            }
+            if (req instanceof org.apache.felix.http.javaxwrappers.HttpServletRequestWrapper) {
+                return unwrap(((org.apache.felix.http.javaxwrappers.HttpServletRequestWrapper) req).getRequest());
+            }
+            // check for usage of builder
+            if (req instanceof SlingHttpServletRequest) {
+                // we start again at the top javax request
+                req = ((org.apache.felix.http.jakartawrappers.HttpServletRequestWrapper) request).getRequest();
+                do {
+                    if (req instanceof SlingHttpServletRequest) {
+                        return JavaxToJakartaRequestWrapper.toJakartaRequest((SlingHttpServletRequest) req);
+                    }
+                    if (req instanceof javax.servlet.ServletRequestWrapper) {
+                        req = ((javax.servlet.ServletRequestWrapper) req).getRequest();
+                    } else {
+                        req = null;
+                    }
+                } while (req != null);
+            }
+            throw new IllegalArgumentException("ServletRequest not wrapping SlingJakartaHttpServletRequest: " + req);
         }
 
         // if we unwrapped everything and did not find a
@@ -338,13 +364,15 @@ public class RequestData {
         }
 
         // javax to jakarta wrapper?
-        if (request instanceof JavaxToJakartaRequestWrapper) {
-            javax.servlet.ServletRequest req = ((JavaxToJakartaRequestWrapper) request).getRequest();
+        if (request instanceof org.apache.felix.http.jakartawrappers.HttpServletRequestWrapper) {
+            javax.servlet.ServletRequest req =
+                    ((org.apache.felix.http.jakartawrappers.HttpServletRequestWrapper) request).getRequest();
             while (req instanceof javax.servlet.ServletRequestWrapper) {
                 req = ((javax.servlet.ServletRequestWrapper) req).getRequest();
             }
-            if (req instanceof JakartaToJavaxRequestWrapper) {
-                final ServletRequest r = ((JakartaToJavaxRequestWrapper) req).getRequest();
+            if (req instanceof org.apache.felix.http.javaxwrappers.HttpServletRequestWrapper) {
+                final ServletRequest r =
+                        ((org.apache.felix.http.javaxwrappers.HttpServletRequestWrapper) req).getRequest();
                 if (r instanceof SlingJakartaHttpServletRequest) {
                     return unwrap((SlingJakartaHttpServletRequest) r);
                 }
@@ -369,6 +397,7 @@ public class RequestData {
      *             <code>ServletResponseWrapper</code> wrapping a
      *             <code>SlingJakartaHttpServletResponse</code>.
      */
+    @SuppressWarnings("deprecation")
     public static SlingJakartaHttpServletResponse unwrap(ServletResponse response) {
 
         // early check for most cases
@@ -384,6 +413,34 @@ public class RequestData {
             if (response instanceof SlingJakartaHttpServletResponse) {
                 return (SlingJakartaHttpServletResponse) response;
             }
+        }
+
+        // javax to jakarta wrapper?
+        if (response instanceof org.apache.felix.http.jakartawrappers.HttpServletResponseWrapper) {
+            javax.servlet.ServletResponse res =
+                    ((org.apache.felix.http.jakartawrappers.HttpServletResponseWrapper) response).getResponse();
+            while (res instanceof javax.servlet.ServletResponseWrapper) {
+                res = ((javax.servlet.ServletResponseWrapper) res).getResponse();
+            }
+            if (res instanceof org.apache.felix.http.javaxwrappers.HttpServletResponseWrapper) {
+                return unwrap(((org.apache.felix.http.javaxwrappers.HttpServletResponseWrapper) res).getResponse());
+            }
+            // check for usage of builder
+            if (res instanceof SlingHttpServletResponse) {
+                // we start again at the top javax response
+                res = ((org.apache.felix.http.jakartawrappers.HttpServletResponseWrapper) response).getResponse();
+                do {
+                    if (res instanceof SlingHttpServletResponse) {
+                        return JavaxToJakartaResponseWrapper.toJakartaResponse((SlingHttpServletResponse) res);
+                    }
+                    if (res instanceof javax.servlet.ServletResponseWrapper) {
+                        res = ((javax.servlet.ServletResponseWrapper) res).getResponse();
+                    } else {
+                        res = null;
+                    }
+                } while (res != null);
+            }
+            throw new IllegalArgumentException("ServletResponse not wrapping SlingJakartaHttpServletResponse: " + res);
         }
 
         // if we unwrapped everything and did not find a
@@ -407,13 +464,15 @@ public class RequestData {
         }
 
         // javax to jakarta wrapper?
-        if (response instanceof JavaxToJakartaResponseWrapper) {
-            javax.servlet.ServletResponse res = ((JavaxToJakartaResponseWrapper) response).getResponse();
+        if (response instanceof org.apache.felix.http.jakartawrappers.HttpServletResponseWrapper) {
+            javax.servlet.ServletResponse res =
+                    ((org.apache.felix.http.jakartawrappers.HttpServletResponseWrapper) response).getResponse();
             while (res instanceof javax.servlet.ServletResponseWrapper) {
                 res = ((javax.servlet.ServletResponseWrapper) res).getResponse();
             }
-            if (res instanceof JakartaToJavaxResponseWrapper) {
-                final ServletResponse r = ((JakartaToJavaxResponseWrapper) res).getResponse();
+            if (res instanceof org.apache.felix.http.javaxwrappers.HttpServletResponseWrapper) {
+                final ServletResponse r =
+                        ((org.apache.felix.http.javaxwrappers.HttpServletResponseWrapper) res).getResponse();
                 if (r instanceof SlingJakartaHttpServletResponse) {
                     return unwrap((SlingJakartaHttpServletResponse) r);
                 }

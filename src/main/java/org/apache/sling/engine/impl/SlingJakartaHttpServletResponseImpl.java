@@ -40,7 +40,6 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
-import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl.WriterAlreadyClosedException;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;

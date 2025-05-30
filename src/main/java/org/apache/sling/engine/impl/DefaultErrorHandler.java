@@ -63,6 +63,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         this.serverInfo = (serverInfo != null) ? serverInfo : ProductInfoProvider.PRODUCT_NAME;
     }
 
+    @SuppressWarnings("deprecation")
     public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
         if (eh != null) {
             this.errorHandler = new JakartaErrorHandler() {

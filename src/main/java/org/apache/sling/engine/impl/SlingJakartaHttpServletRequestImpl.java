@@ -77,6 +77,7 @@ public class SlingJakartaHttpServletRequestImpl extends HttpServletRequestWrappe
     private static final List<String> FORWARD_ATTRIBUTES = Arrays.asList(
             FORWARD_CONTEXT_PATH, FORWARD_PATH_INFO, FORWARD_QUERY_STRING, FORWARD_REQUEST_URI, FORWARD_SERVLET_PATH);
 
+    @SuppressWarnings("deprecation")
     private static final List<String> INCLUDE_ATTRIBUTES = Arrays.asList(
             SlingConstants.ATTR_REQUEST_CONTENT,
             SlingConstants.ATTR_REQUEST_SERVLET,
@@ -398,6 +399,7 @@ public class SlingJakartaHttpServletRequestImpl extends HttpServletRequestWrappe
 
     // ---------- Attribute handling -----------------------------------
 
+    @SuppressWarnings("deprecation")
     @Override
     public Object getAttribute(final String name) {
         final DispatchingInfo dispatchingInfo = this.requestData.getDispatchingInfo();

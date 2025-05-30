@@ -53,6 +53,7 @@ public class RequestListenerManager {
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC,
             fieldOption = FieldOption.REPLACE)
+    @SuppressWarnings("deprecation")
     private volatile List<SlingRequestListener> listeners;
 
     @Reference(
@@ -68,6 +69,7 @@ public class RequestListenerManager {
         this.servletContext = servletContext;
     }
 
+    @SuppressWarnings("deprecation")
     public void sendEvent(final HttpServletRequest request, final SlingJakartaRequestEvent.EventType type) {
         final List<SlingJakartaRequestListener> local = jakartaListeners;
         if (local != null && !local.isEmpty()) {

@@ -151,6 +151,7 @@ public class ServletFilterManager {
         destroyFilter(reference, service);
     }
 
+    @SuppressWarnings("deprecation")
     @Reference(
             service = javax.servlet.Filter.class,
             updated = "updatedJavaxFilter",

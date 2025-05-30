@@ -75,6 +75,7 @@ public final class RequestLoggerFilter implements Filter {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Override
     public void destroy() {
         FileRequestLog.dispose();

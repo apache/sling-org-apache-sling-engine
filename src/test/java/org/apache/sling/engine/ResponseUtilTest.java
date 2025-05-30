@@ -22,23 +22,32 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
-import junit.framework.TestCase;
+import org.junit.Test;
 
-public class ResponseUtilTest extends TestCase {
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+
+@SuppressWarnings("deprecation")
+public class ResponseUtilTest {
+
+    @Test
     public void testNullInput() {
         assertNull(ResponseUtil.escapeXml(null));
     }
 
+    @Test
     public void testNoEscapes() {
         assertEquals("foo and bar", ResponseUtil.escapeXml("foo and bar"));
     }
 
+    @Test
     public void testEscapes() {
         assertEquals(
                 "&lt;bonnie&gt; &amp; &lt;/clyde&gt; &amp;&amp; others are having fun with &quot; and &apos; characters",
                 ResponseUtil.escapeXml("<bonnie> & </clyde> && others are having fun with \" and ' characters"));
     }
 
+    @Test
     public void testXmlEscapingWriter() throws IOException {
         final StringWriter sw = new StringWriter();
         final Writer w = ResponseUtil.getXmlEscapingWriter(sw);

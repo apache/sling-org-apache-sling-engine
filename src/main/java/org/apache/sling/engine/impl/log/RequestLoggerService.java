@@ -101,6 +101,7 @@ public class RequestLoggerService {
 
     private CustomLogFormat logFormat;
 
+    @SuppressWarnings("deprecation")
     private RequestLog log;
 
     /**
@@ -130,6 +131,7 @@ public class RequestLoggerService {
         }
     }
 
+    @SuppressWarnings("deprecation")
     @Deactivate
     void shutdown() {
         if (this.log != null) {
@@ -140,6 +142,7 @@ public class RequestLoggerService {
         this.logFormat = null;
     }
 
+    @SuppressWarnings("deprecation")
     void log(RequestLoggerRequest request, RequestLoggerResponse response) {
         if (this.log != null && this.logFormat != null) {
             this.log.write(this.logFormat.format(request, response));
@@ -150,6 +153,7 @@ public class RequestLoggerService {
         return this.onEntry;
     }
 
+    @SuppressWarnings("deprecation")
     private RequestLog getLog(BundleContext bundleContext, String output, int outputType) {
         switch (outputType) {
             case OUTPUT_TYPE_FILE:

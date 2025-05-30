@@ -40,6 +40,7 @@ import org.osgi.util.tracker.ServiceTracker;
  * values, if multi-valued) must be the service name.</li>
  * </ol>
  */
+@SuppressWarnings("deprecation")
 class RequestLogServiceFacade implements RequestLog {
 
     // The service tracker used to access the service(s)

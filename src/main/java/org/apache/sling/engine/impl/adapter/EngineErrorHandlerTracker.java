@@ -32,6 +32,7 @@ import org.osgi.service.component.annotations.Reference;
 import org.osgi.service.component.annotations.ReferenceCardinality;
 import org.osgi.service.component.annotations.ReferencePolicy;
 
+@Deprecated
 @Component
 public class EngineErrorHandlerTracker {
 

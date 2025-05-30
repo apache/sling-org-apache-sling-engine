@@ -394,15 +394,16 @@ public class ParameterSupport {
     }
 
     private void parseMultiPartPost(ParameterMap parameters) {
-
         // Create a new file upload handler
-        JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
+        final JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
         upload.setSizeMax(ParameterSupport.maxRequestSize);
         upload.setFileSizeMax(ParameterSupport.maxFileSize);
-        upload.setFileItemFactory(DiskFileItemFactory.builder()
-                .setBufferSize(ParameterSupport.fileSizeThreshold)
-                .setPath(ParameterSupport.location.toPath())
-                .get());
+        final DiskFileItemFactory.Builder fileItemFactoryBuilder = DiskFileItemFactory.builder();
+        fileItemFactoryBuilder.setBufferSize(ParameterSupport.fileSizeThreshold);
+        if (ParameterSupport.location != null) {
+            fileItemFactoryBuilder.setPath(ParameterSupport.location.toPath());
+        }
+        upload.setFileItemFactory(fileItemFactoryBuilder.get());
         upload.setFileCountMax(ParameterSupport.maxFileCount);
         RequestContext rc = new JakartaServletRequestContext(this.getServletRequest()) {
             @Override

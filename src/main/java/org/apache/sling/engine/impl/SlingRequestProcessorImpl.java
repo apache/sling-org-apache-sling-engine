@@ -175,6 +175,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.errorHandler.setDelegate(ref, (JakartaErrorHandler) null);
     }
 
+    @SuppressWarnings("deprecation")
     @Reference(
             name = "ErrorHandler",
             cardinality = ReferenceCardinality.OPTIONAL,
@@ -184,6 +185,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.errorHandler.setDelegate(ref, handler);
     }
 
+    @SuppressWarnings("deprecation")
     void unsetErrorHandler(final ErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (ErrorHandler) null);
     }
