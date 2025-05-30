@@ -107,24 +107,33 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testReset() {
-        final SlingHttpServletResponse orig = mock(SlingHttpServletResponse.class);
+        final SlingHttpServletResponse originalResponse = mock(SlingHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setProtectHeadersOnInclude(true);
+        DispatchingInfo dispatchingInfo = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
+        dispatchingInfo.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse includeResponse = new SlingHttpServletResponseImpl(requestData, originalResponse);
 
-        when(orig.isCommitted()).thenReturn(false);
-        include.reset();
-        verify(orig, times(1)).isCommitted();
-        Mockito.verifyNoMoreInteractions(orig);
+        when(originalResponse.isCommitted()).thenReturn(false);
+        includeResponse.reset();
+        verify(originalResponse, times(1)).isCommitted();
+        Mockito.verifyNoMoreInteractions(originalResponse);
 
-        when(orig.isCommitted()).thenReturn(true);
-        include.reset();
-        verify(orig, times(2)).isCommitted();
-        verify(orig, times(1)).reset();
-        Mockito.verifyNoMoreInteractions(orig);
+        when(originalResponse.isCommitted()).thenReturn(true);
+        includeResponse.reset();
+        verify(originalResponse, times(2)).isCommitted();
+        verify(originalResponse, times(1)).reset();
+        Mockito.verifyNoMoreInteractions(originalResponse);
+
+        // check if reset is called on error handling
+        dispatchingInfo = new DispatchingInfo(DispatcherType.ERROR);
+        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
+        dispatchingInfo.setProtectHeadersOnInclude(true);
+        when(originalResponse.isCommitted()).thenReturn(false);
+        includeResponse.reset();
+        verify(originalResponse, times(2)).reset();
+        Mockito.verifyNoMoreInteractions(originalResponse);
     }
 
     private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {
