@@ -47,7 +47,7 @@ import static org.mockito.Mockito.when;
 public class ErrorFilterChainTest {
 
     @Test
-    public void testResponseCommitted() throws IOException, ServletException, jakarta.servlet.ServletException {
+    public void testResponseCommitted() throws IOException, jakarta.servlet.ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
         final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
@@ -67,7 +67,7 @@ public class ErrorFilterChainTest {
     }
 
     @Test
-    public void testResponseNotCommitted() throws IOException, ServletException, jakarta.servlet.ServletException {
+    public void testResponseNotCommitted() throws IOException, jakarta.servlet.ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
         final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
@@ -86,8 +86,7 @@ public class ErrorFilterChainTest {
     }
 
     @Test
-    public void testResponseDispatcherInfoOnError()
-            throws IOException, ServletException, jakarta.servlet.ServletException {
+    public void testResponseDispatcherInfoOnError() throws IOException, jakarta.servlet.ServletException {
         // mocks a final method in SlingJakartaHttpServletResponseImpl, needs
         // mockito-inline
         final DefaultErrorHandler handler = new DefaultErrorHandler();
@@ -110,9 +109,5 @@ public class ErrorFilterChainTest {
         // ensure that the original request dispatcher info that is restored after the
         // error handling was performed, in this case null
         verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(Objects::isNull));
-    }}
-
-    
-            
-
-    
+    }
+}
