@@ -106,24 +106,44 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testReset() {
-        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse originalResponse = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setProtectHeadersOnInclude(true);
+        DispatchingInfo dispatchingInfo = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
+        dispatchingInfo.setProtectHeadersOnInclude(true);
 
-        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+        final HttpServletResponse includeResponse =
+                new SlingJakartaHttpServletResponseImpl(requestData, originalResponse);
 
-        when(orig.isCommitted()).thenReturn(false);
-        include.reset();
-        verify(orig, times(1)).isCommitted();
-        Mockito.verifyNoMoreInteractions(orig);
+        when(originalResponse.isCommitted()).thenReturn(false);
+        includeResponse.reset();
+        verify(originalResponse, times(1)).isCommitted();
+        Mockito.verifyNoMoreInteractions(originalResponse);
 
-        when(orig.isCommitted()).thenReturn(true);
-        include.reset();
-        verify(orig, times(2)).isCommitted();
-        verify(orig, times(1)).reset();
-        Mockito.verifyNoMoreInteractions(orig);
+        when(originalResponse.isCommitted()).thenReturn(true);
+        includeResponse.reset();
+        verify(originalResponse, times(2)).isCommitted();
+        verify(originalResponse, times(1)).reset();
+        Mockito.verifyNoMoreInteractions(originalResponse);
+    }
+
+    @Test
+    public void testResetOnError() {
+        final SlingJakartaHttpServletResponseImpl originalResponse = mock(SlingJakartaHttpServletResponseImpl.class);
+        final RequestData requestData = mock(RequestData.class);
+
+        // Simulate an error dispatching scenario on a uncommitted response
+        DispatchingInfo dispatchingInfo = new DispatchingInfo(DispatcherType.ERROR);
+        final HttpServletResponse includeResponse =
+                new SlingJakartaHttpServletResponseImpl(requestData, originalResponse);
+        dispatchingInfo.setProtectHeadersOnInclude(true);
+        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
+        when(originalResponse.isCommitted()).thenReturn(false);
+
+        includeResponse.reset();
+        verify(originalResponse, times(1)).reset();
+
+        Mockito.verifyNoMoreInteractions(originalResponse);
     }
 
     private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {

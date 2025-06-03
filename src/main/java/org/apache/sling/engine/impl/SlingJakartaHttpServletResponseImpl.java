@@ -90,7 +90,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         }
     }
 
-    protected final RequestData getRequestData() {
+    public final RequestData getRequestData() {
         return requestData;
     }
 
@@ -154,6 +154,11 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                 && this.requestData.getDispatchingInfo().getType() == jakarta.servlet.DispatcherType.INCLUDE;
     }
 
+    private boolean isError() {
+        return this.requestData.getDispatchingInfo() != null
+                && this.requestData.getDispatchingInfo().getType() == jakarta.servlet.DispatcherType.ERROR;
+    }
+
     private boolean isProtectHeadersOnInclude() {
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
@@ -194,12 +199,14 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void reset() {
-        if (!this.isProtectHeadersOnInclude()) {
+        if (!this.isProtectHeadersOnInclude() || isError()) {
             super.reset();
         } else {
-            // ignore if not committed
-            if (getResponse().isCommitted()) {
-                getResponse().reset();
+            // ignore if not committed: because we want the exception to be thrown when the
+            // response is committed. but we do not want to call reset when the headers
+            // should be protected, as this would reset them as well
+            if (this.isCommitted()) {
+                super.reset();
             }
         }
     }
@@ -299,7 +306,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void setContentType(final String type) {
-        if (super.getResponse().isCommitted() || !isInclude()) {
+        if (this.isCommitted() || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
@@ -438,7 +445,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * include.
      *
      * @param currentContentType the current 'Content-Type' header
-     * @param setContentType the 'Content-Type' header that is being set
+     * @param setContentType     the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
