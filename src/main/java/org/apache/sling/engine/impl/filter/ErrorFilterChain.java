@@ -18,6 +18,7 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
@@ -27,6 +28,8 @@ import java.io.IOException;
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.servlets.ErrorHandler;
+import org.apache.sling.engine.impl.SlingHttpServletResponseImpl;
+import org.apache.sling.engine.impl.request.DispatchingInfo;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
 
@@ -117,10 +120,35 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                 }
                 return;
             }
+
             // reset the response to clear headers and body
-            response.reset();
+            if (response instanceof SlingHttpServletResponseImpl) {
+                SlingHttpServletResponseImpl slingResponse = (SlingHttpServletResponseImpl) response;
+                /*
+                 * Below section stores the original dispatching info for later restoration.
+                 * This is necessary to ensure that the dispatching info is set to ERROR
+                 * while the error is being handled and the response is reset, but restored to
+                 * its original state after the error handling is complete. This is important
+                 * for correct request processing and to avoid side effects on subsequent
+                 * filters or request processing steps.
+                 */
+                DispatchingInfo originalInfo = null;
+                try {
+                    originalInfo = slingResponse.getRequestData().getDispatchingInfo();
+                    final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
+                    slingResponse.getRequestData().setDispatchingInfo(dispatchInfo);
+                    response.reset();
+                    super.doFilter(request, response);
+                } finally {
+                    slingResponse.getRequestData().setDispatchingInfo(originalInfo);
+                }
+            } else {
+                response.reset();
+                super.doFilter(request, response);
+            }
+        } else {
+            super.doFilter(request, response);
         }
-        super.doFilter(request, response);
     }
 
     protected void render(final SlingHttpServletRequest request, final SlingHttpServletResponse response)
