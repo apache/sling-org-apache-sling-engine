@@ -100,12 +100,12 @@ public class ErrorFilterChainTest {
         chain2.doFilter(request, response);
         verify(response, times(1)).reset();
 
-        // called ones with thew error dispatcher info
+        // ensure that the dispatching info of type ERROR is set on the request data
         verify(requestData, times(1))
                 .setDispatchingInfo(Mockito.argThat(info -> info != null && info.getType() == DispatcherType.ERROR));
 
-        // called once with the original request dispatcher info that is restored after
-        // the error handling, in this case null
+        // ensure that the original request dispatcher info that is restored after the
+        // error handling was performed, in this case null
         verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(info -> info == null));
     }
 }
