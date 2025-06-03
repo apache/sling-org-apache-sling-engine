@@ -19,6 +19,7 @@
 package org.apache.sling.engine.impl.filter;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import jakarta.servlet.ServletException;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
@@ -106,6 +107,6 @@ public class ErrorFilterChainTest {
 
         // ensure that the original request dispatcher info that is restored after the
         // error handling was performed, in this case null
-        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(info -> info == null));
+        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(Objects::isNull));
     }
 }
