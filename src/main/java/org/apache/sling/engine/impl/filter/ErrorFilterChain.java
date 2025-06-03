@@ -26,6 +26,8 @@ import jakarta.servlet.ServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
+import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
+import org.apache.sling.engine.impl.request.DispatchingInfo;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
 
@@ -121,8 +123,8 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
             }
 
             // reset the response to clear headers and body
-            if (response instanceof SlingHttpServletResponseImpl) {
-                SlingHttpServletResponseImpl slingResponse = (SlingHttpServletResponseImpl) response;
+            if (response instanceof SlingJakartaHttpServletResponseImpl) {
+                SlingJakartaHttpServletResponseImpl slingResponse = (SlingJakartaHttpServletResponseImpl) response;
                 /*
                  * Below section stores the original dispatching info for later restoration.
                  * This is necessary to ensure that the dispatching info is set to ERROR

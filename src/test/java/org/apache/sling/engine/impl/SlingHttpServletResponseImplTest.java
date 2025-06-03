@@ -128,26 +128,28 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testResetOnError() {
-        final SlingHttpServletResponse originalResponse = mock(SlingHttpServletResponse.class);
+        final SlingJakartaHttpServletResponseImpl originalResponse = mock(SlingJakartaHttpServletResponseImpl.class);
         final RequestData requestData = mock(RequestData.class);
 
         // Simulate an error dispatching scenario on a uncommitted response
         DispatchingInfo dispatchingInfo = new DispatchingInfo(DispatcherType.ERROR);
-        final HttpServletResponse includeResponse = new SlingHttpServletResponseImpl(requestData, originalResponse);
+        final HttpServletResponse includeResponse = new SlingJakartaHttpServletResponseImpl(requestData,
+                originalResponse);
         dispatchingInfo.setProtectHeadersOnInclude(true);
         when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
         when(originalResponse.isCommitted()).thenReturn(false);
 
         includeResponse.reset();
         verify(originalResponse, times(1)).reset();
+
         Mockito.verifyNoMoreInteractions(originalResponse);
     }
 
     private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {
         final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
-        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
-        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        final DispatchingInfo info = new Dispatchin questProgressTracker requestProgressTracker = mock(R
+                questProgressTracker.class);
         when(requestData.getDispatchingInfo()).thenReturn(info);
         when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);

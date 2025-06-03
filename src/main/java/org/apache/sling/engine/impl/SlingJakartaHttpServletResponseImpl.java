@@ -156,7 +156,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     private boolean isError() {
         return this.requestData.getDispatchingInfo() != null
-                && this.requestData.getDispatchingInfo().getType() == javax.servlet.DispatcherType.ERROR;
+                && this.requestData.getDispatchingInfo().getType() == jakarta.servlet.DispatcherType.ERROR;
     }
 
     private boolean isProtectHeadersOnInclude() {
@@ -445,7 +445,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * include.
      *
      * @param currentContentType the current 'Content-Type' header
-     * @param setContentType the 'Content-Type' header that is being set
+     * @param setContentType     the 'Content-Type' header that is being set
      */
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
