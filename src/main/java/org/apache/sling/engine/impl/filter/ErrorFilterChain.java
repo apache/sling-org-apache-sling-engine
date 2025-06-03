@@ -137,14 +137,17 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                     final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
                     slingResponse.getRequestData().setDispatchingInfo(dispatchInfo);
                     response.reset();
+                    super.doFilter(request, response);
                 } finally {
                     slingResponse.getRequestData().setDispatchingInfo(originalInfo);
                 }
             } else {
                 response.reset();
+                super.doFilter(request, response);
             }
+        } else {
+            super.doFilter(request, response);
         }
-        super.doFilter(request, response);
     }
 
     protected void render(final SlingJakartaHttpServletRequest request, final SlingJakartaHttpServletResponse response)
