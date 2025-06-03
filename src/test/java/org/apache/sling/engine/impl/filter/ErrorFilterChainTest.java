@@ -22,6 +22,7 @@ import javax.servlet.DispatcherType;
 import javax.servlet.ServletException;
 
 import java.io.IOException;
+import java.util.Objects;
 
 import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
@@ -108,6 +109,6 @@ public class ErrorFilterChainTest {
 
         // ensure that the original request dispatcher info that is restored after the
         // error handling was performed, in this case null
-        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(info -> info == null));
+        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(Objects::isNull));
     }
 }
