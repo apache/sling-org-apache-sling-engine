@@ -125,14 +125,22 @@ public class SlingHttpServletResponseImplTest {
         verify(originalResponse, times(2)).isCommitted();
         verify(originalResponse, times(1)).reset();
         Mockito.verifyNoMoreInteractions(originalResponse);
+    }
 
-        // check if reset is called on error handling
-        dispatchingInfo = new DispatchingInfo(DispatcherType.ERROR);
-        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
+    @Test
+    public void testResetOnError() {
+        final SlingHttpServletResponse originalResponse = mock(SlingHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+
+        // Simulate an error dispatching scenario on a uncommitted response
+        DispatchingInfo dispatchingInfo = new DispatchingInfo(DispatcherType.ERROR);
+        final HttpServletResponse includeResponse = new SlingHttpServletResponseImpl(requestData, originalResponse);
         dispatchingInfo.setProtectHeadersOnInclude(true);
+        when(requestData.getDispatchingInfo()).thenReturn(dispatchingInfo);
         when(originalResponse.isCommitted()).thenReturn(false);
+
         includeResponse.reset();
-        verify(originalResponse, times(2)).reset();
+        verify(originalResponse, times(1)).reset();
         Mockito.verifyNoMoreInteractions(originalResponse);
     }
 
