@@ -61,11 +61,7 @@ public class SlingPart implements Part {
 
     @Override
     public void delete() {
-        try {
-            this.param.getFileItem().delete();
-        } catch (final IOException e) {
-            // ignore, nothing we can do
-        }
+        this.param.getFileItem().delete();
     }
 
     @Override

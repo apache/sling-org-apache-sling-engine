@@ -32,13 +32,11 @@ import java.util.Map;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.commons.fileupload2.core.DiskFileItem;
-import org.apache.commons.fileupload2.core.DiskFileItemFactory;
-import org.apache.commons.fileupload2.core.FileUploadException;
-import org.apache.commons.fileupload2.core.RequestContext;
-import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletDiskFileUpload;
-import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletFileUpload;
-import org.apache.commons.fileupload2.jakarta.servlet5.JakartaServletRequestContext;
+import org.apache.commons.fileupload.FileUploadException;
+import org.apache.commons.fileupload.RequestContext;
+import org.apache.commons.fileupload.disk.DiskFileItem;
+import org.apache.commons.fileupload.disk.DiskFileItemFactory;
+import org.apache.commons.fileupload.servlet.ServletFileUpload;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -303,18 +301,17 @@ public class ParameterSupport {
                 }
 
                 // Multipart POST
-                if (JakartaServletFileUpload.isMultipartContent(
-                        new JakartaServletRequestContext(this.getServletRequest()))) {
+                if (ServletFileUpload.isMultipartContent(this.getMultiPartContext())) {
                     if (isStreamed(parameters, this.getServletRequest())) {
                         // special case, the request is Multipart and streamed processing has been requested
                         try {
                             this.getServletRequest()
                                     .setAttribute(
                                             REQUEST_PARTS_ITERATOR_ATTRIBUTE,
-                                            new RequestPartsIterator(this.getServletRequest()));
+                                            new RequestPartsIterator(this.getMultiPartContext()));
                             this.log.debug(
                                     "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
-                        } catch (IOException e) {
+                        } catch (final FileUploadException | IOException e) {
                             this.log.error(
                                     "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
                         }
@@ -393,25 +390,40 @@ public class ParameterSupport {
         return false;
     }
 
-    private void parseMultiPartPost(ParameterMap parameters) {
-        // Create a new file upload handler
-        final JakartaServletDiskFileUpload upload = new JakartaServletDiskFileUpload();
-        upload.setSizeMax(ParameterSupport.maxRequestSize);
-        upload.setFileSizeMax(ParameterSupport.maxFileSize);
-        final DiskFileItemFactory.Builder fileItemFactoryBuilder = DiskFileItemFactory.builder();
-        fileItemFactoryBuilder.setBufferSize(ParameterSupport.fileSizeThreshold);
-        if (ParameterSupport.location != null) {
-            fileItemFactoryBuilder.setPath(ParameterSupport.location.toPath());
-        }
-        upload.setFileItemFactory(fileItemFactoryBuilder.get());
-        upload.setFileCountMax(ParameterSupport.maxFileCount);
-        RequestContext rc = new JakartaServletRequestContext(this.getServletRequest()) {
+    private RequestContext getMultiPartContext() {
+        return new RequestContext() {
             @Override
             public String getCharacterEncoding() {
-                String enc = super.getCharacterEncoding();
+                String enc = getServletRequest().getCharacterEncoding();
                 return (enc != null) ? enc : Util.ENCODING_DIRECT;
             }
+
+            @Override
+            public int getContentLength() {
+                return getServletRequest().getContentLength();
+            }
+
+            @Override
+            public String getContentType() {
+                return getServletRequest().getContentType();
+            }
+
+            @Override
+            public InputStream getInputStream() throws IOException {
+                return getServletRequest().getInputStream();
+            }
         };
+    }
+
+    private void parseMultiPartPost(ParameterMap parameters) {
+        // Create a new file upload handler
+        ServletFileUpload upload = new ServletFileUpload();
+        upload.setSizeMax(ParameterSupport.maxRequestSize);
+        upload.setFileSizeMax(ParameterSupport.maxFileSize);
+        upload.setFileItemFactory(
+                new DiskFileItemFactory(ParameterSupport.fileSizeThreshold, ParameterSupport.location));
+        upload.setFileCountMax(ParameterSupport.maxFileCount);
+        final RequestContext rc = this.getMultiPartContext();
 
         // Parse the request
         List<?> /* FileItem */ items = null;

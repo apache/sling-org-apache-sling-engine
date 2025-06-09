@@ -22,7 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 
-import org.apache.commons.fileupload2.core.DiskFileItem;
+import org.apache.commons.fileupload.disk.DiskFileItem;
 
 /**
  * The <code>MultipartRequestParameter</code> represents a request parameter
