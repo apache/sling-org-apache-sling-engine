@@ -172,11 +172,17 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private boolean isProtectHeadersOnInclude() {
+        // the dispatch info is null on the initial request, so it defaults to false for
+        // the initial request always, and therefore checks for the configuration set
+        // only for includes
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
     }
 
     private boolean isCheckContentTypeOnInclude() {
+        // the dispatch info is null on the initial request, so it defaults to false for
+        // the initial request always, and therefore checks for the configuration set
+        // only for includes
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude();
     }
@@ -255,13 +261,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     public void setLocale(final Locale loc) {
         if (!this.isProtectHeadersOnInclude()) {
             super.setLocale(loc);
-        }
-    }
-
-    @Override
-    public void setBufferSize(final int size) {
-        if (!this.isProtectHeadersOnInclude()) {
-            super.setBufferSize(size);
         }
     }
 
