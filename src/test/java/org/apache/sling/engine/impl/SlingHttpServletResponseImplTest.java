@@ -174,7 +174,7 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setContentLengthLong(33L);
         Mockito.verify(orig, never()).setContentType("text/plain");
         Mockito.verify(orig, never()).setLocale(null);
-        Mockito.verify(orig, never()).setBufferSize(4500);
+        Mockito.verify(orig, Mockito.times(1)).setBufferSize(4500);
 
         Mockito.verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(Mockito.any());
 
