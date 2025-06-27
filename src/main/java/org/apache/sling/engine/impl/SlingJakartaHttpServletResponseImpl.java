@@ -48,6 +48,15 @@ import org.slf4j.LoggerFactory;
 public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrapper
         implements SlingJakartaHttpServletResponse {
 
+    /**
+     * The reason why the response was committed. This is used to determine whether
+     * the change to the content type header can be ignored or not.
+     */
+    public static enum CommitReason {
+        SEND_ERROR,
+        SEND_REDIRECT
+    }
+
     private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingJakartaHttpServletResponseImpl.class);
@@ -77,14 +86,16 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     private final boolean firstSlingResponse;
 
+    private CommitReason committedReason;
+
     public SlingJakartaHttpServletResponseImpl(RequestData requestData, HttpServletResponse response) {
         super(response);
         this.requestData = requestData;
         this.firstSlingResponse = !(response instanceof SlingJakartaHttpServletResponse);
 
         if (firstSlingResponse) {
-            for (final StaticResponseHeader mapping :
-                    requestData.getSlingRequestProcessor().getAdditionalResponseHeaders()) {
+            for (final StaticResponseHeader mapping : requestData.getSlingRequestProcessor()
+                    .getAdditionalResponseHeaders()) {
                 response.addHeader(mapping.getResponseHeaderName(), mapping.getResponseHeaderValue());
             }
         }
@@ -269,6 +280,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void sendRedirect(final String location) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
+            this.committedReason = CommitReason.SEND_REDIRECT;
             super.sendRedirect(location);
         }
     }
@@ -305,7 +317,10 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void setContentType(final String type) {
-        if (this.isCommitted() || !isInclude()) {
+        boolean isCommitedDueToSendErrorOrRedirect = this.isCommitted()
+                && (CommitReason.SEND_ERROR.equals(this.committedReason)
+                        || CommitReason.SEND_REDIRECT.equals(this.committedReason));
+        if (isCommitedDueToSendErrorOrRedirect || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
@@ -369,8 +384,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         // consumption errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;
-        Iterator<String> messagesIterator =
-                requestData.getRequestProgressTracker().getMessages();
+        Iterator<String> messagesIterator = requestData.getRequestProgressTracker().getMessages();
         LinkedList<String> lastMessages = new LinkedList<>();
         while (messagesIterator.hasNext()) {
             nrOfOriginalMessages++;
@@ -449,8 +463,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
 
-        String allMessages =
-                getLastMessagesOfProgressTracker().stream().collect(Collectors.joining(System.lineSeparator()));
+        String allMessages = getLastMessagesOfProgressTracker().stream()
+                .collect(Collectors.joining(System.lineSeparator()));
 
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
@@ -496,6 +510,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     public void sendError(int status, String message) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
             checkCommitted();
+
+            this.committedReason = CommitReason.SEND_ERROR;
 
             final SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
             eh.handleError(status, message, requestData.getSlingRequest(), this);
@@ -771,8 +787,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     }
 
     private String removeContextPath(final String path) {
-        final String contextPath =
-                this.getRequestData().getSlingRequest().getContextPath().concat("/");
+        final String contextPath = this.getRequestData().getSlingRequest().getContextPath().concat("/");
         if (contextPath.length() > 1 && path.startsWith(contextPath)) {
             return path.substring(contextPath.length() - 1);
         }
