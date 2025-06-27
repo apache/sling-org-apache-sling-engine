@@ -52,7 +52,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * The reason why the response was committed. This is used to determine whether
      * the change to the content type header can be ignored or not.
      */
-    public static enum CommitReason {
+    public enum CommitReason {
         SEND_ERROR,
         SEND_REDIRECT
     }
