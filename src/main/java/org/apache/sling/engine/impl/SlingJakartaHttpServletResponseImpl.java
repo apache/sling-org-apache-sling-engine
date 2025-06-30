@@ -318,8 +318,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setContentType(final String type) {
         boolean isCommitedDueToSendErrorOrRedirect = this.isCommitted()
-                && (CommitReason.SEND_ERROR.equals(this.committedReason)
-                        || CommitReason.SEND_REDIRECT.equals(this.committedReason));
+                && (CommitReason.SEND_ERROR == this.committedReason
+                        || CommitReason.SEND_REDIRECT == this.committedReason);
         if (isCommitedDueToSendErrorOrRedirect || !isInclude()) {
             super.setContentType(type);
         } else {
