@@ -48,6 +48,15 @@ import org.slf4j.LoggerFactory;
 
 public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper implements SlingHttpServletResponse {
 
+    /**
+     * The reason why the response was committed. This is used to determine whether
+     * the change to the content type header can be ignored or not.
+     */
+    public enum CommitReason {
+        SEND_ERROR,
+        SEND_REDIRECT
+    }
+
     private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
 
     private static final Logger LOG = LoggerFactory.getLogger(SlingHttpServletResponseImpl.class);
@@ -76,6 +85,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     private final RequestData requestData;
 
     private final boolean firstSlingResponse;
+
+    private CommitReason committedReason;
 
     public SlingHttpServletResponseImpl(RequestData requestData, HttpServletResponse response) {
         super(response);
@@ -172,11 +183,17 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     private boolean isProtectHeadersOnInclude() {
+        // the dispatch info is null on the initial request, so it defaults to false for
+        // the initial request always, and therefore checks for the configuration set
+        // only for includes
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isProtectHeadersOnInclude();
     }
 
     private boolean isCheckContentTypeOnInclude() {
+        // the dispatch info is null on the initial request, so it defaults to false for
+        // the initial request always, and therefore checks for the configuration set
+        // only for includes
         return this.requestData.getDispatchingInfo() != null
                 && this.requestData.getDispatchingInfo().isCheckContentTypeOnInclude();
     }
@@ -259,13 +276,6 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     }
 
     @Override
-    public void setBufferSize(final int size) {
-        if (!this.isProtectHeadersOnInclude()) {
-            super.setBufferSize(size);
-        }
-    }
-
-    @Override
     public void addCookie(final Cookie cookie) {
         if (!this.isProtectHeadersOnInclude()) {
             super.addCookie(cookie);
@@ -296,6 +306,7 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     @Override
     public void sendRedirect(final String location) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
+            this.committedReason = CommitReason.SEND_REDIRECT;
             super.sendRedirect(location);
         }
     }
@@ -332,7 +343,10 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
 
     @Override
     public void setContentType(final String type) {
-        if (this.isCommitted() || !isInclude()) {
+        boolean isCommitedDueToSendErrorOrRedirect = this.isCommitted()
+                && (CommitReason.SEND_ERROR == this.committedReason
+                        || CommitReason.SEND_REDIRECT == this.committedReason);
+        if (isCommitedDueToSendErrorOrRedirect || !isInclude()) {
             super.setContentType(type);
         } else {
             Optional<String> message = checkContentTypeOverride(type);
@@ -524,6 +538,8 @@ public class SlingHttpServletResponseImpl extends HttpServletResponseWrapper imp
     public void sendError(int status, String message) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
             checkCommitted();
+
+            this.committedReason = CommitReason.SEND_ERROR;
 
             final SlingRequestProcessorImpl eh = getRequestData().getSlingRequestProcessor();
             eh.handleError(status, message, requestData.getSlingRequest(), this);
