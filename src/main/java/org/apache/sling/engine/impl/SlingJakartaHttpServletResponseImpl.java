@@ -94,8 +94,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         this.firstSlingResponse = !(response instanceof SlingJakartaHttpServletResponse);
 
         if (firstSlingResponse) {
-            for (final StaticResponseHeader mapping : requestData.getSlingRequestProcessor()
-                    .getAdditionalResponseHeaders()) {
+            for (final StaticResponseHeader mapping :
+                    requestData.getSlingRequestProcessor().getAdditionalResponseHeaders()) {
                 response.addHeader(mapping.getResponseHeaderName(), mapping.getResponseHeaderValue());
             }
         }
@@ -384,7 +384,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         // consumption errors when close to infinite recursive calls are made
         int nrOfOriginalMessages = 0;
         boolean gotCut = false;
-        Iterator<String> messagesIterator = requestData.getRequestProgressTracker().getMessages();
+        Iterator<String> messagesIterator =
+                requestData.getRequestProgressTracker().getMessages();
         LinkedList<String> lastMessages = new LinkedList<>();
         while (messagesIterator.hasNext()) {
             nrOfOriginalMessages++;
@@ -463,8 +464,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     private String getMessage(@Nullable String currentContentType, @Nullable String setContentType) {
         String unmatchedStartTimers = findUnmatchedTimerStarts();
 
-        String allMessages = getLastMessagesOfProgressTracker().stream()
-                .collect(Collectors.joining(System.lineSeparator()));
+        String allMessages =
+                getLastMessagesOfProgressTracker().stream().collect(Collectors.joining(System.lineSeparator()));
 
         if (!isCheckContentTypeOnInclude()) {
             return String.format(
@@ -787,7 +788,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     }
 
     private String removeContextPath(final String path) {
-        final String contextPath = this.getRequestData().getSlingRequest().getContextPath().concat("/");
+        final String contextPath =
+                this.getRequestData().getSlingRequest().getContextPath().concat("/");
         if (contextPath.length() > 1 && path.startsWith(contextPath)) {
             return path.substring(contextPath.length() - 1);
         }
