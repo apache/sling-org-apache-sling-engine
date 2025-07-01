@@ -87,21 +87,64 @@ public class SlingHttpServletResponseImplTest {
     };
 
     @Test
-    public void testNoViolationChecksOnCommitedResponse() {
+    public void testNoViolationChecksOnCommittedResponseWhenSendRedirect() throws IOException {
         final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         Mockito.when(orig.isCommitted()).thenReturn(true);
 
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
-        info.setProtectHeadersOnInclude(true);
+
+        final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+        SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
+
+        spyInclude.sendRedirect("somewhere");
+
+        spyInclude.setContentType("someOtherType");
+        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
+        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+    }
+
+    @Test
+    public void testNoViolationChecksOnCommittedResponseWhenSendError() throws IOException {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getSlingRequestProcessor()).thenReturn(mock(SlingRequestProcessorImpl.class));
+
+        final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+        SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
+
+        spyInclude.sendError(501);
+        // send error will eventually commit the response, let's mock this
+        Mockito.when(orig.isCommitted()).thenReturn(true);
+
+        spyInclude.setContentType("someOtherType");
+        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
+        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+    }
+
+    @Test
+    public void testViolationChecksOnCommittedResponses() {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        Mockito.when(orig.isCommitted()).thenReturn(true);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getSlingRequestProcessor()).thenReturn(mock(SlingRequestProcessorImpl.class));
+        final RequestProgressTracker rpt = mock(RequestProgressTracker.class);
+        when(rpt.getMessages()).thenReturn(new ArrayList<String>().iterator());
+        when(requestData.getRequestProgressTracker()).thenReturn(rpt);
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
 
         spyInclude.setContentType("someOtherType");
         Mockito.verify(orig, times(1)).setContentType(Mockito.any());
-        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+        Mockito.verify(spyInclude, Mockito.times(1)).checkContentTypeOverride(Mockito.any());
     }
 
     @Test
@@ -174,7 +217,7 @@ public class SlingHttpServletResponseImplTest {
         Mockito.verify(orig, never()).setContentLengthLong(33L);
         Mockito.verify(orig, never()).setContentType("text/plain");
         Mockito.verify(orig, never()).setLocale(null);
-        Mockito.verify(orig, never()).setBufferSize(4500);
+        Mockito.verify(orig, Mockito.times(1)).setBufferSize(4500);
 
         Mockito.verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(Mockito.any());
 
