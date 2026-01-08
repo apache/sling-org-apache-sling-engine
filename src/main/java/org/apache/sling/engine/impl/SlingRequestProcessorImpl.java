@@ -256,6 +256,11 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingJakartaHttpServletResponse response = requestData.getSlingResponse();
 
         try {
+            if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
+                log.debug(
+                        "Content Type Header state has not been cleared properly, is set to {}",
+                        getContentTypeHeaderState());
+            }
             setContentTypeHeaderState(ContentTypeHeaderState.NOT_VIOLATED);
 
             // initialize the request data - resolve resource and servlet
@@ -329,6 +334,8 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             if (localBean != null) {
                 localBean.addRequestData(requestData);
             }
+
+            setContentTypeHeaderState(ContentTypeHeaderState.UNSET);
         }
     }
 
