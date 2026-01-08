@@ -257,7 +257,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
         try {
             if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
-                log.error(
+                log.debug(
                         "Content Type Header state has not been cleared properly, is set to {}",
                         getContentTypeHeaderState());
             }
