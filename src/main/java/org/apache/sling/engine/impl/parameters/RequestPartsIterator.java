@@ -85,7 +85,7 @@ public class RequestPartsIterator implements Iterator<Part> {
     /**
      * Internal implementation of the Part API from Servlet 3 wrapping the Commons File Upload FIleItemStream object.
      */
-    private static class StreamedRequestPart implements Part {
+    private static class StreamedRequestPart implements Part, javax.servlet.http.Part {
         private final FileItemStream fileItem;
         private final InputStream inputStream;
 
