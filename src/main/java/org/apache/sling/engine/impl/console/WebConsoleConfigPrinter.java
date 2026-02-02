@@ -19,13 +19,17 @@
 package org.apache.sling.engine.impl.console;
 
 import java.io.PrintWriter;
+import java.util.Arrays;
 
+import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
+import org.osgi.service.http.runtime.HttpServiceRuntime;
+import org.osgi.service.http.runtime.dto.ServletContextDTO;
 
 /**
  * This is a configuration printer for the web console which
@@ -42,10 +46,31 @@ import org.osgi.service.component.annotations.Reference;
 public class WebConsoleConfigPrinter {
 
     private final ServletFilterManager filterManager;
+    private final HttpServiceRuntime httpServiceRuntime;
 
     @Activate
-    public WebConsoleConfigPrinter(@Reference final ServletFilterManager filterManager) {
+    public WebConsoleConfigPrinter(
+            @Reference final ServletFilterManager filterManager, @Reference HttpServiceRuntime httpServiceRuntime) {
         this.filterManager = filterManager;
+        this.httpServiceRuntime = httpServiceRuntime;
+    }
+
+    private static boolean isRelevantContext(ServletContextDTO ctx) {
+        return SlingHttpContext.SERVLET_CONTEXT_NAME.equals(ctx.name);
+    }
+
+    private void printOsgiHttpWhiteboardFilters(PrintWriter pw, ServletContextDTO ctx) {
+        pw.println();
+        pw.printf("OSGi Http Whiteboard Filters for Context %s%n", ctx.name);
+        Arrays.stream(ctx.filterDTOs).forEach(filter -> {
+            pw.printf("Name: %s, Id: %d%n", filter.name, filter.serviceId);
+        });
+    }
+
+    private void printOsgiHttpWhiteboardFilters(PrintWriter pw) {
+        Arrays.stream(httpServiceRuntime.getRuntimeDTO().servletContextDTOs)
+                .filter(ctx -> isRelevantContext(ctx))
+                .forEach(ctx -> printOsgiHttpWhiteboardFilters(pw, ctx));
     }
 
     /**
@@ -75,9 +100,10 @@ public class WebConsoleConfigPrinter {
      */
     public void printConfiguration(PrintWriter pw) {
         pw.println("Current Apache Sling Servlet Filter Configuration");
+        printOsgiHttpWhiteboardFilters(pw);
         for (FilterChainType type : FilterChainType.values()) {
             pw.println();
-            pw.println(type + " Filters:");
+            pw.println("Sling " + type + " Filters:");
             printFilterChain(pw, filterManager.getFilterChain(type).getFilters());
         }
     }
