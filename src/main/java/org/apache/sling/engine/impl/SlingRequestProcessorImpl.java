@@ -204,13 +204,18 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         return this.additionalResponseHeaders;
     }
 
+    @SuppressWarnings("deprecation")
     public <Type> Type adaptTo(Object object, Class<Type> type) {
         final AdapterManager adapterManager = this.adapterManager;
         if (adapterManager != null) {
             Type adapted = adapterManager.getAdapter(object, type);
+            // for backwards compatibility we need to have adaptions registered for the javax servlet
+            // objects considered as well. An interesting scenario is when we try to adapt directly
+            // from the a Jakarta object to its Javax counterpart. This is most often encountered with
+            // Sling Models that adapt from the request and have it injected as @Self
             if (adapted == null && object instanceof SlingJakartaHttpServletRequest request) {
-                // try adapting the legacy object
                 SlingHttpServletRequest legacy = new JakartaToJavaxRequestWrapper(request);
+                if (type == SlingHttpServletRequest.class) return type.cast(legacy);
                 return adapterManager.getAdapter(legacy, type);
             }
         }
