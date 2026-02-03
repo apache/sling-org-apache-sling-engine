@@ -132,7 +132,7 @@ public class ServletFilterManager {
             cardinality = ReferenceCardinality.MULTIPLE,
             target = "(" + EngineConstants.SLING_FILTER_SCOPE + "=*)")
     public void bindFilter(final ServiceReference<Filter> reference, final Filter filter) {
-        initFilter(reference, filter);
+        initFilter(reference, filter, null);
     }
 
     public void updatedFilter(final ServiceReference<Filter> reference, final Filter service) {
@@ -140,10 +140,10 @@ public class ServletFilterManager {
         final String newFilterName = SlingFilterConfig.getName(reference);
         if (newFilterName.equals(getUsedFilterName(reference))) {
             removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
-            addFilterToChains(service, reference);
+            addFilterToChains(service, null, reference);
         } else {
             destroyFilter(reference, service);
-            initFilter(reference, service);
+            initFilter(reference, service, null);
         }
     }
 
@@ -163,7 +163,7 @@ public class ServletFilterManager {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
         final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(filter);
-        initFilter(ref, s);
+        initFilter(ref, s, filter);
     }
 
     public void updatedJavaxFilter(
@@ -175,10 +175,10 @@ public class ServletFilterManager {
         final String newFilterName = SlingFilterConfig.getName(ref);
         if (newFilterName.equals(getUsedFilterName(ref))) {
             removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
-            addFilterToChains(s, ref);
+            addFilterToChains(s, service, ref);
         } else {
             destroyFilter(ref, s);
-            initFilter(ref, s);
+            initFilter(ref, s, service);
         }
     }
 
@@ -190,7 +190,10 @@ public class ServletFilterManager {
         destroyFilter(ref, s);
     }
 
-    private void initFilter(final ServiceReference<Filter> reference, final Filter filter) {
+    private void initFilter(
+            final ServiceReference<Filter> reference,
+            final Filter filter,
+            final javax.servlet.Filter wrappedJavaxFilter) {
         final String filterName = SlingFilterConfig.getName(reference);
         final Long serviceId = (Long) reference.getProperty(Constants.SERVICE_ID);
 
@@ -198,7 +201,7 @@ public class ServletFilterManager {
 
             MBeanReg reg;
             try {
-                final Dictionary<String, String> mbeanProps = new Hashtable<String, String>();
+                final Dictionary<String, String> mbeanProps = new Hashtable<>();
                 mbeanProps.put(JMX_OBJECTNAME, "org.apache.sling:type=engine-filter,service=" + filterName);
                 reg = new MBeanReg();
                 reg.mbean = new FilterProcessorMBeanImpl();
@@ -219,7 +222,7 @@ public class ServletFilterManager {
             filter.init(config);
 
             // add to chains
-            addFilterToChains(filter, reference);
+            addFilterToChains(filter, wrappedJavaxFilter, reference);
         } catch (ServletException ce) {
             log.error("Filter " + filterName + " failed to initialize", ce);
         } catch (Throwable t) {
@@ -261,7 +264,10 @@ public class ServletFilterManager {
     }
 
     @SuppressWarnings("deprecation")
-    private void addFilterToChains(final Filter filter, final ServiceReference<Filter> reference) {
+    private void addFilterToChains(
+            final Filter filter,
+            final javax.servlet.Filter wrappedJavaxFilter,
+            final ServiceReference<Filter> reference) {
         final Long serviceId = (Long) reference.getProperty(Constants.SERVICE_ID);
         final MBeanReg mbeanReg = mbeanMap.get(serviceId);
         final FilterProcessorMBeanImpl mbean = mbeanReg == null ? null : mbeanReg.mbean;
@@ -316,13 +322,14 @@ public class ServletFilterManager {
             scope = scope.toUpperCase();
             try {
                 FilterChainType type = FilterChainType.valueOf(scope.toString());
-                getFilterChain(type).addFilter(filter, predicate, serviceId, order, orderSource, mbean);
+                getFilterChain(type)
+                        .addFilter(filter, wrappedJavaxFilter, predicate, serviceId, order, orderSource, mbean);
 
                 if (type == FilterChainType.COMPONENT) {
                     getFilterChain(FilterChainType.INCLUDE)
-                            .addFilter(filter, predicate, serviceId, order, orderSource, mbean);
+                            .addFilter(filter, wrappedJavaxFilter, predicate, serviceId, order, orderSource, mbean);
                     getFilterChain(FilterChainType.FORWARD)
-                            .addFilter(filter, predicate, serviceId, order, orderSource, mbean);
+                            .addFilter(filter, wrappedJavaxFilter, predicate, serviceId, order, orderSource, mbean);
                 }
                 used = true;
             } catch (final IllegalArgumentException iae) {

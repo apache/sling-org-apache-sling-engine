@@ -56,7 +56,7 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
             public void destroy() {}
         };
 
-        FilterHandle handle = new FilterHandle(badFilter, null, 1, 1, null, null);
+        FilterHandle handle = new FilterHandle(badFilter, null, null, 1, 1, null, null);
 
         AbstractSlingFilterChain chain = new AbstractSlingFilterChain(new FilterHandle[] {handle}) {
             @Override

@@ -35,13 +35,14 @@ public class SlingFilterChainHelper {
 
     private static final FilterHandle[] EMPTY_FILTER_ARRAY = new FilterHandle[0];
 
-    private final SortedSet<FilterHandle> filterList = new TreeSet<FilterHandle>();
+    private final SortedSet<FilterHandle> filterList = new TreeSet<>();
 
     private volatile FilterHandle[] filters = EMPTY_FILTER_ARRAY;
 
     /**
      * Add a filter
      * @param filter The filter
+     * @param wrappedJavaxFilter The wrapped javax.servlet.Filter (may be null)
      * @param pattern Optional pattern
      * @param filterId Id of the filter
      * @param order The order index
@@ -50,12 +51,13 @@ public class SlingFilterChainHelper {
      */
     public synchronized void addFilter(
             final Filter filter,
+            javax.servlet.Filter wrappedJavaxFilter,
             FilterPredicate pattern,
             final long filterId,
             final int order,
             final String orderSource,
             FilterProcessorMBeanImpl mbean) {
-        this.filterList.add(new FilterHandle(filter, pattern, filterId, order, orderSource, mbean));
+        this.filterList.add(new FilterHandle(filter, wrappedJavaxFilter, pattern, filterId, order, orderSource, mbean));
         this.filters = getFiltersInternal();
     }
 
