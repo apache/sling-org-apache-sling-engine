@@ -20,11 +20,17 @@ package org.apache.sling.engine.impl.console;
 
 import java.io.PrintWriter;
 import java.util.Arrays;
+import java.util.Collection;
 
+import jakarta.servlet.Filter;
 import org.apache.sling.engine.impl.SlingHttpContext;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
+import org.osgi.framework.BundleContext;
+import org.osgi.framework.Constants;
+import org.osgi.framework.InvalidSyntaxException;
+import org.osgi.framework.ServiceReference;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
 import org.osgi.service.component.annotations.Reference;
@@ -45,12 +51,16 @@ import org.osgi.service.http.runtime.dto.ServletContextDTO;
         })
 public class WebConsoleConfigPrinter {
 
+    private final BundleContext bundleContext;
     private final ServletFilterManager filterManager;
     private final HttpServiceRuntime httpServiceRuntime;
 
     @Activate
     public WebConsoleConfigPrinter(
-            @Reference final ServletFilterManager filterManager, @Reference HttpServiceRuntime httpServiceRuntime) {
+            BundleContext bundleContext,
+            @Reference final ServletFilterManager filterManager,
+            @Reference HttpServiceRuntime httpServiceRuntime) {
+        this.bundleContext = bundleContext;
         this.filterManager = filterManager;
         this.httpServiceRuntime = httpServiceRuntime;
     }
@@ -59,11 +69,35 @@ public class WebConsoleConfigPrinter {
         return SlingHttpContext.SERVLET_CONTEXT_NAME.equals(ctx.name);
     }
 
+    private String getServiceRanking(long serviceId) {
+        ServiceReference<?> ref = null;
+        try {
+            Collection<ServiceReference<Filter>> refs = bundleContext.getServiceReferences(
+                    Filter.class, "(" + Constants.SERVICE_ID + "=" + serviceId + ")");
+            if (refs.isEmpty()) {
+                Collection<ServiceReference<javax.servlet.Filter>> javaxRefs = bundleContext.getServiceReferences(
+                        javax.servlet.Filter.class, "(" + Constants.SERVICE_ID + "=" + serviceId + ")");
+                if (!javaxRefs.isEmpty()) {
+                    ref = javaxRefs.iterator().next();
+                }
+            } else {
+                ref = refs.iterator().next();
+            }
+        } catch (InvalidSyntaxException e) {
+            throw new IllegalStateException("Invalid syntax given to lookup service", e);
+        }
+        if (ref != null) {
+            Object ranking = ref.getProperty(Constants.SERVICE_RANKING);
+            return ranking != null ? ranking.toString() : "0";
+        }
+        return "?";
+    }
+
     private void printOsgiHttpWhiteboardFilters(PrintWriter pw, ServletContextDTO ctx) {
         pw.println();
-        pw.printf("OSGi Http Whiteboard Filters for Context %s%n", ctx.name);
+        pw.printf("OSGi Http Whiteboard Filters for Context %s:%n", ctx.name);
         Arrays.stream(ctx.filterDTOs).forEach(filter -> {
-            pw.printf("Name: %s, Id: %d%n", filter.name, filter.serviceId);
+            pw.printf("%s : %s (id: %d)%n", getServiceRanking(filter.serviceId), filter.name, filter.serviceId);
         });
     }
 
