@@ -18,6 +18,7 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
 
 import jakarta.servlet.Filter;
@@ -26,6 +27,8 @@ import org.apache.sling.api.SlingJakartaHttpServletRequest;
 public class FilterHandle implements Comparable<FilterHandle> {
 
     private final Filter filter;
+
+    private javax.servlet.Filter wrappedJavaxFilter;
 
     private final long filterId;
 
@@ -43,12 +46,14 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     FilterHandle(
             Filter filter,
+            javax.servlet.Filter wrappedJavaxFilter,
             FilterPredicate predicate,
             long filterId,
             int order,
             final String orderSource,
             FilterProcessorMBeanImpl mbean) {
         this.filter = filter;
+        this.wrappedJavaxFilter = wrappedJavaxFilter;
         this.predicate = predicate;
         this.filterId = filterId;
         this.order = order;
@@ -60,6 +65,10 @@ public class FilterHandle implements Comparable<FilterHandle> {
 
     public Filter getFilter() {
         return filter;
+    }
+
+    public Optional<javax.servlet.Filter> getWrappedJavaxFilter() {
+        return Optional.ofNullable(wrappedJavaxFilter);
     }
 
     public long getFilterId() {

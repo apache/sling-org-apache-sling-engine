@@ -115,7 +115,9 @@ public class WebConsoleConfigPrinter {
             pw.printf(
                     "%d : %s (id: %d, property: %s); called: %d; time: %dms; time/call: %dµs%n",
                     entry.getOrder(),
-                    entry.getFilter().getClass(),
+                    entry.getWrappedJavaxFilter()
+                            .map(f -> "Jakarta wrapper for " + f.getClass())
+                            .orElse(entry.getFilter().getClass().toString()),
                     entry.getFilterId(),
                     entry.getOrderSource(),
                     entry.getCalls(),
