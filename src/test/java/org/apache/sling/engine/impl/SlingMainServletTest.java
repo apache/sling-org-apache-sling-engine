@@ -18,14 +18,21 @@
  */
 package org.apache.sling.engine.impl;
 
-import java.lang.reflect.Field;
+import java.util.Dictionary;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.Map;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import static org.mockito.Mockito.times;
@@ -33,6 +40,8 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 public class SlingMainServletTest {
+    @Rule
+    public final OsgiContext osgiContext = new OsgiContext();
 
     @Mock
     private HttpServletRequest request;
@@ -45,35 +54,33 @@ public class SlingMainServletTest {
     @Before
     public void setUp() {
         MockitoAnnotations.openMocks(this);
-        servlet = new SlingMainServlet();
-        setAllowTrace(false);
-        setupCommonMocks();
-    }
 
-    private void setupCommonMocks() {
-        when(request.getMethod()).thenReturn("TRACE");
-        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
-        when(request.getRequestURI()).thenReturn("/test");
-        when(request.getProtocol()).thenReturn("HTTP/1.1");
+        // Provide mandatory ProductInfoProvider reference (mock is sufficient for activation)
+        osgiContext.registerService(ProductInfoProvider.class, Mockito.mock(ProductInfoProvider.class));
+
+        // Provide a ServletContext service with the expected name property to satisfy the target filter
+        Dictionary<String, Object> props = new Hashtable<>();
+        props.put("name", SlingHttpContext.SERVLET_CONTEXT_NAME);
+        osgiContext.bundleContext().registerService(ServletContext.class, Mockito.mock(ServletContext.class), props);
+
+        // Satisfy mandatory reference to SlingRequestProcessorImpl
+        osgiContext.registerService(SlingRequestProcessorImpl.class, Mockito.mock(SlingRequestProcessorImpl.class));
+
+        // Activate SlingMainServlet with OSGi config
+        Map<String, Object> cfg = new HashMap<>();
+        cfg.put("sling_trace_allow", false);
+        cfg.put("servlet_name", "test-servlet");
+        servlet = osgiContext.registerInjectActivateService(SlingMainServlet.class, cfg);
     }
 
     @Test
     public void testTraceDisabledReturns405AndAllowHeader() throws ServletException {
+        when(request.getMethod()).thenReturn("TRACE");
         // Act
         servlet.service(request, response);
 
         // Assert
         verify(response, times(1)).setStatus(HttpServletResponse.SC_METHOD_NOT_ALLOWED);
         verify(response, times(1)).setHeader("Allow", "GET, HEAD, POST, PUT, DELETE, OPTIONS");
-    }
-
-    private void setAllowTrace(boolean value) {
-        try {
-            Field field = SlingMainServlet.class.getDeclaredField("allowTrace");
-            field.setAccessible(true);
-            field.set(servlet, value);
-        } catch (ReflectiveOperationException e) {
-            throw new AssertionError("Failed to set allowTrace via reflection", e);
-        }
     }
 }
