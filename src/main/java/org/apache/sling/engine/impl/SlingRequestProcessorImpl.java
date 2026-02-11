@@ -40,6 +40,7 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.SlingException;
+import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.SlingServletException;
@@ -51,6 +52,7 @@ import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.api.servlets.ServletResolver;
+import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
 import org.apache.sling.api.wrappers.JavaxToJakartaRequestWrapper;
 import org.apache.sling.api.wrappers.JavaxToJakartaResponseWrapper;
 import org.apache.sling.api.wrappers.SlingJakartaHttpServletResponseWrapper;
@@ -202,10 +204,34 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         return this.additionalResponseHeaders;
     }
 
+    @SuppressWarnings("deprecation")
     public <Type> Type adaptTo(Object object, Class<Type> type) {
         final AdapterManager adapterManager = this.adapterManager;
         if (adapterManager != null) {
-            return adapterManager.getAdapter(object, type);
+
+            // After the migration to the Jakarta Servlet API we need to insure backwards compatibility for adapters
+            // registered for the legacy javax.servlet request and response objects
+
+            // 1. Try adaptables registered explicitly for the type - expected to be SlingJakartaHttpServletRequest and
+            // SlingJakartaHttpServletResponse
+            Type adapted = adapterManager.getAdapter(object, type);
+            if (adapted != null) return adapted;
+            // 2. In case of no adapters being found introspect the adaptable and adjust
+
+            // 2a. adapt jakarta request to legacy javax
+            if (object instanceof SlingJakartaHttpServletRequest request) {
+
+                SlingHttpServletRequest legacy = JakartaToJavaxRequestWrapper.toJavaxRequest(request);
+
+                // 2a. Direct adaption to a javax request
+                // One scenario where this happens is when a Sling Model is adapted from the request and has it injected
+                // as @Self with the type of SlingHttpServletRequest
+                if (type == SlingHttpServletRequest.class) return type.cast(legacy);
+
+                // 2b. consult the adapters registered for the javax request and return the result. No other fallback is
+                // needed
+                return adapterManager.getAdapter(legacy, type);
+            }
         }
 
         // no adapter manager, nothing to adapt to
