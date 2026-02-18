@@ -28,7 +28,7 @@
     </parent>
 
     <artifactId>org.apache.sling.engine</artifactId>
-    <version>3.0.1-SNAPSHOT</version>
+    <version>3.0.2</version>
 
     <name>Apache Sling Engine</name>
     <description>Bundle implementing the core of Apache Sling.</description>
@@ -36,14 +36,14 @@
     <scm>
         <connection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</connection>
         <developerConnection>scm:git:https://gitbox.apache.org/repos/asf/sling-org-apache-sling-engine.git</developerConnection>
-        <tag>HEAD</tag>
+        <tag>org.apache.sling.engine-3.0.2</tag>
         <url>https://github.com/apache/sling-org-apache-sling-engine.git</url>
     </scm>
 
     <properties>
         <site.jira.version.id>12314287</site.jira.version.id>
         <site.javadoc.exclude>**.impl.**</site.javadoc.exclude>
-        <project.build.outputTimestamp>1750835195</project.build.outputTimestamp>
+        <project.build.outputTimestamp>1771428789</project.build.outputTimestamp>
         <sling.java.version>17</sling.java.version>
     </properties>
     <dependencies>
