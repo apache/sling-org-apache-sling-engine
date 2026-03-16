@@ -21,28 +21,32 @@ package org.apache.sling.engine.impl.parameters;
 import org.apache.sling.api.request.RequestParameter;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 
 public class ParameterMapTest {
 
     private static final int ORIGINAL_MAX_PARAMS = ParameterMap.DEFAULT_MAX_PARAMS;
 
-    @Before
-    public void setUp() {
-        // Reset to default values
+    @Rule
+    public ExpectedException exception = ExpectedException.none();
+
+    private void resetToDefaults() {
         ParameterMap.setMaxParameters(ORIGINAL_MAX_PARAMS);
         ParameterMap.setFailOnParameterLimit(false);
     }
 
+    @Before
+    public void setUp() {
+        resetToDefaults();
+    }
+
     @After
     public void tearDown() {
-        // Reset to default values
-        ParameterMap.setMaxParameters(ORIGINAL_MAX_PARAMS);
-        ParameterMap.setFailOnParameterLimit(false);
+        resetToDefaults();
     }
 
     @Test
@@ -72,13 +76,10 @@ public class ParameterMapTest {
         assertEquals(2, pm.size());
 
         // Should throw exception when exceeding limit
-        try {
-            pm.addParameter(createTestParameter("param3", "value3"), false);
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            assertTrue(e.getMessage().contains("Too many name/value pairs"));
-            assertTrue(e.getMessage().contains("2"));
-        }
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Too many name/value pairs");
+        exception.expectMessage("2");
+        pm.addParameter(createTestParameter("param3", "value3"), false);
     }
 
     @Test
@@ -122,13 +123,10 @@ public class ParameterMapTest {
         assertEquals(5, pm.size());
 
         // Next should fail
-        try {
-            pm.addParameter(createTestParameter("param6", "value6"), false);
-            fail("Expected IllegalStateException");
-        } catch (IllegalStateException e) {
-            assertTrue(e.getMessage().contains("Too many name/value pairs"));
-            assertTrue(e.getMessage().contains("5"));
-        }
+        exception.expect(IllegalStateException.class);
+        exception.expectMessage("Too many name/value pairs");
+        exception.expectMessage("5");
+        pm.addParameter(createTestParameter("param6", "value6"), false);
     }
 
     @Test
