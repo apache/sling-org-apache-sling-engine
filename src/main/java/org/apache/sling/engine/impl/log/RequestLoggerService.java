@@ -46,7 +46,7 @@ import org.slf4j.LoggerFactory;
 @Designate(ocd = RequestLoggerService.Config.class, factory = true)
 public class RequestLoggerService {
 
-    private static final Logger LOG = LoggerFactory.getLogger(RequestLoggerService.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestLoggerService.class);
 
     @ObjectClassDefinition(
             name = "Apache Sling Customizable Request Data Logger",
@@ -175,7 +175,7 @@ public class RequestLoggerService {
 
                     return new FileRequestLog(file);
                 } catch (IOException ioe) {
-                    LOG.error("Failed to create file request log at '{}'", file.getAbsolutePath(), ioe);
+                    LOGGER.error("Failed to create file request log at '{}'", file.getAbsolutePath(), ioe);
                 }
                 break;
 
