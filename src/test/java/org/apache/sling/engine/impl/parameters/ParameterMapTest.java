@@ -81,6 +81,67 @@ public class ParameterMapTest {
         }
     }
 
+    @Test
+    public void testParameterLimitExactlyAtBoundary() {
+        ParameterMap pm = new ParameterMap();
+        ParameterMap.setMaxParameters(1);
+        ParameterMap.setFailOnParameterLimit(false);
+
+        // Add exactly at limit
+        pm.addParameter(createTestParameter("param1", "value1"), false);
+        assertEquals(1, pm.size());
+
+        // Next addition should trigger warning and be ignored
+        pm.addParameter(createTestParameter("param2", "value2"), false);
+        assertEquals(1, pm.size()); // Should remain 1
+    }
+
+    @Test
+    public void testUnlimitedParameters() {
+        ParameterMap pm = new ParameterMap();
+        ParameterMap.setMaxParameters(-1); // Unlimited
+        ParameterMap.setFailOnParameterLimit(false);
+
+        // Should allow unlimited parameters
+        for (int i = 1; i <= 100; i++) {
+            pm.addParameter(createTestParameter("param" + i, "value" + i), false);
+        }
+        assertEquals(100, pm.size());
+    }
+
+    @Test
+    public void testFailOnLimitWithLargeLimit() {
+        ParameterMap pm = new ParameterMap();
+        ParameterMap.setMaxParameters(5);
+        ParameterMap.setFailOnParameterLimit(true);
+
+        // Add up to limit
+        for (int i = 1; i <= 5; i++) {
+            pm.addParameter(createTestParameter("param" + i, "value" + i), false);
+        }
+        assertEquals(5, pm.size());
+
+        // Next should fail
+        try {
+            pm.addParameter(createTestParameter("param6", "value6"), false);
+            fail("Expected IllegalStateException");
+        } catch (IllegalStateException e) {
+            assertTrue(e.getMessage().contains("Too many name/value pairs"));
+            assertTrue(e.getMessage().contains("5"));
+        }
+    }
+
+    @Test
+    public void testFailOnLimitDisabledWithZeroLimit() {
+        ParameterMap pm = new ParameterMap();
+        ParameterMap.setMaxParameters(0); // Becomes -1 (unlimited)
+        ParameterMap.setFailOnParameterLimit(true); // Shouldn't matter since unlimited
+
+        // Should allow parameters despite failOnLimit=true
+        pm.addParameter(createTestParameter("param1", "value1"), false);
+        assertEquals(1, pm.size());
+    }
+
     private RequestParameter createTestParameter(String name, String value) {
         return new ContainerRequestParameter(name, value, "UTF-8");
     }
