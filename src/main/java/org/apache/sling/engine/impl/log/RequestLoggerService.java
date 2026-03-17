@@ -175,7 +175,7 @@ public class RequestLoggerService {
 
                     return new FileRequestLog(file);
                 } catch (IOException ioe) {
-                    LOGGER.error("Failed to create file request log at '{}'", file.getAbsolutePath(), ioe);
+                    LOGGER.error("Failed to create request log file at '{}'", file.getAbsolutePath(), ioe);
                 }
                 break;
 
