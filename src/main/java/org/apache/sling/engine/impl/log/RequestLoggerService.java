@@ -33,6 +33,8 @@ import org.osgi.service.metatype.annotations.AttributeDefinition;
 import org.osgi.service.metatype.annotations.Designate;
 import org.osgi.service.metatype.annotations.ObjectClassDefinition;
 import org.osgi.service.metatype.annotations.Option;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * The <code>RequestLoggerService</code> is a factory component which gets
@@ -43,6 +45,8 @@ import org.osgi.service.metatype.annotations.Option;
 @ServiceVendor("The Apache Software Foundation")
 @Designate(ocd = RequestLoggerService.Config.class, factory = true)
 public class RequestLoggerService {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(RequestLoggerService.class);
 
     @ObjectClassDefinition(
             name = "Apache Sling Customizable Request Data Logger",
@@ -158,9 +162,9 @@ public class RequestLoggerService {
         switch (outputType) {
             case OUTPUT_TYPE_FILE:
                 // file logging
+                File file = new File(output);
                 try {
                     // ensure the path is absolute
-                    File file = new File(output);
                     if (!file.isAbsolute()) {
                         final String home = bundleContext.getProperty("sling.home");
                         if (home != null) {
@@ -171,7 +175,7 @@ public class RequestLoggerService {
 
                     return new FileRequestLog(file);
                 } catch (IOException ioe) {
-                    // TODO: log
+                    LOGGER.error("Failed to create request log file at '{}'", file.getAbsolutePath(), ioe);
                 }
                 break;
 
