@@ -93,7 +93,7 @@ public class SlingMainServlet extends GenericServlet {
 
     /** extra config properties for multipart file upload support */
     @Reference
-    private volatile RequestParameterConfig reqParamConfig;
+    private transient RequestParameterConfig reqParamConfig;
 
     private volatile boolean allowTrace;
 

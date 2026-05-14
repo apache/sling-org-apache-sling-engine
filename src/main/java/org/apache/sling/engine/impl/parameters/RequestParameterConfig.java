@@ -117,7 +117,7 @@ public class RequestParameterConfig {
 
             log.info("Default Character Encoding: {}", fixEncoding);
             log.info("Parameter Number Limit: {}", (maxParams < 0) ? "unlimited" : maxParams);
-            log.info("Maximum Request Size: {}", (maxParams < 0) ? "unlimited" : maxRequestSize);
+            log.info("Maximum Request Size: {}", (maxRequestSize < 0) ? "unlimited" : maxRequestSize);
             log.info("Temporary File Location: {}", fileLocation);
             log.info("Maximum File Size: {}", maxFileSize);
             log.info("Tempory File Creation Threshold: {}", fileSizeThreshold);

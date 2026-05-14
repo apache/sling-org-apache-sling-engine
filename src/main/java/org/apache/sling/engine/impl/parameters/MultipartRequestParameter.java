@@ -58,6 +58,7 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     void setEncoding(String encoding) {
         super.setEncoding(encoding);
         cachedValue = null;
+        encodedFileName = null;
     }
 
     public byte[] get() {
