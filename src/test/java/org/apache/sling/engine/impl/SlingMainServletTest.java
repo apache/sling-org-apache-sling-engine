@@ -68,7 +68,7 @@ public class SlingMainServletTest {
         // Satisfy mandatory reference to SlingRequestProcessorImpl
         osgiContext.registerService(SlingRequestProcessorImpl.class, Mockito.mock(SlingRequestProcessorImpl.class));
 
-        // Satisfy mandatory reference to RequestParameterConfig
+        // Satisfy mandatory reference to SlingSettingsService
         osgiContext.registerService(SlingSettingsService.class, Mockito.mock(SlingSettingsService.class));
 
         // Satisfy mandatory reference to RequestParameterConfig
