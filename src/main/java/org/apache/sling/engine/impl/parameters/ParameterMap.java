@@ -125,8 +125,8 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
 
     public Object getPart(final String name) {
         final RequestParameter p = this.getValue(name);
-        if (p instanceof MultipartRequestParameter) {
-            return new SlingPart((MultipartRequestParameter) p);
+        if (p instanceof MultipartRequestParameter mrp) {
+            return mrp.getPart();
         }
 
         // no such part
@@ -134,10 +134,10 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
     }
 
     public Collection<?> getParts() {
-        final ArrayList<Part> parts = new ArrayList<Part>(this.size());
+        final ArrayList<Part> parts = new ArrayList<>(this.size());
         for (RequestParameter[] param : this.values()) {
-            if (param.length >= 1 && param[0] instanceof MultipartRequestParameter) {
-                parts.add(new SlingPart((MultipartRequestParameter) param[0]));
+            if (param.length >= 1 && param[0] instanceof MultipartRequestParameter mrp) {
+                parts.add(mrp.getPart());
             }
         }
         return parts;

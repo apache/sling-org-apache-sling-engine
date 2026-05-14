@@ -27,6 +27,8 @@ import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.sling.engine.impl.parameters.RequestParameterConfig;
+import org.apache.sling.settings.SlingSettingsService;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
@@ -65,6 +67,12 @@ public class SlingMainServletTest {
 
         // Satisfy mandatory reference to SlingRequestProcessorImpl
         osgiContext.registerService(SlingRequestProcessorImpl.class, Mockito.mock(SlingRequestProcessorImpl.class));
+
+        // Satisfy mandatory reference to RequestParameterConfig
+        osgiContext.registerService(SlingSettingsService.class, Mockito.mock(SlingSettingsService.class));
+
+        // Satisfy mandatory reference to RequestParameterConfig
+        osgiContext.registerInjectActivateService(RequestParameterConfig.class);
 
         // Activate SlingMainServlet with OSGi config
         Map<String, Object> cfg = new HashMap<>();
