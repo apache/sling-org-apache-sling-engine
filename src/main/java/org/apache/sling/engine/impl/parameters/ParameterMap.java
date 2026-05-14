@@ -66,6 +66,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         }
 
         super.put(newName, params);
+        this.stringParameterMap = null;
     }
 
     void addParameter(RequestParameter parameter, boolean prependNew) {
@@ -93,10 +94,12 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
 
         // list of parameters
         this.requestParameters.add(parameter);
+        this.stringParameterMap = null;
     }
 
     void setParameters(String name, RequestParameter[] parameters) {
         super.put(name, parameters);
+        stringParameterMap = null;
     }
 
     // ---------- String parameter support
