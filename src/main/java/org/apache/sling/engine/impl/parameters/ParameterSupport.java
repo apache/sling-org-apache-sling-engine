@@ -225,11 +225,9 @@ public class ParameterSupport {
                     InputStream input = Util.toInputStream(query);
                     Util.parseQueryString(input, encoding, parameters, false);
                     addContainerParameters = checkForAdditionalParameters;
-                } catch (IllegalArgumentException e) {
-                    this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                 } catch (UnsupportedEncodingException e) {
                     throw new SlingUnsupportedEncodingException(e);
-                } catch (IOException e) {
+                } catch (IllegalArgumentException | IOException e) {
                     this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                 }
                 useFallback = false;
@@ -247,11 +245,9 @@ public class ParameterSupport {
                         InputStream input = this.getServletRequest().getInputStream();
                         Util.parseQueryString(input, encoding, parameters, false);
                         addContainerParameters = checkForAdditionalParameters;
-                    } catch (IllegalArgumentException e) {
-                        this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                     } catch (UnsupportedEncodingException e) {
                         throw new SlingUnsupportedEncodingException(e);
-                    } catch (IOException e) {
+                    } catch (IllegalArgumentException | IOException e) {
                         this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                     }
                     this.requestDataUsed = true;
