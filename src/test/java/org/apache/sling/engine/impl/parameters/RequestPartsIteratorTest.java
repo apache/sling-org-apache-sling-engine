@@ -20,6 +20,7 @@ package org.apache.sling.engine.impl.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
@@ -43,7 +44,7 @@ public class RequestPartsIteratorTest {
     @Before
     public void before() {
         mockRequest = Mockito.mock(HttpServletRequest.class);
-        iterator = new RequestPartsIterator(mockRequest);
+        iterator = new RequestPartsIterator(mockRequest, 5);
     }
 
     private Part mockParts() throws IOException, ServletException {
@@ -73,6 +74,19 @@ public class RequestPartsIteratorTest {
     @Test
     public void testHasNextWithCaughtException() throws IOException, ServletException {
         Mockito.doThrow(ServletException.class).when(mockRequest).getParts();
+        assertFalse(iterator.hasNext());
+    }
+
+    @Test
+    public void testHasNextWithTooManyFiles() throws IOException, ServletException {
+        List<Part> parts = new ArrayList<>();
+        for (int i = 0; i < 6; i++) {
+            Part mockPart = Mockito.mock(Part.class);
+            Mockito.doReturn(String.format("file%d.txt", i)).when(mockPart).getSubmittedFileName();
+            parts.add(mockPart);
+        }
+
+        Mockito.doReturn(parts).when(mockRequest).getParts();
         assertFalse(iterator.hasNext());
     }
 

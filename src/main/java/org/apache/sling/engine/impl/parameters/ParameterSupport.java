@@ -66,7 +66,7 @@ public class ParameterSupport {
     private static final String WWW_FORM_URL_ENC = "application/x-www-form-urlencoded";
 
     /** Content type signaling parameters in multipart request body */
-    private static final String MULTPART = "multipart/";
+    private static final String MULTIPART = "multipart/";
 
     /** name of the header used to identify an upload mode */
     public static final String SLING_UPLOADMODE_HEADER = "Sling-uploadmode";
@@ -85,6 +85,11 @@ public class ParameterSupport {
      * TODO - We can remove this once we move engine to Servlet 3.1
      */
     private static boolean checkForAdditionalParameters = false;
+
+    /**
+     * The maximum number of files allowed in a single request.
+     */
+    private static long maxFileCount = 50;
 
     private final HttpServletRequest servletRequest;
 
@@ -126,8 +131,9 @@ public class ParameterSupport {
         return new ParameterSupportHttpServletRequestWrapper(request);
     }
 
-    static void configure(final boolean checkForAdditionalParameters) {
+    static void configure(final boolean checkForAdditionalParameters, final long maxFileCount) {
         ParameterSupport.checkForAdditionalParameters = checkForAdditionalParameters;
+        ParameterSupport.maxFileCount = (maxFileCount > 0) ? maxFileCount : 50;
     }
 
     private ParameterSupport(HttpServletRequest servletRequest) {
@@ -261,7 +267,8 @@ public class ParameterSupport {
                         this.getServletRequest()
                                 .setAttribute(
                                         REQUEST_PARTS_ITERATOR_ATTRIBUTE,
-                                        new RequestPartsIterator(this.getServletRequest()));
+                                        new RequestPartsIterator(
+                                                this.getServletRequest(), ParameterSupport.maxFileCount));
                         this.log.debug(
                                 "getRequestParameterMapInternal: Iterator<Part> available as request attribute named {}",
                                 REQUEST_PARTS_ITERATOR_ATTRIBUTE);
@@ -275,10 +282,9 @@ public class ParameterSupport {
                         useFallback = false;
                     } else {
                         try {
-                            this.parseMultiPartPost(parameters);
+                            this.parseMultiPartPost(parameters, encoding);
                         } catch (final ServletException | IOException e) {
-                            this.log.error(
-                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
+                            this.log.error("getRequestParameterMapInternal: Error parsing multipart request", e);
                         }
                         this.requestDataUsed = true;
                         addContainerParameters = checkForAdditionalParameters;
@@ -354,13 +360,18 @@ public class ParameterSupport {
      */
     private static boolean isMultipartContent(HttpServletRequest request) {
         final String contentType = request.getContentType();
-        return contentType != null && contentType.toLowerCase(Locale.ENGLISH).startsWith(MULTPART);
+        return contentType != null && contentType.toLowerCase(Locale.ENGLISH).startsWith(MULTIPART);
     }
 
-    private void parseMultiPartPost(ParameterMap parameters) throws IOException, ServletException {
+    private void parseMultiPartPost(ParameterMap parameters, String encoding) throws IOException, ServletException {
         final Collection<Part> parts = this.getServletRequest().getParts();
+        long filePartCount =
+                parts.stream().filter(p -> p.getSubmittedFileName() != null).count();
+        if (filePartCount > maxFileCount) {
+            throw new FileCountLimitExceededException("Request exceeds maximum file count", maxFileCount);
+        }
         for (Part part : parts) {
-            RequestParameter pp = new MultipartRequestParameter(part);
+            RequestParameter pp = new MultipartRequestParameter(part, encoding);
             parameters.addParameter(pp, false);
         }
     }

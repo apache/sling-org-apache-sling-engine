@@ -18,7 +18,7 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import java.util.List;
+import java.util.Collection;
 import java.util.Map;
 
 import jakarta.servlet.http.Part;
@@ -198,10 +198,10 @@ public class ParameterMapTest {
 
         Part part2 = Mockito.mock(Part.class);
         Mockito.doReturn("key1").when(part2).getName();
-        final MultipartRequestParameter param2 = new MultipartRequestParameter(part2);
+        final MultipartRequestParameter param2 = new MultipartRequestParameter(part2, null);
         map.addParameter(param2, true);
 
-        assertEquals(part2, map.getPart("key1"));
+        assertEquals("key1", ((Part) map.getPart("key1")).getName());
     }
 
     /**
@@ -220,10 +220,12 @@ public class ParameterMapTest {
 
         Part part2 = Mockito.mock(Part.class);
         Mockito.doReturn("key1").when(part2).getName();
-        final MultipartRequestParameter param2 = new MultipartRequestParameter(part2);
+        final MultipartRequestParameter param2 = new MultipartRequestParameter(part2, null);
         map.setParameters("key1", new RequestParameter[] {param2});
 
-        assertEquals(List.of(part2), map.getParts());
+        Collection<?> parts = map.getParts();
+        assertEquals(1, parts.size());
+        assertEquals("key1", ((Part) parts.iterator().next()).getName());
     }
 
     /**

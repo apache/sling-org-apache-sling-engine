@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.http.Part;
 
@@ -38,11 +39,10 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     private final Part delegatee;
 
     private String encodedFileName;
-
     private String cachedValue;
 
-    public MultipartRequestParameter(Part delegatee) {
-        super(delegatee.getName(), null);
+    public MultipartRequestParameter(Part delegatee, String encoding) {
+        super(delegatee.getName(), encoding);
         this.delegatee = delegatee;
     }
 
@@ -62,8 +62,8 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public byte[] get() {
-        try {
-            return getInputStream().readAllBytes();
+        try (InputStream inStream = getInputStream()) {
+            return inStream.readAllBytes();
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -123,7 +123,18 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
             return this.cachedValue;
         }
 
-        return new String(this.get());
+        // try explicit encoding if available
+        String encoding = getEncoding();
+        if (encoding == null) {
+            // fallback to be used when no explicit value is provided
+            encoding = StandardCharsets.ISO_8859_1.name();
+        }
+        try {
+            return new String(this.get(), encoding);
+        } catch (final UnsupportedEncodingException e) {
+            // don't care, fall back to empty for backward compatibility
+            return "";
+        }
     }
 
     public String getString(String enc) throws UnsupportedEncodingException {

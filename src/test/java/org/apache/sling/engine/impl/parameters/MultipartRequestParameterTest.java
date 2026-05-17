@@ -41,7 +41,7 @@ public class MultipartRequestParameterTest {
     @Before
     public void before() {
         part1 = Mockito.mock(Part.class);
-        param = new MultipartRequestParameter(part1);
+        param = new MultipartRequestParameter(part1, null);
     }
     /**
      * Test method for {@link org.apache.sling.engine.impl.parameters.MultipartRequestParameter#setEncoding(java.lang.String)}.
@@ -146,23 +146,36 @@ public class MultipartRequestParameterTest {
      * Test method for {@link org.apache.sling.engine.impl.parameters.MultipartRequestParameter#getString()}.
      */
     @Test
-    public void testGetString() throws IOException {
+    public void testGetStringForFormField() throws IOException {
         mockPartInputStream();
-        assertNotNull(param.getString());
+        assertEquals("hi", param.getString());
         // one more the for the cached value
-        assertNotNull(param.getString());
+        assertEquals("hi", param.getString());
 
         // with some invalid encoding
         param.setEncoding("invalid1");
-        assertNotNull(param.getString());
+        assertEquals("hi", param.getString());
 
         // with some valid encoding
         param.setEncoding("UTF-8");
-        assertNotNull(param.getString());
+        assertEquals("hi", param.getString());
+    }
+
+    @Test
+    public void testGetStringForFileField() throws IOException {
+        mockPartInputStream();
 
         // simulate an uploaded file field
         Mockito.doReturn("file1.txt").when(part1).getSubmittedFileName();
-        assertNotNull(param.getString());
+        assertEquals("hi", param.getString());
+
+        // with some invalid encoding
+        param.setEncoding("invalid1");
+        assertEquals("", param.getString());
+
+        // with some valid encoding
+        param.setEncoding("UTF-8");
+        assertEquals("hi", param.getString());
     }
 
     /**

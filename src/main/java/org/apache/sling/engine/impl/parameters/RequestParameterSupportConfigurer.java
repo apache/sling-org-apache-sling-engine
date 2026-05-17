@@ -55,10 +55,11 @@ public class RequestParameterSupportConfigurer implements Filter {
         final String fixEncoding = config.sling_default_parameter_encoding();
         final int maxParams = config.sling_default_max_parameters();
         final boolean checkAddParameters = config.sling_default_parameter_checkForAdditionalContainerParameters();
+        final long maxFileCount = config.request_max_file_count();
 
         Util.setDefaultFixEncoding(fixEncoding);
         ParameterMap.setMaxParameters(maxParams);
-        ParameterSupport.configure(checkAddParameters);
+        ParameterSupport.configure(checkAddParameters, maxFileCount);
     }
 
     @Override

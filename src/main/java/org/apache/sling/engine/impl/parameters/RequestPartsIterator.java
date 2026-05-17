@@ -42,13 +42,16 @@ public class RequestPartsIterator implements Iterator<Part> {
     /** supplier to retrieve the parts when needed */
     private final HttpServletRequest request;
 
+    private final long maxFileCount;
+
     /**
      * Create and initialize the iterator using the request.
      *
      * @param request the current request
      */
-    public RequestPartsIterator(final HttpServletRequest request) {
+    public RequestPartsIterator(final HttpServletRequest request, long maxFileCount) {
         this.request = request;
+        this.maxFileCount = maxFileCount;
     }
 
     @Override
@@ -58,7 +61,7 @@ public class RequestPartsIterator implements Iterator<Part> {
         if (itemIterator == null) {
             Collection<Part> parts;
             try {
-                parts = request.getParts();
+                parts = getPartsAndCheckFileCount();
             } catch (ServletException | IOException e) {
                 log.error("Error parsing multipart streamed request", e);
                 parts = Collections.emptyList();
@@ -68,6 +71,21 @@ public class RequestPartsIterator implements Iterator<Part> {
         }
 
         return itemIterator.hasNext();
+    }
+
+    /**
+     * Get the parts from the request and check if the number of files exceeds the allowed number
+     * @return the collected parts
+     */
+    private Collection<Part> getPartsAndCheckFileCount() throws IOException, ServletException {
+        Collection<Part> parts = request.getParts();
+
+        long filePartCount =
+                parts.stream().filter(p -> p.getSubmittedFileName() != null).count();
+        if (filePartCount > maxFileCount) {
+            throw new FileCountLimitExceededException("Request exceeds maximum file count", maxFileCount);
+        }
+        return parts;
     }
 
     @Override
@@ -121,7 +139,7 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         @Override
         public void delete() throws IOException {
-            // no underlying storage is used, so nothing to delete.
+            part.delete();
         }
 
         @Override

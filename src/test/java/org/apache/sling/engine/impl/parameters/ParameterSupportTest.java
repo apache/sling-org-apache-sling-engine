@@ -24,6 +24,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -96,7 +97,10 @@ public class ParameterSupportTest {
      */
     @Test(expected = None.class)
     public void testConfigure() {
-        ParameterSupport.configure(true);
+        ParameterSupport.configure(false, -1);
+
+        // alternate options
+        ParameterSupport.configure(true, 50);
     }
 
     /**
@@ -209,6 +213,28 @@ public class ParameterSupportTest {
     @Test
     public void testMultipartPost() throws IOException, ServletException {
         mockMultipartPost();
+        final List<RequestParameter> list1 = support.getRequestParameterList();
+        assertEquals(4, list1.size());
+    }
+
+    @Test
+    public void testMultipartPostWithTooManyFiles() throws IOException, ServletException {
+        ParameterSupport.configure(true, 5);
+
+        mockMultipartPost();
+
+        // add a few more parts
+        List<Part> parts = new ArrayList<>(mockRequest.getParts());
+        for (int i = 0; i < 5; i++) {
+            Part mockPart = Mockito.mock(Part.class);
+            Mockito.doReturn(String.format("anotherfile%d.txt", i))
+                    .when(mockPart)
+                    .getSubmittedFileName();
+            parts.add(mockPart);
+        }
+        Mockito.doReturn(parts).when(mockRequest).getParts();
+
+        // expected FileCountLimitExceededException to be caught and logged but continue
         final List<RequestParameter> list1 = support.getRequestParameterList();
         assertEquals(4, list1.size());
     }
@@ -345,6 +371,7 @@ public class ParameterSupportTest {
                 .getInputStream();
         Part part2 = Mockito.mock(Part.class);
         Mockito.doReturn("key2").when(part2).getName();
+        Mockito.doReturn("file2.txt").when(part2).getSubmittedFileName();
         Mockito.doReturn(new ByteArrayInputStream("value2".getBytes()))
                 .when(part2)
                 .getInputStream();

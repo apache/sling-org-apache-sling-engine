@@ -92,6 +92,12 @@ public class RequestParameterConfig {
                 description =
                         "Enable this if you want to include request parameters added through the container, e.g through a valve.")
         boolean sling_default_parameter_checkForAdditionalContainerParameters() default false;
+
+        @AttributeDefinition(
+                name = "Maximum File Count",
+                description =
+                        "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
+        long request_max_file_count() default 50;
     }
 
     /** default log */
@@ -114,6 +120,7 @@ public class RequestParameterConfig {
             final long maxFileSize = config.file_max();
             final int fileSizeThreshold = config.file_threshold();
             final boolean checkAddParameters = config.sling_default_parameter_checkForAdditionalContainerParameters();
+            final long maxFileCount = config.request_max_file_count();
 
             log.info("Default Character Encoding: {}", fixEncoding);
             log.info("Parameter Number Limit: {}", (maxParams < 0) ? "unlimited" : maxParams);
@@ -122,6 +129,7 @@ public class RequestParameterConfig {
             log.info("Maximum File Size: {}", maxFileSize);
             log.info("Tempory File Creation Threshold: {}", fileSizeThreshold);
             log.info("Check for additional container parameters: {}", checkAddParameters);
+            log.info("Maximum File Count: {}", maxFileCount);
         }
     }
 
