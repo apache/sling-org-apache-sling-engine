@@ -200,6 +200,7 @@ public class SlingMainServlet extends GenericServlet {
                 HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_MAXREQUESTSIZE, config.request_max());
         servletConfig.put(
                 HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_FILESIZETHRESHOLD, config.file_threshold());
+        servletConfig.put("osgi.http.whiteboard.servlet.multipart.maxFileCount", config.request_max_file_count());
 
         servletConfig.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Main Servlet");
         servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
