@@ -20,9 +20,11 @@ package org.apache.sling.engine.impl.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UncheckedIOException;
 import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 
-import org.apache.commons.fileupload.disk.DiskFileItem;
+import jakarta.servlet.http.Part;
 
 /**
  * The <code>MultipartRequestParameter</code> represents a request parameter
@@ -34,14 +36,13 @@ import org.apache.commons.fileupload.disk.DiskFileItem;
  */
 public class MultipartRequestParameter extends AbstractRequestParameter {
 
-    private final DiskFileItem delegatee;
+    private final Part delegatee;
 
     private String encodedFileName;
-
     private String cachedValue;
 
-    public MultipartRequestParameter(DiskFileItem delegatee) {
-        super(delegatee.getFieldName(), null);
+    public MultipartRequestParameter(Part delegatee, String encoding) {
+        super(delegatee.getName(), encoding);
         this.delegatee = delegatee;
     }
 
@@ -49,7 +50,7 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
         this.delegatee.delete();
     }
 
-    DiskFileItem getFileItem() {
+    Part getPart() {
         return this.delegatee;
     }
 
@@ -57,10 +58,15 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     void setEncoding(String encoding) {
         super.setEncoding(encoding);
         cachedValue = null;
+        encodedFileName = null;
     }
 
     public byte[] get() {
-        return this.delegatee.get();
+        try (InputStream inStream = getInputStream()) {
+            return inStream.readAllBytes();
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     public String getContentType() {
@@ -72,8 +78,8 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public String getFileName() {
-        if (this.encodedFileName == null && this.delegatee.getName() != null) {
-            String tmpFileName = this.delegatee.getName();
+        if (this.encodedFileName == null && this.delegatee.getSubmittedFileName() != null) {
+            String tmpFileName = this.delegatee.getSubmittedFileName();
             if (this.getEncoding() != null) {
                 try {
                     byte[] rawName = tmpFileName.getBytes(Util.ENCODING_DIRECT);
@@ -117,7 +123,18 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
             return this.cachedValue;
         }
 
-        return this.delegatee.getString();
+        // try explicit encoding if available
+        String encoding = getEncoding();
+        if (encoding == null) {
+            // fallback to be used when no explicit value is provided
+            encoding = StandardCharsets.ISO_8859_1.name();
+        }
+        try {
+            return new String(this.get(), encoding);
+        } catch (final UnsupportedEncodingException e) {
+            // don't care, fall back to empty for backward compatibility
+            return "";
+        }
     }
 
     public String getString(String enc) throws UnsupportedEncodingException {
@@ -125,7 +142,8 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
     }
 
     public boolean isFormField() {
-        return this.delegatee.isFormField();
+        // If getSubmittedFileName() returns null, it is likely a regular form field
+        return this.delegatee.getSubmittedFileName() == null;
     }
 
     public String toString() {

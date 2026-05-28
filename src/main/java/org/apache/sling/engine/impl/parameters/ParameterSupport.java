@@ -18,7 +18,6 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
@@ -29,14 +28,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletRequestWrapper;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.RequestContext;
-import org.apache.commons.fileupload.disk.DiskFileItem;
-import org.apache.commons.fileupload.disk.DiskFileItemFactory;
-import org.apache.commons.fileupload.servlet.ServletFileUpload;
+import jakarta.servlet.http.Part;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -69,6 +65,9 @@ public class ParameterSupport {
     /** Content type signaling parameters in request body */
     private static final String WWW_FORM_URL_ENC = "application/x-www-form-urlencoded";
 
+    /** Content type signaling parameters in multipart request body */
+    private static final String MULTIPART = "multipart/";
+
     /** name of the header used to identify an upload mode */
     public static final String SLING_UPLOADMODE_HEADER = "Sling-uploadmode";
     /** name of the parameter used to identify upload mode */
@@ -80,31 +79,6 @@ public class ParameterSupport {
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
-
-    /**
-     * The maximum size allowed for <tt>multipart/form-data</tt>
-     * requests
-     *
-     * <p>The default is <tt>-1L</tt>, which means unlimited.
-     */
-    private static long maxRequestSize = -1L;
-
-    /**
-     * The directory location where files will be stored
-     */
-    private static File location = null;
-
-    /**
-     * The maximum size allowed for uploaded files.
-     *
-     * <p>The default is <tt>-1L</tt>, which means unlimited.
-     */
-    private static long maxFileSize = -1L;
-
-    /**
-     * The size threshold after which the file will be written to disk
-     */
-    private static int fileSizeThreshold = 256000;
 
     /**
      * Check for additional parameters from the container.
@@ -157,17 +131,7 @@ public class ParameterSupport {
         return new ParameterSupportHttpServletRequestWrapper(request);
     }
 
-    static void configure(
-            final long maxRequestSize,
-            final String location,
-            final long maxFileSize,
-            final int fileSizeThreshold,
-            final boolean checkForAdditionalParameters,
-            final long maxFileCount) {
-        ParameterSupport.maxRequestSize = (maxRequestSize > 0) ? maxRequestSize : -1;
-        ParameterSupport.location = (location != null) ? new File(location) : null;
-        ParameterSupport.maxFileSize = (maxFileSize > 0) ? maxFileSize : -1;
-        ParameterSupport.fileSizeThreshold = (fileSizeThreshold > 0) ? fileSizeThreshold : 256000;
+    static void configure(final boolean checkForAdditionalParameters, final long maxFileCount) {
         ParameterSupport.checkForAdditionalParameters = checkForAdditionalParameters;
         ParameterSupport.maxFileCount = (maxFileCount > 0) ? maxFileCount : 50;
     }
@@ -267,11 +231,9 @@ public class ParameterSupport {
                     InputStream input = Util.toInputStream(query);
                     Util.parseQueryString(input, encoding, parameters, false);
                     addContainerParameters = checkForAdditionalParameters;
-                } catch (IllegalArgumentException e) {
-                    this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                 } catch (UnsupportedEncodingException e) {
                     throw new SlingUnsupportedEncodingException(e);
-                } catch (IOException e) {
+                } catch (IllegalArgumentException | IOException e) {
                     this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                 }
                 useFallback = false;
@@ -289,11 +251,9 @@ public class ParameterSupport {
                         InputStream input = this.getServletRequest().getInputStream();
                         Util.parseQueryString(input, encoding, parameters, false);
                         addContainerParameters = checkForAdditionalParameters;
-                    } catch (IllegalArgumentException e) {
-                        this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                     } catch (UnsupportedEncodingException e) {
                         throw new SlingUnsupportedEncodingException(e);
-                    } catch (IOException e) {
+                    } catch (IllegalArgumentException | IOException e) {
                         this.log.error("getRequestParameterMapInternal: Error parsing request", e);
                     }
                     this.requestDataUsed = true;
@@ -301,20 +261,18 @@ public class ParameterSupport {
                 }
 
                 // Multipart POST
-                if (ServletFileUpload.isMultipartContent(this.getMultiPartContext())) {
+                if (isMultipartContent(this.getServletRequest())) {
                     if (isStreamed(parameters, this.getServletRequest())) {
                         // special case, the request is Multipart and streamed processing has been requested
-                        try {
-                            this.getServletRequest()
-                                    .setAttribute(
-                                            REQUEST_PARTS_ITERATOR_ATTRIBUTE,
-                                            new RequestPartsIterator(this.getMultiPartContext()));
-                            this.log.debug(
-                                    "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
-                        } catch (final FileUploadException | IOException e) {
-                            this.log.error(
-                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
-                        }
+                        this.getServletRequest()
+                                .setAttribute(
+                                        REQUEST_PARTS_ITERATOR_ATTRIBUTE,
+                                        new RequestPartsIterator(
+                                                this.getServletRequest(), ParameterSupport.maxFileCount));
+                        this.log.debug(
+                                "getRequestParameterMapInternal: Iterator<Part> available as request attribute named {}",
+                                REQUEST_PARTS_ITERATOR_ATTRIBUTE);
+
                         // The request data has been passed to the RequestPartsIterator, hence from a RequestParameter
                         // pov its been used, and must not be used again.
                         this.requestDataUsed = true;
@@ -323,7 +281,11 @@ public class ParameterSupport {
                         addContainerParameters = false;
                         useFallback = false;
                     } else {
-                        this.parseMultiPartPost(parameters);
+                        try {
+                            this.parseMultiPartPost(parameters, encoding);
+                        } catch (final ServletException | IOException e) {
+                            this.log.error("getRequestParameterMapInternal: Error parsing multipart request", e);
+                        }
                         this.requestDataUsed = true;
                         addContainerParameters = checkForAdditionalParameters;
                         useFallback = false;
@@ -390,55 +352,27 @@ public class ParameterSupport {
         return false;
     }
 
-    private RequestContext getMultiPartContext() {
-        return new RequestContext() {
-            @Override
-            public String getCharacterEncoding() {
-                String enc = getServletRequest().getCharacterEncoding();
-                return (enc != null) ? enc : Util.ENCODING_DIRECT;
-            }
-
-            @Override
-            public int getContentLength() {
-                return getServletRequest().getContentLength();
-            }
-
-            @Override
-            public String getContentType() {
-                return getServletRequest().getContentType();
-            }
-
-            @Override
-            public InputStream getInputStream() throws IOException {
-                return getServletRequest().getInputStream();
-            }
-        };
+    /**
+     * Checks if the request is a multipart post
+     *
+     * @param request the request to check
+     * @return true if the request is multipart, false otherwise
+     */
+    private static boolean isMultipartContent(HttpServletRequest request) {
+        final String contentType = request.getContentType();
+        return contentType != null && contentType.toLowerCase(Locale.ENGLISH).startsWith(MULTIPART);
     }
 
-    private void parseMultiPartPost(ParameterMap parameters) {
-        // Create a new file upload handler
-        ServletFileUpload upload = new ServletFileUpload();
-        upload.setSizeMax(ParameterSupport.maxRequestSize);
-        upload.setFileSizeMax(ParameterSupport.maxFileSize);
-        upload.setFileItemFactory(
-                new DiskFileItemFactory(ParameterSupport.fileSizeThreshold, ParameterSupport.location));
-        upload.setFileCountMax(ParameterSupport.maxFileCount);
-        final RequestContext rc = this.getMultiPartContext();
-
-        // Parse the request
-        List<?> /* FileItem */ items = null;
-        try {
-            items = upload.parseRequest(rc);
-        } catch (FileUploadException fue) {
-            this.log.error("parseMultiPartPost: Error parsing request", fue);
+    private void parseMultiPartPost(ParameterMap parameters, String encoding) throws IOException, ServletException {
+        final Collection<Part> parts = this.getServletRequest().getParts();
+        long filePartCount =
+                parts.stream().filter(p -> p.getSubmittedFileName() != null).count();
+        if (filePartCount > maxFileCount) {
+            throw new FileCountLimitExceededException("Request exceeds maximum file count", maxFileCount);
         }
-
-        if (items != null && items.size() > 0) {
-            for (Iterator<?> ii = items.iterator(); ii.hasNext(); ) {
-                DiskFileItem fileItem = (DiskFileItem) ii.next();
-                RequestParameter pp = new MultipartRequestParameter(fileItem);
-                parameters.addParameter(pp, false);
-            }
+        for (Part part : parts) {
+            RequestParameter pp = new MultipartRequestParameter(part, encoding);
+            parameters.addParameter(pp, false);
         }
     }
 }
