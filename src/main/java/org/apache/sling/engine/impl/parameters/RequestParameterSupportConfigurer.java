@@ -128,6 +128,13 @@ public class RequestParameterSupportConfigurer implements Filter {
                 description =
                         "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
         long request_max_file_count() default 50;
+
+        @AttributeDefinition(
+                name = "Fail on Parameter Limit",
+                description = "Whether to throw an exception when the maximum number of parameters is exceeded. "
+                        + "If false (default), a warning is logged and processing continues with truncated parameters. "
+                        + "If true, an IllegalStateException is thrown.")
+        boolean sling_default_parameter_fail_on_limit() default false;
     }
 
     static final String PID = "org.apache.sling.engine.parameters";
@@ -147,6 +154,7 @@ public class RequestParameterSupportConfigurer implements Filter {
         final long maxFileSize = config.file_max();
         final int fileSizeThreshold = config.file_threshold();
         final boolean checkAddParameters = config.sling_default_parameter_checkForAdditionalContainerParameters();
+        final boolean failOnParameterLimit = config.sling_default_parameter_fail_on_limit();
 
         if (log.isInfoEnabled()) {
             log.info("Default Character Encoding: {}", fixEncoding);
@@ -157,10 +165,12 @@ public class RequestParameterSupportConfigurer implements Filter {
             log.info("Tempory File Creation Threshold: {}", fileSizeThreshold);
             log.info("Check for additional container parameters: {}", checkAddParameters);
             log.info("Maximum File Count: {}", config.request_max_file_count());
+            log.info("Fail on Parameter Limit: {}", failOnParameterLimit);
         }
 
         Util.setDefaultFixEncoding(fixEncoding);
         ParameterMap.setMaxParameters(maxParams);
+        ParameterMap.setFailOnParameterLimit(failOnParameterLimit);
         ParameterSupport.configure(
                 maxRequestSize,
                 fileLocation,
