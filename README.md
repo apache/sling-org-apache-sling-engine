@@ -4,6 +4,78 @@
 
 # Apache Sling Engine Implementation
 
-This module is part of the [Apache Sling](https://sling.apache.org) project.
+This module is part of the [Apache Sling](https://sling.apache.org) project and implements the core Sling request processing pipeline.
 
-This is the engine of Sling.
+## Overview
+
+`org.apache.sling.engine` provides the Sling engine bundle that:
+
+- registers the main servlet via OSGi HTTP Whiteboard
+- resolves resources and dispatches requests
+- manages Sling filter chains and request/response wrapping
+- exposes request processor and filter processor metrics via JMX
+- supports both `javax.servlet` (legacy) and `jakarta.servlet` through adapter classes
+
+## Requirements
+
+- Java 17
+- Maven
+
+## Build and test
+
+```bash
+# Build and package (skip tests)
+mvn clean install -DskipTests
+
+# Full build with tests
+mvn clean install
+
+# Run all tests
+mvn test
+
+# Run a single test class
+mvn test -Dtest=SlingRequestPathInfoTest
+
+# Run tests with a name pattern
+mvn test -Dtest="*FilterChain*"
+
+# License header check (Apache RAT)
+mvn apache-rat:check
+
+# Check formatting (Spotless, inherited from parent POM)
+mvn spotless:check
+
+# Apply formatting
+mvn spotless:apply
+
+# Run Japex microbenchmarks
+mvn test -Pbenchmarks
+```
+
+## Repository layout
+
+```text
+pom.xml                          Maven build descriptor
+bnd.bnd                          OSGi bundle manifest instructions
+src/
+  main/java/org/apache/sling/engine/
+    *.java                       Public API
+    impl/                        Internal implementation
+      adapter/                   javax <-> jakarta servlet adapters
+      console/                   Web Console plugins
+      debug/                     RequestProgressTracker integration
+      filter/                    Sling filter chain management
+      helper/                    Servlet context/request listener helpers
+      log/                       Request logging support
+      parameters/                Request parameter and multipart handling
+      request/                   Request data and dispatching
+    jmx/                         JMX MBean interfaces
+    servlets/                    Error handler servlet API
+  test/java/                     Unit tests
+  test/resources/japex/          Benchmark configurations
+```
+
+## Notes
+
+- OSGi Declarative Services annotations are used (`org.osgi.service.component.annotations`).
+- The bundle imports `javax.servlet` with a compatibility range and supports Jakarta Servlet API in parallel.
