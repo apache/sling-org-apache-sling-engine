@@ -150,7 +150,8 @@ public class SlingServletRequestAdapter extends SlingJakartaHttpServletRequestWr
 
     @Override
     public String getRequestedSessionId() {
-        return request.getRequestedSessionId();
+        final HttpSession session = request.getSession(false);
+        return session != null ? session.getId() : null;
     }
 
     @Override
