@@ -99,3 +99,10 @@ target/                          Build output (do not edit)
 - The `org.apache.sling.engine.servlets` package baseline is temporarily excluded (see `pom.xml` `<diffpackages>`) due to SLING-11728.
 - `javax.servlet` imports in `bnd.bnd` use a version range `[2.6,4)` to stay compatible with both Servlet 3.x containers and the wrappers provided by `org.apache.felix.http.wrappers`.
 - The `SlingMainServlet` registers as an OSGi HTTP Whiteboard servlet — it is not instantiated by a traditional servlet container; test it with OSGi Mock, not a servlet container mock.
+
+# Security
+
+<!-- sling-security-default:start -->
+The threat model for this project is https://github.com/apache/sling/blob/master/docs/threat-model.md .
+<!-- sling-security-default:end -->
+
