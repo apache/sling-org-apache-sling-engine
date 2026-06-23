@@ -176,20 +176,41 @@ public class RequestProcessorMBeanImplTest {
 
         bean.addRequestData(secondRequestDataAfterReset);
 
-        assertEquals("After resetStatistics Number of requests must be two", 2, bean.getRequestsCount());
-        assertEquals("After resetStatistics Min Duration must be equal", 100L, bean.getMinRequestDurationMsec());
-        assertEquals("After resetStatistics Max Duration must be equal", 200L, bean.getMaxRequestDurationMsec());
-        assertEquals("After resetStatistics Mean Duration must be equal", 150.0, bean.getMeanRequestDurationMsec(), 0d);
-
-        assertEquals("After resetStatistics Min Servlet Call Count must be equal", 10, bean.getMinServletCallCount());
-        assertEquals("After resetStatistics Max Servlet Call Count must be equal", 20, bean.getMaxServletCallCount());
-        assertEquals("After resetStatistics Mean Servlet Call Count", 15.0, bean.getMeanServletCallCount(), 0d);
+        assertEquals("After processing second request Number of requests must be two", 2, bean.getRequestsCount());
+        assertEquals(
+                "After processing second request Min Duration must be equal", 100L, bean.getMinRequestDurationMsec());
+        assertEquals(
+                "After processing second request Max Duration must be equal", 200L, bean.getMaxRequestDurationMsec());
+        assertEquals(
+                "After processing second request Mean Duration must be equal",
+                150.0,
+                bean.getMeanRequestDurationMsec(),
+                0d);
 
         assertEquals(
-                "After resetStatistics Min Peak Recursion Depth must be equal", 5, bean.getMinPeakRecursionDepth());
+                "After processing second request Min Servlet Call Count must be equal",
+                10,
+                bean.getMinServletCallCount());
         assertEquals(
-                "After resetStatistics Max Peak Recursion Depth must be equal", 15, bean.getMaxPeakRecursionDepth());
-        assertEquals("After resetStatistics Mean Peak Recursion Depth", 10.0, bean.getMeanPeakRecursionDepth(), 0d);
+                "After processing second request Max Servlet Call Count must be equal",
+                20,
+                bean.getMaxServletCallCount());
+        assertEquals(
+                "After processing second request Mean Servlet Call Count", 15.0, bean.getMeanServletCallCount(), 0d);
+
+        assertEquals(
+                "After processing second request Min Peak Recursion Depth must be equal",
+                5,
+                bean.getMinPeakRecursionDepth());
+        assertEquals(
+                "After processing second request Max Peak Recursion Depth must be equal",
+                15,
+                bean.getMaxPeakRecursionDepth());
+        assertEquals(
+                "After processing second request Mean Peak Recursion Depth",
+                10.0,
+                bean.getMeanPeakRecursionDepth(),
+                0d);
     }
 
     private void assertAlmostEqual(final String message, final double v1, final double v2, int samples) {
