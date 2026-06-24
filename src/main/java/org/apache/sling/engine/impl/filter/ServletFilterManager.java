@@ -44,6 +44,8 @@ import org.osgi.util.converter.Converters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.management.ObjectName;
+
 @Component(service = ServletFilterManager.class)
 public class ServletFilterManager {
 
@@ -138,7 +140,8 @@ public class ServletFilterManager {
     public void updatedFilter(final ServiceReference<Filter> reference, final Filter service) {
         // only if the filter name has changed, we need to do a service re-registration
         final String newFilterName = SlingFilterConfig.getName(reference);
-        if (newFilterName.equals(getUsedFilterName(reference))) {
+        String newJmxObjectName = createJmxObjectName(newFilterName);
+        if (newJmxObjectName.equals(getUsedJmxObjectName(reference))) {
             removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
             addFilterToChains(service, null, reference);
         } else {
@@ -173,7 +176,8 @@ public class ServletFilterManager {
         final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(service);
         // only if the filter name has changed, we need to do a service re-registration
         final String newFilterName = SlingFilterConfig.getName(ref);
-        if (newFilterName.equals(getUsedFilterName(ref))) {
+        String newJmxObjectName = createJmxObjectName(newFilterName);
+        if (newJmxObjectName.equals(getUsedJmxObjectName(ref))) {
             removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
             addFilterToChains(s, service, ref);
         } else {
@@ -202,7 +206,8 @@ public class ServletFilterManager {
             MBeanReg reg;
             try {
                 final Dictionary<String, String> mbeanProps = new Hashtable<>();
-                mbeanProps.put(JMX_OBJECTNAME, "org.apache.sling:type=engine-filter,service=" + filterName);
+                mbeanProps.put(
+                        JMX_OBJECTNAME, createJmxObjectName(filterName));
                 reg = new MBeanReg();
                 reg.mbean = new FilterProcessorMBeanImpl();
 
@@ -230,16 +235,14 @@ public class ServletFilterManager {
         }
     }
 
-    private String getUsedFilterName(final ServiceReference<Filter> reference) {
+    private static String createJmxObjectName(String filterName) {
+        return "org.apache.sling:type=engine-filter,service=" + ObjectName.quote(filterName);
+    }
+
+    private String getUsedJmxObjectName(final ServiceReference<Filter> reference) {
         final MBeanReg reg = mbeanMap.get(reference.getProperty(Constants.SERVICE_ID));
         if (reg != null) {
-            final String objectName = (String) reg.registration.getReference().getProperty(JMX_OBJECTNAME);
-            if (objectName != null) {
-                final int pos = objectName.indexOf(",service=");
-                if (pos != -1) {
-                    return objectName.substring(pos + 9);
-                }
-            }
+            return (String) reg.registration.getReference().getProperty(JMX_OBJECTNAME);
         }
         return null;
     }

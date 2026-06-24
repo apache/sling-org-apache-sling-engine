@@ -22,8 +22,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Enumeration;
 import java.util.List;
+import java.util.Optional;
 
-import jakarta.servlet.Filter;
 import jakarta.servlet.FilterConfig;
 import jakarta.servlet.ServletContext;
 import org.osgi.framework.ServiceReference;
@@ -41,7 +41,7 @@ public class SlingFilterConfig implements FilterConfig {
     private ServletContext servletContext;
 
     /** The <code>ServiceReference</code> providing the properties */
-    private ServiceReference<Filter> reference;
+    private ServiceReference<?> reference;
 
     /** The name of this configuration object */
     private String name;
@@ -56,7 +56,7 @@ public class SlingFilterConfig implements FilterConfig {
      * @param filterName The name of this configuration.
      */
     public SlingFilterConfig(
-            final ServletContext servletContext, final ServiceReference<Filter> reference, final String filterName) {
+            final ServletContext servletContext, final ServiceReference<?> reference, final String filterName) {
         this.servletContext = servletContext;
         this.reference = reference;
         this.name = filterName;
@@ -97,15 +97,17 @@ public class SlingFilterConfig implements FilterConfig {
      * @param reference the filter service
      * @return the name
      */
-    public static String getName(ServiceReference<Filter> reference) {
+    public static String getName(ServiceReference<?> reference) {
         String servletName = null;
-        for (int i = 0; i < NAME_PROPERTIES.length && (servletName == null || servletName.length() == 0); i++) {
+        for (int i = 0; i < NAME_PROPERTIES.length && (servletName == null || servletName.isEmpty()); i++) {
             Object prop = reference.getProperty(NAME_PROPERTIES[i]);
             if (prop != null) {
                 servletName = String.valueOf(prop);
             }
         }
-        return servletName;
+        return Optional.ofNullable(servletName)
+                .orElseThrow(() ->
+                        new NullPointerException("ServiceReferences without a service.id property should not exist"));
     }
 
     /**
