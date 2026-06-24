@@ -18,9 +18,7 @@
  */
 package org.apache.sling.engine.impl.helper;
 
-import java.util.Dictionary;
 import java.util.HashMap;
-import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,9 +28,9 @@ import jakarta.servlet.Filter;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 
+import static org.apache.sling.engine.impl.testutil.MockServiceReference.serviceReference;
 import static org.junit.Assert.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.argumentSet;
 import static org.osgi.framework.Constants.SERVICE_ID;
@@ -64,53 +62,5 @@ public class SlingFilterConfigTest {
     @MethodSource("scenariosForGetName")
     void testGetName(String expectedName, ServiceReference<Filter> reference) {
         assertEquals(expectedName, SlingFilterConfig.getName(reference));
-    }
-
-    private static ServiceReference<Filter> serviceReference(Map<String, Object> properties) {
-        return new MockServiceReference(properties);
-    }
-
-    private static class MockServiceReference implements ServiceReference<Filter> {
-
-        private final Map<String, Object> properties;
-
-        MockServiceReference(Map<String, Object> properties) {
-            this.properties = properties;
-        }
-
-        @Override
-        public Object getProperty(String key) {
-            return properties.get(key);
-        }
-
-        @Override
-        public String[] getPropertyKeys() {
-            return properties.keySet().toArray(new String[0]);
-        }
-
-        @Override
-        public Dictionary<String, Object> getProperties() {
-            return new Hashtable<>(properties);
-        }
-
-        @Override
-        public Bundle getBundle() {
-            throw new UnsupportedOperationException("not implemented");
-        }
-
-        @Override
-        public Bundle[] getUsingBundles() {
-            throw new UnsupportedOperationException("not implemented");
-        }
-
-        @Override
-        public boolean isAssignableTo(Bundle bundle, String className) {
-            throw new UnsupportedOperationException("not implemented");
-        }
-
-        @Override
-        public int compareTo(Object reference) {
-            throw new UnsupportedOperationException("not implemented");
-        }
     }
 }
