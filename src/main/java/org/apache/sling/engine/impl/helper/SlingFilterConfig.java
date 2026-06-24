@@ -35,7 +35,7 @@ import static org.osgi.service.component.ComponentConstants.COMPONENT_NAME;
 public class SlingFilterConfig implements FilterConfig {
 
     /** The list of property names checked by {@link #getName(ServiceReference)} */
-    private static final String[] NAME_PROPERTIES = {"sling.core.servletName", COMPONENT_NAME, SERVICE_PID, SERVICE_ID};
+    private static final String[] NAME_PROPERTIES = {"sling.core.servletName", SERVICE_PID, COMPONENT_NAME, SERVICE_ID};
 
     /** The <code>ServletContext</code> of this configuration object */
     private ServletContext servletContext;
