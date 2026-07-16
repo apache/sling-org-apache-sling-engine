@@ -20,6 +20,9 @@ mvn test -Dtest=SlingRequestPathInfoTest
 # Run tests with a name pattern
 mvn test -Dtest="*FilterChain*"
 
+# Run JMX/request stats related tests
+mvn test -Dtest=RequestProcessorMBeanImplTest,ServletFilterManagerTest,SlingFilterConfigTest
+
 # License header check (Apache RAT)
 mvn apache-rat:check
 
@@ -59,6 +62,7 @@ src/
     jmx/                         JMX MBean interfaces (public)
     servlets/                    Error handler servlet base
   test/java/                     Unit tests mirroring src/main/java package structure
+    .../impl/testutil/           Shared test utilities (for example mock ServiceReference helpers)
   test/resources/japex/          Japex benchmark configuration XMLs
 target/                          Build output (do not edit)
 ```
@@ -84,7 +88,7 @@ target/                          Build output (do not edit)
 
 # Testing Guidelines
 
-- Framework: **JUnit 4** (`junit:junit`) + **Mockito** 4.x + **OSGi Mock** (`org.apache.sling.testing.osgi-mock.junit4`).
+- Framework: Primarily **JUnit 4** (`junit:junit`) + **Mockito** 4.x + **OSGi Mock** (`org.apache.sling.testing.osgi-mock.junit4`), with **JUnit 5 Jupiter** APIs available for parameterized tests (`junit-jupiter-api`, `junit-jupiter-params`).
 - Test classes live in `src/test/java/` in the same package as the class under test.
 - Name test classes `<ClassName>Test.java`.
 - Run all tests: `mvn test`. Run one class: `mvn test -Dtest=ClassName`.
@@ -99,10 +103,11 @@ target/                          Build output (do not edit)
 - The `org.apache.sling.engine.servlets` package baseline is temporarily excluded (see `pom.xml` `<diffpackages>`) due to SLING-11728.
 - `javax.servlet` imports in `bnd.bnd` use a version range `[2.6,4)` to stay compatible with both Servlet 3.x containers and the wrappers provided by `org.apache.felix.http.wrappers`.
 - The `SlingMainServlet` registers as an OSGi HTTP Whiteboard servlet — it is not instantiated by a traditional servlet container; test it with OSGi Mock, not a servlet container mock.
+- For filter JMX naming, prefer `service.pid` over `component.name` when deriving names (factory components can share `component.name`) and quote names in JMX `ObjectName` values.
+- In Web Console plugins, avoid throwing checked `IOException`/`ServletException` from `doGet`/`doPost`; catch/log `IOException` and set an explicit HTTP 500 status, and escape dynamic HTML output (for example via `ResponseUtil.escapeXml`).
 
 # Security
 
 <!-- sling-security-default:start -->
 The threat model for this project is https://github.com/apache/sling/blob/master/docs/threat-model.md .
 <!-- sling-security-default:end -->
-

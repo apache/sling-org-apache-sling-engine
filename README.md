@@ -39,6 +39,9 @@ mvn test -Dtest=SlingRequestPathInfoTest
 # Run tests with a name pattern
 mvn test -Dtest="*FilterChain*"
 
+# Run JMX/request stats related tests
+mvn test -Dtest=RequestProcessorMBeanImplTest,ServletFilterManagerTest,SlingFilterConfigTest
+
 # License header check (Apache RAT)
 mvn apache-rat:check
 
@@ -79,3 +82,6 @@ src/
 
 - OSGi Declarative Services annotations are used (`org.osgi.service.component.annotations`).
 - The bundle imports `javax.servlet` with a compatibility range and supports Jakarta Servlet API in parallel.
+- Filter JMX naming uses stable service properties (`sling.core.servletName`, then `service.pid`, then `component.name`, then `service.id`) and quotes names for valid JMX `ObjectName` values.
+- Web Console request history rendering escapes dynamic output and handles I/O failures internally by returning HTTP 500.
+- Tests use JUnit 4, with JUnit 5 Jupiter API/params available for parameterized coverage where needed.
