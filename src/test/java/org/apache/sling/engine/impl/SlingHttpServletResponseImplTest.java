@@ -94,6 +94,7 @@ public class SlingHttpServletResponseImplTest {
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
@@ -113,6 +114,7 @@ public class SlingHttpServletResponseImplTest {
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
         when(requestData.getSlingRequestProcessor()).thenReturn(mock(SlingRequestProcessorImpl.class));
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
