@@ -517,11 +517,9 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                     "Calling '%s' within an include is not compliant to the Servlet spec (see SLING-13222)", method);
             requestData.getRequestProgressTracker().log("WARN:" + msg);
             if (!LOG.isDebugEnabled()) {
-                String s = String.format("%s; enable DEBUG logging to get the full stacktrace", msg);
-                // we log on WARN level intentionally, so the log message is symmetric to the one below
-                LOG.warn(s);
+                LOG.warn("{}; enable DEBUG logging to get the full stacktrace", msg);
             } else {
-                LOG.warn(msg + "; call trace: " + getCurrentStackTrace());
+                LOG.warn("{}; call trace: {} ", msg, getCurrentStackTrace());
             }
         }
     }
