@@ -210,6 +210,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                         explanation);
             }
         } else { // response is not yet committed, so the statuscode can be changed
+            logHeaderModificationCallOnIncludeForMethod("setStatus");
             super.setStatus(sc);
         }
     }
@@ -217,6 +218,9 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void reset() {
         if (!this.isProtectHeadersOnInclude() || isError()) {
+            if (!this.isProtectHeadersOnInclude()) {
+                logHeaderModificationCallOnIncludeForMethod("reset");
+            }
             super.reset();
         } else {
             // ignore if not committed: because we want the exception to be thrown when the
@@ -231,6 +235,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setContentLength(final int len) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setContentLength()");
             super.setContentLength(len);
         }
     }
@@ -238,6 +243,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setContentLengthLong(final long len) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setContentLengthLong()");
             super.setContentLengthLong(len);
         }
     }
@@ -245,6 +251,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setLocale(final Locale loc) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setLocale()");
             super.setLocale(loc);
         }
     }
@@ -252,6 +259,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void addCookie(final Cookie cookie) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("addCookie()");
             super.addCookie(cookie);
         }
     }
@@ -259,6 +267,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void addDateHeader(final String name, final long value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("addDateHeader()");
             super.addDateHeader(name, value);
         }
     }
@@ -266,6 +275,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void addHeader(final String name, final String value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("addHeader()");
             super.addHeader(name, value);
         }
     }
@@ -273,6 +283,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void addIntHeader(final String name, final int value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("addIntHeader()");
             super.addIntHeader(name, value);
         }
     }
@@ -280,6 +291,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void sendRedirect(final String location) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect");
             this.committedReason = CommitReason.SEND_REDIRECT;
             super.sendRedirect(location);
         }
@@ -288,6 +300,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setDateHeader(final String name, final long value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setDateHeader()");
             super.setDateHeader(name, value);
         }
     }
@@ -295,6 +308,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setHeader(final String name, final String value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setHeader()");
             super.setHeader(name, value);
         }
     }
@@ -302,6 +316,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void setIntHeader(final String name, final int value) {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setIntHeader()");
             super.setIntHeader(name, value);
         }
     }
@@ -492,6 +507,23 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                 allMessages);
     }
 
+    /**
+     * log a message for calling a header-modifying API when called as part of an include
+     * @param method the name of the method
+     */
+    private void logHeaderModificationCallOnIncludeForMethod(String method) {
+        if (isInclude()) {
+            String msg = String.format(
+                    "Calling '%s' within an include is not compliant to the Servlet spec (see SLING-13222)", method);
+            requestData.getRequestProgressTracker().log("WARN:" + msg);
+            if (!LOG.isDebugEnabled()) {
+                LOG.warn("{}; enable DEBUG logging to get the full stacktrace", msg);
+            } else {
+                LOG.warn("{}; call trace: {} ", msg, getCurrentStackTrace());
+            }
+        }
+    }
+
     private static class ContentTypeChangeException extends SlingException {
         protected ContentTypeChangeException(String text) {
             super(text);
@@ -510,6 +542,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void sendError(int status, String message) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setError()");
             checkCommitted();
 
             this.committedReason = CommitReason.SEND_ERROR;
