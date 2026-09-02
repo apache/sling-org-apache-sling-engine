@@ -36,6 +36,7 @@ import org.apache.sling.auth.core.AuthenticationSupport;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
 import org.apache.sling.engine.impl.helper.RequestListenerManager;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
+import org.apache.sling.engine.impl.parameters.RequestParameterConfig;
 import org.osgi.framework.BundleContext;
 import org.osgi.framework.Constants;
 import org.osgi.framework.ServiceRegistration;
@@ -89,6 +90,10 @@ public class SlingMainServlet extends GenericServlet {
 
     @Reference
     private volatile SlingRequestProcessorImpl requestProcessorImpl;
+
+    /** extra config properties for multipart file upload support */
+    @Reference
+    private transient RequestParameterConfig reqParamConfig;
 
     private volatile boolean allowTrace;
 
@@ -181,6 +186,22 @@ public class SlingMainServlet extends GenericServlet {
         if (servletName != null) {
             servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_NAME, servletName);
         }
+
+        // configure support for multipart file uploads
+        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_ENABLED, true);
+        // dig the multipart configuration out of the "Request Parameter Handling" configuration
+        final String multipartLocation = reqParamConfig.resolveLocation();
+        if (multipartLocation != null) {
+            servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_LOCATION, multipartLocation);
+        }
+        final org.apache.sling.engine.impl.parameters.RequestParameterConfig.Config config = reqParamConfig.getConfig();
+        servletConfig.put(HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_MAXFILESIZE, config.file_max());
+        servletConfig.put(
+                HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_MAXREQUESTSIZE, config.request_max());
+        servletConfig.put(
+                HttpWhiteboardConstants.HTTP_WHITEBOARD_SERVLET_MULTIPART_FILESIZETHRESHOLD, config.file_threshold());
+        servletConfig.put("osgi.http.whiteboard.servlet.multipart.maxFileCount", config.request_max_file_count());
+
         servletConfig.put(Constants.SERVICE_DESCRIPTION, "Apache Sling Engine Main Servlet");
         servletConfig.put(Constants.SERVICE_VENDOR, "The Apache Software Foundation");
 

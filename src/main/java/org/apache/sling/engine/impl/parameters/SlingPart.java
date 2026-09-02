@@ -20,9 +20,7 @@ package org.apache.sling.engine.impl.parameters;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 
 import jakarta.servlet.http.Part;
 
@@ -46,7 +44,7 @@ public class SlingPart implements Part {
 
     @Override
     public String getName() {
-        return this.param.getFileItem().getFieldName();
+        return this.param.getPart().getName();
     }
 
     @Override
@@ -60,35 +58,23 @@ public class SlingPart implements Part {
     }
 
     @Override
-    public void delete() {
-        this.param.getFileItem().delete();
+    public void delete() throws IOException {
+        this.param.getPart().delete();
     }
 
     @Override
     public String getHeader(String name) {
-        return this.param.getFileItem().getHeaders().getHeader(name);
+        return this.param.getPart().getHeader(name);
     }
 
     @Override
     public Collection<String> getHeaders(String name) {
-        final ArrayList<String> headers = new ArrayList<String>();
-        final Iterator<String> itemHeaders =
-                this.param.getFileItem().getHeaders().getHeaders(name);
-        while (itemHeaders.hasNext()) {
-            headers.add(itemHeaders.next());
-        }
-        return headers;
+        return this.param.getPart().getHeaders(name);
     }
 
     @Override
     public Collection<String> getHeaderNames() {
-        final ArrayList<String> headers = new ArrayList<String>();
-        final Iterator<String> itemHeaders =
-                this.param.getFileItem().getHeaders().getHeaderNames();
-        while (itemHeaders.hasNext()) {
-            headers.add(itemHeaders.next());
-        }
-        return headers;
+        return this.param.getPart().getHeaderNames();
     }
 
     @Override
