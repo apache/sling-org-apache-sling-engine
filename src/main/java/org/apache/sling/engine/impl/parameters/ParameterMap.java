@@ -40,6 +40,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
     static final int DEFAULT_MAX_PARAMS = 10000;
 
     private static int maxParameters = DEFAULT_MAX_PARAMS;
+    private static boolean failOnParameterLimit = false;
 
     private Map<String, String[]> stringParameterMap;
 
@@ -47,6 +48,10 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
 
     static void setMaxParameters(final int maxParameters) {
         ParameterMap.maxParameters = (maxParameters > 0) ? maxParameters : -1;
+    }
+
+    static void setFailOnParameterLimit(final boolean fail) {
+        ParameterMap.failOnParameterLimit = fail;
     }
 
     public RequestParameter getValue(String name) {
@@ -71,8 +76,10 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
     void addParameter(RequestParameter parameter, boolean prependNew) {
 
         // check number of parameters
-        if (this.requestParameters.size() == maxParameters) {
-            // TODO: how to handle this situation ?? just ignore or throw or what ??
+        if (maxParameters > -1 && this.requestParameters.size() >= maxParameters) {
+            if (failOnParameterLimit) {
+                throw new IllegalStateException("Too many name/value pairs, limit is " + maxParameters);
+            }
             LoggerFactory.getLogger(Util.class)
                     .warn("Too many name/value pairs, stopped processing after " + maxParameters + " entries");
             return;
