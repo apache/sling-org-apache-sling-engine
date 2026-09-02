@@ -514,7 +514,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     private void logHeaderModificationCallOnIncludeForMethod(String method) {
         if (isInclude()) {
             String msg = String.format(
-                    "Calling '%s' within an include is not compliant to the Servlet spec (see SLING-13222)", method);
+                    "Calling '%s' within an include is not compliant to the Servlet spec (see SLING-13322)", method);
             requestData.getRequestProgressTracker().log("WARN:" + msg);
             if (!LOG.isDebugEnabled()) {
                 LOG.warn("{}; enable DEBUG logging to get the full stacktrace", msg);
@@ -542,7 +542,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
     @Override
     public void sendError(int status, String message) throws IOException {
         if (!this.isProtectHeadersOnInclude()) {
-            logHeaderModificationCallOnIncludeForMethod("setError()");
+            logHeaderModificationCallOnIncludeForMethod("sendError()");
             checkCommitted();
 
             this.committedReason = CommitReason.SEND_ERROR;
