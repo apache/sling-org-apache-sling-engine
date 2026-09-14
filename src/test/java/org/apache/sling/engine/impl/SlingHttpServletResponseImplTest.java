@@ -62,11 +62,8 @@ public class SlingHttpServletResponseImplTest {
         "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
         "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
         "3736 LOG Applying REQUESTfilters",
-        "3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter",
         "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
-        "3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter",
         "4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1}",
-        "3765 LOG Calling filter: org.apache.sling.engine.impl.debug.RequestProgressTrackerLogFilter",
         "2678 TIMER_START{ServletResolution}",
         "2683 TIMER_START{resolveServlet(/content/slingshot)}",
         "2678 TIMER_START{ServletResolution}",
@@ -245,7 +242,7 @@ public class SlingHttpServletResponseImplTest {
 
         // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
         // remain in the log message, check for the cut message
-        assertTrue(logMessage.contains("... cut 504 messages ..."));
+        assertTrue(logMessage.contains("... cut 348 messages ..."));
     }
 
     @Test
