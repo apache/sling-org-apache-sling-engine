@@ -420,6 +420,7 @@ public class SlingHttpServletResponseImplTest {
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
         info.setCheckContentTypeOnInclude(true);
 
         final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
