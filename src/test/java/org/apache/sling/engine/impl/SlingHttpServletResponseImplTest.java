@@ -62,6 +62,44 @@ public class SlingHttpServletResponseImplTest {
         "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
         "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
         "3736 LOG Applying REQUESTfilters",
+        "3751 LOG Calling filter: com.composum.sling.nodes.mount.remote.RemoteRequestFilter",
+        "3757 LOG Calling filter: org.apache.sling.i18n.impl.I18NFilter",
+        "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
+        "4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1}",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3774 LOG Applying Componentfilters",
+        "3797 TIMER_START{/libs/slingshot/Home/html.jsp#0}",
+        "3946 LOG Adding bindings took 18 microseconds",
+        "4405 LOG Including resource JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot (SlingRequestPathInfo: path='/content/slingshot', selectorString='head', extension='html', suffix='null')",
+        "4414 TIMER_START{resolveServlet(/content/slingshot)}",
+        "4670 TIMER_END{253,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Component/head.html.jsp",
+        "4673 LOG Applying Includefilters",
+        "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
+        "4749 LOG Adding bindings took 4 microseconds"
+    };
+
+    // the messages above minus the "LOG Calling filter:" statements
+    String[] expectedMessagesLogged = {
+        "0 TIMER_START{Request Processing}",
+        "6 COMMENT timer_end format is {<elapsed microseconds>,<timer name>} <optional message>",
+        "17 LOG Method=GET, PathInfo=null",
+        "20 TIMER_START{handleSecurity}",
+        "2104 TIMER_END{2081,handleSecurity} authenticator org.apache.sling.auth.core.impl.SlingAuthenticator@6367091e returns true",
+        "2478 TIMER_START{ResourceResolution}",
+        "2668 TIMER_END{189,ResourceResolution} URI=/content/slingshot.html resolves to Resource=JcrNodeResource, type=slingshot/Home, superType=null, path=/content/slingshot",
+        "2678 LOG Resource Path Info: SlingRequestPathInfo: path='/content/slingshot', selectorString='null', extension='html', suffix='null'",
+        "2678 TIMER_START{ServletResolution}",
+        "2683 TIMER_START{resolveServlet(/content/slingshot)}",
+        "3724 TIMER_END{1040,resolveServlet(/content/slingshot)} Using servlet /libs/slingshot/Home/html.jsp",
+        "3727 TIMER_END{1047,ServletResolution} URI=/content/slingshot.html handled by Servlet=/libs/slingshot/Home/html.jsp",
+        "3736 LOG Applying REQUESTfilters",
         "4722 TIMER_START{/libs/slingshot/Component/head.html.jsp#1}",
         "4859 TIMER_END{135,/libs/slingshot/Component/head.html.jsp#1}",
         "2678 TIMER_START{ServletResolution}",
@@ -231,7 +269,8 @@ public class SlingHttpServletResponseImplTest {
         // build a string array which resembles the log of recursive includes (50 levels
         // deep)
         String[] recursivePartStrings = Arrays.copyOfRange(logMessages, 14, logMessages.length - 2);
-        String[] concatenatedArray = Stream.concat(Arrays.stream(logMessages), Arrays.stream(recursivePartStrings))
+        String[] concatenatedArray = Stream.concat(
+                        Arrays.stream(expectedMessagesLogged), Arrays.stream(recursivePartStrings))
                 .toArray(String[]::new);
         for (int i = 0; i < 50; i++) {
             concatenatedArray = Stream.concat(Arrays.stream(concatenatedArray), Arrays.stream(recursivePartStrings))
@@ -242,7 +281,7 @@ public class SlingHttpServletResponseImplTest {
 
         // validate that the log message is cut off and only the last MAX_NR_OF_MESSAGES
         // remain in the log message, check for the cut message
-        assertTrue(logMessage.contains("... cut 348 messages ..."));
+        assertTrue(logMessage.contains("... cut 399 messages ..."));
     }
 
     @Test
@@ -252,7 +291,8 @@ public class SlingHttpServletResponseImplTest {
                 String.format(
                         "ERROR: Servlet %s tried to override the 'Content-Type' header from 'null' to 'text/plain'. This is a violation of the RequestDispatcher.include() contract - https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
-                        Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator()))),
+                        Arrays.asList(expectedMessagesLogged).stream()
+                                .collect(Collectors.joining(System.lineSeparator()))),
                 logMessage);
     }
 
@@ -319,7 +359,7 @@ public class SlingHttpServletResponseImplTest {
                         + " This is a violation of the RequestDispatcher.include() contract -"
                         + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",
                 ACTIVE_SERVLET_NAME,
-                Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator())))));
+                Arrays.asList(expectedMessagesLogged).stream().collect(Collectors.joining(System.lineSeparator())))));
         assertNotNull("Expected a RuntimeException.", throwable);
         assertTrue(throwable
                 .getMessage()
@@ -330,7 +370,8 @@ public class SlingHttpServletResponseImplTest {
                                 + " This is a violation of the RequestDispatcher.include() contract -"
                                 + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
-                        Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator())))));
+                        Arrays.asList(expectedMessagesLogged).stream()
+                                .collect(Collectors.joining(System.lineSeparator())))));
     }
 
     @Test
@@ -363,7 +404,8 @@ public class SlingHttpServletResponseImplTest {
                                 + " contract -"
                                 + " https://jakarta.ee/specifications/servlet/4.0/apidocs/javax/servlet/requestdispatcher#include-javax.servlet.ServletRequest-javax.servlet.ServletResponse-. , Include stack: /libs/slingshot/Component/head.html.jsp#1 -> /libs/slingshot/Home/html.jsp#0. All RequestProgressTracker messages: %s",
                         ACTIVE_SERVLET_NAME,
-                        Arrays.asList(logMessages).stream().collect(Collectors.joining(System.lineSeparator()))),
+                        Arrays.asList(expectedMessagesLogged).stream()
+                                .collect(Collectors.joining(System.lineSeparator()))),
                 logMessage);
     }
 
