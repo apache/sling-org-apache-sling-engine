@@ -142,6 +142,44 @@ public class SlingHttpServletResponseImplTest {
     }
 
     @Test
+    public void testSendRedirectOverloadsProtectedOnInclude() throws IOException {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setProtectHeadersOnInclude(true);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.sendRedirect("/target");
+        include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY);
+        include.sendRedirect("/target", false);
+        include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
+        include.setTrailerFields(java.util.Collections::emptyMap);
+
+        Mockito.verifyNoInteractions(orig);
+    }
+
+    @Test
+    public void testSendRedirectOverloadsDelegateWhenNotProtected() throws IOException {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY);
+        include.sendRedirect("/target", true);
+        include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
+
+        Mockito.verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY);
+        Mockito.verify(orig, times(1)).sendRedirect("/target", true);
+        Mockito.verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
+    }
+
+    @Test
     public void testNoViolationChecksOnCommittedResponseWhenSendError() throws IOException {
         final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
 
