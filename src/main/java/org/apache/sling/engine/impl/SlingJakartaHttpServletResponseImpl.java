@@ -403,12 +403,17 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                 requestData.getRequestProgressTracker().getMessages();
         LinkedList<String> lastMessages = new LinkedList<>();
         while (messagesIterator.hasNext()) {
+            String message = messagesIterator.next();
+            // skip all log filter messages, as they are not helpful to understand this issue
+            if (message.contains("LOG Calling filter:")) {
+                continue;
+            }
             nrOfOriginalMessages++;
             if (gotCut || lastMessages.size() >= MAX_NR_OF_MESSAGES) {
                 lastMessages.removeFirst();
                 gotCut = true;
             }
-            lastMessages.add(messagesIterator.next());
+            lastMessages.add(message);
         }
 
         if (gotCut) {
