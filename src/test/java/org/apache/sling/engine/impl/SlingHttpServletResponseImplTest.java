@@ -375,6 +375,63 @@ public class SlingHttpServletResponseImplTest {
     }
 
     @Test
+    public void testContentTypeOverrideEnforcedForSetHeader() {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/plain");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable setHeaderThrowable = null;
+        try {
+            include.setHeader("Content-Type", "text/html");
+        } catch (RuntimeException e) {
+            setHeaderThrowable = e;
+        }
+        assertNotNull("Expected setHeader(\"Content-Type\", ...) to be blocked.", setHeaderThrowable);
+
+        Throwable addHeaderThrowable = null;
+        try {
+            include.addHeader("content-type", "text/html");
+        } catch (RuntimeException e) {
+            addHeaderThrowable = e;
+        }
+        assertNotNull("Expected addHeader(\"content-type\", ...) to be blocked.", addHeaderThrowable);
+
+        Mockito.verify(orig, never()).setHeader(Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(orig, never()).addHeader(Mockito.anyString(), Mockito.anyString());
+        Mockito.verify(orig, never()).setContentType(Mockito.anyString());
+    }
+
+    @Test
+    public void testUnrelatedHeadersNotRoutedThroughContentTypeCheck() {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        info.setCheckContentTypeOnInclude(true);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setHeader("X-Custom", "value");
+        include.addHeader("X-Custom", "another");
+
+        Mockito.verify(orig, times(1)).setHeader("X-Custom", "value");
+        Mockito.verify(orig, times(1)).addHeader("X-Custom", "another");
+    }
+
+    @Test
     public void testContentTypeOverrideDisabled() {
         final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
