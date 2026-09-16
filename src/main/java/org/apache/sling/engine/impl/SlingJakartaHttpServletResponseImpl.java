@@ -20,15 +20,17 @@ package org.apache.sling.engine.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.nio.charset.Charset;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -297,6 +299,62 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         }
     }
 
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}. Since Servlet API 6.1
+     * {@code HttpServletResponseWrapper} overrides every {@code sendRedirect}
+     * variant with a direct delegation to the wrapped response, so each new
+     * overload must be gated here explicitly - none of them dispatches
+     * through another override on this wrapper.
+     */
+    @Override
+    public void sendRedirect(final String location, final int sc) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, sc);
+        }
+    }
+
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}, see {@link #sendRedirect(String, int)}.
+     */
+    @Override
+    public void sendRedirect(final String location, final boolean clearBuffer) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, clearBuffer);
+        }
+    }
+
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}, see {@link #sendRedirect(String, int)}.
+     */
+    @Override
+    public void sendRedirect(final String location, final int sc, final boolean clearBuffer) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, sc, clearBuffer);
+        }
+    }
+
+    /**
+     * Overridden to apply the include header protection: response trailer
+     * fields are headers as well and must not be settable by included
+     * servlets when header protection is enabled.
+     */
+    @Override
+    public void setTrailerFields(final Supplier<Map<String, String>> supplier) {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setTrailerFields()");
+            super.setTrailerFields(supplier);
+        }
+    }
+
     @Override
     public void setDateHeader(final String name, final long value) {
         if (!this.isProtectHeadersOnInclude()) {
@@ -361,9 +419,76 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         }
     }
 
+    @Override
+    public void setCharacterEncoding(final String charset) {
+        boolean isCommitedDueToSendErrorOrRedirect = this.isCommitted()
+                && (CommitReason.SEND_ERROR == this.committedReason
+                        || CommitReason.SEND_REDIRECT == this.committedReason);
+        if (isCommitedDueToSendErrorOrRedirect || !isInclude()) {
+            super.setCharacterEncoding(charset);
+            return;
+        }
+        final Optional<String> message = checkCharacterEncodingOverride(charset);
+        if (message.isPresent()) {
+            if (isCheckContentTypeOnInclude()) {
+                requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
+                throw new ContentTypeChangeException(message.get());
+            }
+            if (isProtectHeadersOnInclude()) {
+                LOG.error(message.get());
+                LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
+                requestData.getRequestProgressTracker().log("ERROR: " + message.get());
+                return;
+            }
+            LOG.warn(message.get());
+            LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
+            requestData.getRequestProgressTracker().log("WARN: " + message.get());
+            super.setCharacterEncoding(charset);
+        } else {
+            super.setCharacterEncoding(charset);
+        }
+    }
+
+    @Override
+    public void setCharacterEncoding(final Charset charset) {
+        this.setCharacterEncoding(charset == null ? null : charset.name());
+    }
+
+    /**
+     * Checks if the response character encoding is being changed by an include
+     * and provides a message to log if it is. Changing the character encoding
+     * changes the charset parameter of the 'Content-Type' header and is
+     * therefore subject to the same include protections as
+     * {@link #setContentType(String)}.
+     *
+     * @param charset the character encoding that is being set
+     * @return an optional message to log
+     */
+    protected Optional<String> checkCharacterEncodingOverride(@Nullable String charset) {
+        if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
+            // return immediatly as the content type header has already been violated
+            // prevoiously, no more checks needed
+            return Optional.empty();
+        }
+        final String currentCharset = getCharacterEncoding();
+        if (charset != null && charset.equalsIgnoreCase(currentCharset)) {
+            // not an effective change
+            return Optional.empty();
+        }
+        requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
+        final String currentContentType = getContentType();
+        final String base = currentContentType == null ? "" : getMimeTypePart(currentContentType);
+        final String newContentType = (charset == null) ? base : base + ";charset=" + charset;
+        return Optional.of(getMessage(currentContentType, newContentType));
+    }
+
     /**
      * Checks if the 'Content-Type' header is being overridden and provides a
-     * message to log if it is.
+     * message to log if it is. Both the media type and the charset parameter
+     * are compared: changing only the charset (e.g. from
+     * 'text/html;charset=UTF-8' to 'text/html;charset=UTF-7') changes the
+     * effective response header just as much as changing the media type.
      *
      * @param contentType the 'Content-Type' value that is being set
      * @return an optional message to log
@@ -378,19 +503,56 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         if (contentType == null) {
             requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
             return Optional.of(getMessage(currentContentType, null));
-        } else {
-            Optional<String> currentMime = currentContentType == null
-                    ? Optional.of("null")
-                    : Arrays.stream(currentContentType.split(";")).findFirst();
-            Optional<String> setMime = Arrays.stream(contentType.split(";")).findFirst();
-            if (currentMime.isPresent()
-                    && setMime.isPresent()
-                    && !currentMime.get().equals(setMime.get())) {
+        }
+        final String currentMime = currentContentType == null ? "null" : getMimeTypePart(currentContentType);
+        final String setMime = getMimeTypePart(contentType);
+        if (!currentMime.equalsIgnoreCase(setMime)) {
+            requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
+            return Optional.of(getMessage(currentContentType, contentType));
+        }
+        final String setCharset = getCharsetPart(contentType);
+        if (setCharset != null) {
+            String currentCharset = currentContentType == null ? null : getCharsetPart(currentContentType);
+            if (currentCharset == null) {
+                currentCharset = getCharacterEncoding();
+            }
+            if (!setCharset.equalsIgnoreCase(currentCharset)) {
                 requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
                 return Optional.of(getMessage(currentContentType, contentType));
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Returns the media type of a 'Content-Type' header value, i.e. the part
+     * before the first parameter separator, trimmed.
+     */
+    private static String getMimeTypePart(final String contentType) {
+        final int semi = contentType.indexOf(';');
+        final String mime = semi >= 0 ? contentType.substring(0, semi) : contentType;
+        return mime.trim();
+    }
+
+    /**
+     * Returns the value of the charset parameter of a 'Content-Type' header
+     * value, or {@code null} if no charset parameter is present.
+     */
+    @Nullable
+    private static String getCharsetPart(final String contentType) {
+        final String[] parts = contentType.split(";");
+        for (int i = 1; i < parts.length; i++) {
+            final String param = parts[i].trim();
+            final int eq = param.indexOf('=');
+            if (eq > 0 && "charset".equalsIgnoreCase(param.substring(0, eq).trim())) {
+                String value = param.substring(eq + 1).trim();
+                if (value.length() > 1 && value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"') {
+                    value = value.substring(1, value.length() - 1).trim();
+                }
+                return value.isEmpty() ? null : value;
+            }
+        }
+        return null;
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
