@@ -410,6 +410,59 @@ public class SlingHttpServletResponseImplTest {
     }
 
     @Test
+    public void testContentTypeOverrideStillEnforcedAfterPreviousViolation() {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/plain");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        // a violation has already been detected earlier within this request
+        when(requestProcessor.getContentTypeHeaderState()).thenReturn(ContentTypeHeaderState.VIOLATED);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable throwable = null;
+        try {
+            include.setContentType("text/html");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        assertNotNull("Expected the repeated override attempt to still be blocked.", throwable);
+        Mockito.verify(orig, never()).setContentType("text/html");
+    }
+
+    @Test
+    public void testContentTypeOverrideStillIgnoredAfterPreviousViolationWithProtectHeaders() {
+        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/plain");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        // a violation has already been detected earlier within this request
+        when(requestProcessor.getContentTypeHeaderState()).thenReturn(ContentTypeHeaderState.VIOLATED);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setContentType("text/html");
+
+        Mockito.verify(orig, never()).setContentType("text/html");
+    }
+
+    @Test
     public void testNoOverrideProtectHeadersContentTypeOverride() {
         final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);

@@ -281,12 +281,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingJakartaHttpServletRequest request = requestData.getSlingRequest();
         final SlingJakartaHttpServletResponse response = requestData.getSlingResponse();
 
+        // remember the state of the outer request (if any) - nested processRequest
+        // calls must restore it when done instead of resetting it to UNSET,
+        // otherwise a nested call would clear a violation already detected for
+        // the outer request
+        final ContentTypeHeaderState outerContentTypeHeaderState = getContentTypeHeaderState();
+
         try {
-            if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
-                log.debug(
-                        "Content Type Header state has not been cleared properly, is set to {}",
-                        getContentTypeHeaderState());
-            }
             setContentTypeHeaderState(ContentTypeHeaderState.NOT_VIOLATED);
 
             // initialize the request data - resolve resource and servlet
@@ -361,7 +362,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 localBean.addRequestData(requestData);
             }
 
-            setContentTypeHeaderState(ContentTypeHeaderState.UNSET);
+            setContentTypeHeaderState(outerContentTypeHeaderState);
         }
     }
 
