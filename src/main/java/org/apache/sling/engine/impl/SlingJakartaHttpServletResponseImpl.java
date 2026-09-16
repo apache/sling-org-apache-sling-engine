@@ -59,6 +59,8 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     private static final String CALL_STACK_MESSAGE = "Call stack causing the content type override violation: ";
 
+    private static final String HEADER_CONTENT_TYPE = "Content-Type";
+
     private static final Logger LOG = LoggerFactory.getLogger(SlingJakartaHttpServletResponseImpl.class);
 
     // this regex matches TIMER_START{ followed by any characters except }, and then
@@ -274,6 +276,12 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void addHeader(final String name, final String value) {
+        if (this.isInclude() && HEADER_CONTENT_TYPE.equalsIgnoreCase(name)) {
+            // changing the Content-Type header during an include must be subject
+            // to the same enforcement as setContentType (see setHeader)
+            this.setContentType(value);
+            return;
+        }
         if (!this.isProtectHeadersOnInclude()) {
             logHeaderModificationCallOnIncludeForMethod("addHeader()");
             super.addHeader(name, value);
@@ -307,6 +315,12 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
 
     @Override
     public void setHeader(final String name, final String value) {
+        if (this.isInclude() && HEADER_CONTENT_TYPE.equalsIgnoreCase(name)) {
+            // changing the Content-Type header during an include must be subject
+            // to the same enforcement as setContentType (see setHeader)
+            this.setContentType(value);
+            return;
+        }
         if (!this.isProtectHeadersOnInclude()) {
             logHeaderModificationCallOnIncludeForMethod("setHeader()");
             super.setHeader(name, value);
