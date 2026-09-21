@@ -28,7 +28,9 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
+import java.util.function.Supplier;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -302,6 +304,62 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
             logHeaderModificationCallOnIncludeForMethod("sendRedirect");
             this.committedReason = CommitReason.SEND_REDIRECT;
             super.sendRedirect(location);
+        }
+    }
+
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}. Since Servlet API 6.1
+     * {@code HttpServletResponseWrapper} overrides every {@code sendRedirect}
+     * variant with a direct delegation to the wrapped response, so each new
+     * overload must be gated here explicitly - none of them dispatches
+     * through another override on this wrapper.
+     */
+    @Override
+    public void sendRedirect(final String location, final int sc) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, sc);
+        }
+    }
+
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}, see {@link #sendRedirect(String, int)}.
+     */
+    @Override
+    public void sendRedirect(final String location, final boolean clearBuffer) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, clearBuffer);
+        }
+    }
+
+    /**
+     * Overridden to apply the same include protection as
+     * {@link #sendRedirect(String)}, see {@link #sendRedirect(String, int)}.
+     */
+    @Override
+    public void sendRedirect(final String location, final int sc, final boolean clearBuffer) throws IOException {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("sendRedirect()");
+            this.committedReason = CommitReason.SEND_REDIRECT;
+            super.sendRedirect(location, sc, clearBuffer);
+        }
+    }
+
+    /**
+     * Overridden to apply the include header protection: response trailer
+     * fields are headers as well and must not be settable by included
+     * servlets when header protection is enabled.
+     */
+    @Override
+    public void setTrailerFields(final Supplier<Map<String, String>> supplier) {
+        if (!this.isProtectHeadersOnInclude()) {
+            logHeaderModificationCallOnIncludeForMethod("setTrailerFields()");
+            super.setTrailerFields(supplier);
         }
     }
 
