@@ -369,15 +369,20 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
      * @return an optional message to log
      */
     protected Optional<String> checkContentTypeOverride(@Nullable String contentType) {
-        if (requestData.getSlingRequestProcessor().getContentTypeHeaderState() == ContentTypeHeaderState.VIOLATED) {
-            // return immediatly as the content type header has already been violated
-            // prevoiously, no more checks needed
-            return Optional.empty();
-        }
+        // A previously detected violation must not disable
+        // the check itself - otherwise the second and any later override attempt
+        // within the same request would pass unchecked even though the first one
+        // was blocked.
+        // Return a shorter message in any subsequent case (without the stack)
+        final boolean isFirstViolation =
+                requestData.getSlingRequestProcessor().getContentTypeHeaderState() != ContentTypeHeaderState.VIOLATED;
         String currentContentType = getContentType();
         if (contentType == null) {
             requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
-            return Optional.of(getMessage(currentContentType, null));
+            return Optional.of(
+                    isFirstViolation
+                            ? getMessage(currentContentType, null)
+                            : getShortMessage(currentContentType, null));
         } else {
             Optional<String> currentMime = currentContentType == null
                     ? Optional.of("null")
@@ -387,10 +392,30 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                     && setMime.isPresent()
                     && !currentMime.get().equals(setMime.get())) {
                 requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
-                return Optional.of(getMessage(currentContentType, contentType));
+                return Optional.of(
+                        isFirstViolation
+                                ? getMessage(currentContentType, contentType)
+                                : getShortMessage(currentContentType, contentType));
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Short variant of {@link #getMessage(String, String)} used for repeated
+     * violations within the same request: it omits the include stack and the
+     * progress tracker messages which have already been reported with the first
+     * violation.
+     *
+     * @param currentContentType the current 'Content-Type' header
+     * @param setContentType     the 'Content-Type' header that is being set
+     */
+    private String getShortMessage(@Nullable String currentContentType, @Nullable String setContentType) {
+        return String.format(
+                "Servlet %s tried to override the 'Content-Type' header from '%s' to '%s'. This is a violation of "
+                        + "the RequestDispatcher.include() contract. See the previously reported violation for the "
+                        + "include stack and the RequestProgressTracker messages.",
+                requestData.getActiveServletName(), currentContentType, setContentType);
     }
 
     private List<String> getLastMessagesOfProgressTracker() {
