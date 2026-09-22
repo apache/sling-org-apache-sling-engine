@@ -131,11 +131,10 @@ public class RequestProgressTrackerLogFilter implements Filter {
 
     private void logCompactFormat(RequestProgressTracker rpt) {
         final Iterator<String> messages = rpt.getMessages();
-        final StringBuilder sb = new StringBuilder("\n");
+        final StringBuilder sb = new StringBuilder();
         while (messages.hasNext()) {
-            sb.append(messages.next());
+            sb.append('\n').append(escapeLogMessage(messages.next()));
         }
-        sb.setLength(sb.length() - 1);
         log.debug(sb.toString());
     }
 
@@ -146,8 +145,47 @@ public class RequestProgressTrackerLogFilter implements Filter {
         }
         final Iterator<String> it = rpt.getMessages();
         while (it.hasNext()) {
-            log.debug("REQUEST_{} - " + it.next(), requestId);
+            log.debug("REQUEST_{} - {}", requestId, escapeLogMessage(it.next()));
         }
+    }
+
+    /**
+     * Escapes a request progress tracker message for logging.
+     * <p>
+     * Tracker messages embed request-derived, attacker-controllable data
+     * (container-decoded path info, selectors, suffix, request URI). Escaping
+     * embedded CR and LF prevents such data from forging additional log lines
+     * (log injection, CWE-117). Messages must also always be passed to SLF4J
+     * as a parameter - never concatenated into the format string - so that
+     * attacker-supplied <code>{}</code> sequences are not substituted. The
+     * line terminator the tracker appends to each message is removed.
+     *
+     * @param message the tracker message, may be <code>null</code>
+     * @return the escaped message
+     */
+    static String escapeLogMessage(final String message) {
+        if (message == null) {
+            return null;
+        }
+        // strip the line terminator the tracker appends to each message
+        int end = message.length();
+        while (end > 0 && (message.charAt(end - 1) == '\n' || message.charAt(end - 1) == '\r')) {
+            end--;
+        }
+        StringBuilder sb = null;
+        for (int i = 0; i < end; i++) {
+            final char c = message.charAt(i);
+            if (c == '\n' || c == '\r') {
+                if (sb == null) {
+                    sb = new StringBuilder(end + 8);
+                    sb.append(message, 0, i);
+                }
+                sb.append(c == '\n' ? "\\n" : "\\r");
+            } else if (sb != null) {
+                sb.append(c);
+            }
+        }
+        return sb != null ? sb.toString() : message.substring(0, end);
     }
 
     private String extractExtension(SlingJakartaHttpServletRequest request) {
