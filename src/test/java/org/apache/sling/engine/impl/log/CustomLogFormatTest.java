@@ -19,6 +19,8 @@
 package org.apache.sling.engine.impl.log;
 
 import junit.framework.TestCase;
+import org.apache.sling.engine.impl.request.RequestData;
+import org.mockito.Mockito;
 
 /**
  * The <code>CustomLogFormatTest</code> class tests the
@@ -68,5 +70,43 @@ public class CustomLogFormatTest extends TestCase {
         assertEquals(
                 "This is a special character \\u1234",
                 CustomLogFormat.HeaderParameter.escape("This is a special character \u1234"));
+    }
+
+    public void testRequestParameterValueEscaped() {
+        final RequestLoggerRequest request = Mockito.mock(RequestLoggerRequest.class);
+        Mockito.when(request.getParameter("ref"))
+                .thenReturn("x\r\n192.168.1.1 - admin \"POST /system/console HTTP/1.1\" 200");
+
+        final CustomLogFormat.ParamParameter param = new CustomLogFormat.ParamParameter("ref");
+        final String value = param.getValue(request);
+
+        // no raw CR/LF may end up in the log line
+        assertFalse(value.contains("\r"));
+        assertFalse(value.contains("\n"));
+        assertEquals("x\\r\\n192.168.1.1 - admin \\\"POST /system/console HTTP/1.1\\\" 200", value);
+    }
+
+    public void testContentPathEscaped() {
+        final RequestLoggerRequest request = Mockito.mock(RequestLoggerRequest.class);
+        Mockito.when(request.getAttribute(RequestData.REQUEST_RESOURCE_PATH_ATTR))
+                .thenReturn("/content/foo\r\nFORGED LINE");
+
+        final CustomLogFormat.ContentPathParameter param = new CustomLogFormat.ContentPathParameter();
+        final String value = param.getValue(request);
+
+        assertFalse(value.contains("\r"));
+        assertFalse(value.contains("\n"));
+        assertEquals("/content/foo\\r\\nFORGED LINE", value);
+    }
+
+    public void testRemoteHostEscaped() {
+        final RequestLoggerRequest request = Mockito.mock(RequestLoggerRequest.class);
+        Mockito.when(request.getRemoteHost()).thenReturn("evil\nhost.example.com");
+
+        final CustomLogFormat.RemoteHostParameter param = new CustomLogFormat.RemoteHostParameter();
+        final String value = param.getValue(request);
+
+        assertFalse(value.contains("\n"));
+        assertEquals("evil\\nhost.example.com", value);
     }
 }
