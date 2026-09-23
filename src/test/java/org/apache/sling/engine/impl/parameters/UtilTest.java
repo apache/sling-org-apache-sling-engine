@@ -127,4 +127,49 @@ public class UtilTest extends TestCase {
         assertEquals("Some Page", map.getStringValue("title"));
         assertEquals("/content/geometrixx", map.getStringValue("parentPath"));
     }
+
+    public void test_decode_valid_escapes() throws Exception {
+        final ParameterMap map = new ParameterMap();
+        final String query = "a=%41%62c&b=x%2fy&c=%0d%0A";
+        Util.parseQueryString(
+                new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)), Util.ENCODING_DIRECT, map, false);
+        assertEquals("Abc", map.getStringValue("a"));
+        assertEquals("x/y", map.getStringValue("b"));
+        assertEquals("\r\n", map.getStringValue("c"));
+    }
+
+    public void test_signed_escape_sequences_rejected() throws Exception {
+        // Integer.parseInt(s, 16) accepts a leading sign, a standards compliant
+        // URL decoder does not: %+d/%+a would decode to CR/LF invisible to any
+        // RFC 3986 decoder (e.g. a WAF), %-1 to byte 0xFF
+        for (String query : new String[] {"r=x%+d%+ay", "r=x%-1", "%+d=x", "r=%4+"}) {
+            try {
+                Util.parseQueryString(
+                        new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)),
+                        Util.ENCODING_DIRECT,
+                        new ParameterMap(),
+                        false);
+                fail("Expected IllegalArgumentException for query: " + query);
+            } catch (IllegalArgumentException expected) {
+                // expected: signed/non-hex escape sequences are malformed
+            }
+        }
+    }
+
+    public void test_trailing_incomplete_escape_rejected() throws Exception {
+        // a trailing "%2" was silently swallowed before, yielding value "b"
+        // for "a=b%2" - malformed input must be rejected, not truncated
+        for (String query : new String[] {"a=b%2", "a=b%", "a%2"}) {
+            try {
+                Util.parseQueryString(
+                        new ByteArrayInputStream(query.getBytes(Util.ENCODING_DIRECT)),
+                        Util.ENCODING_DIRECT,
+                        new ParameterMap(),
+                        false);
+                fail("Expected IllegalArgumentException for query: " + query);
+            } catch (IllegalArgumentException expected) {
+                // expected: incomplete trailing escape sequence
+            }
+        }
+    }
 }
