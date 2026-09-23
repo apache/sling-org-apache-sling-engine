@@ -28,7 +28,7 @@ import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.builder.Builders;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
+
 import org.slf4j.Logger;
 import org.slf4j.helpers.MessageFormatter;
 
@@ -37,6 +37,9 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 /** Partial tests of RequestProgressTrackerLogFilter */
 public class RequestProgressTrackerLogFilterTest {
@@ -124,7 +127,7 @@ public class RequestProgressTrackerLogFilterTest {
      * the exact arguments reaching the logger can be captured.
      */
     private Logger injectMockLogger(final RequestProgressTrackerLogFilter filter) throws Exception {
-        final Logger logger = Mockito.mock(Logger.class);
+        final Logger logger = mock(Logger.class);
         final Field logField = RequestProgressTrackerLogFilter.class.getDeclaredField("log");
         logField.setAccessible(true);
         logField.set(filter, logger);
@@ -140,9 +143,9 @@ public class RequestProgressTrackerLogFilterTest {
     }
 
     private RequestProgressTracker rptWithMessages(final String... messages) {
-        final RequestProgressTracker rpt = Mockito.mock(RequestProgressTracker.class);
+        final RequestProgressTracker rpt = mock(RequestProgressTracker.class);
         final Iterator<String> it = Arrays.asList(messages).iterator();
-        Mockito.when(rpt.getMessages()).thenAnswer(invocation -> it);
+        when(rpt.getMessages()).thenAnswer(invocation -> it);
         return rpt;
     }
 
@@ -165,7 +168,7 @@ public class RequestProgressTrackerLogFilterTest {
         final ArgumentCaptor<String> formatCaptor = ArgumentCaptor.forClass(String.class);
         final ArgumentCaptor<Object> requestIdCaptor = ArgumentCaptor.forClass(Object.class);
         final ArgumentCaptor<Object> messageCaptor = ArgumentCaptor.forClass(Object.class);
-        Mockito.verify(logger, times(1))
+        verify(logger, times(1))
                 .debug(formatCaptor.capture(), requestIdCaptor.capture(), messageCaptor.capture());
 
         assertEquals("REQUEST_{} - {}", formatCaptor.getValue());
@@ -197,7 +200,7 @@ public class RequestProgressTrackerLogFilterTest {
         invokeLogFormat(filter, "logCompactFormat", rpt);
 
         final ArgumentCaptor<String> messageCaptor = ArgumentCaptor.forClass(String.class);
-        Mockito.verify(logger, times(1)).debug(messageCaptor.capture());
+        verify(logger, times(1)).debug(messageCaptor.capture());
 
         final String logged = messageCaptor.getValue();
         assertFalse(logged.contains("\r"));
