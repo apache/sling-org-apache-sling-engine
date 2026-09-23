@@ -109,4 +109,24 @@ public class CustomLogFormatTest extends TestCase {
         assertFalse(value.contains("\n"));
         assertEquals("evil\\nhost.example.com", value);
     }
+
+    public void testThreadNameEscaped() {
+        // %P (ThreadParameter) does not read from the request but from the
+        // name of the thread handling it, and the threadname can contain the
+        // requested path
+        final Thread currentThread = Thread.currentThread();
+        final String originalName = currentThread.getName();
+        currentThread.setName("/content/\r\nfoo");
+        try {
+            final RequestLoggerRequest request = Mockito.mock(RequestLoggerRequest.class);
+            final CustomLogFormat.ThreadParameter param = new CustomLogFormat.ThreadParameter(null);
+            final String value = param.getValue(request);
+
+            assertFalse(value.contains("\r"));
+            assertFalse(value.contains("\n"));
+            assertEquals("/content/\\r\\nfoo", value);
+        } finally {
+            currentThread.setName(originalName);
+        }
+    }
 }
