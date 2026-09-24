@@ -547,7 +547,7 @@ class CustomLogFormat {
         }
 
         protected String getValue(RequestLoggerRequest request) {
-            return Thread.currentThread().getName();
+            return escape(Thread.currentThread().getName());
         }
 
         protected String getValue(RequestLoggerResponse response) {
@@ -561,7 +561,7 @@ class CustomLogFormat {
         }
 
         protected String getValue(RequestLoggerRequest request) {
-            return request.getParameter(this.getParParam());
+            return escape(request.getParameter(this.getParParam()));
         }
 
         protected String getValue(RequestLoggerResponse response) {
@@ -705,7 +705,7 @@ class CustomLogFormat {
         }
 
         protected String getValue(RequestLoggerRequest request) {
-            return request.getRemoteHost();
+            return escape(request.getRemoteHost());
         }
 
         protected String getValue(RequestLoggerResponse response) {
@@ -763,7 +763,10 @@ class CustomLogFormat {
         protected String getValue(RequestLoggerRequest request) {
             final Object resourcePath = request.getAttribute(RequestData.REQUEST_RESOURCE_PATH_ATTR);
             if (resourcePath instanceof String) {
-                return (String) resourcePath;
+                // the resolved resource path is derived from the decoded request
+                // path and may contain control characters (e.g. for non-existing
+                // resources), so it must be escaped like other request data
+                return escape((String) resourcePath);
             }
             return null;
         }
