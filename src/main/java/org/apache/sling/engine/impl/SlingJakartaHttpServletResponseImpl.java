@@ -427,7 +427,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                     return;
                 }
                 LOG.warn(message.get());
-                LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
+                LOG.warn("{}{}", CALL_STACK_MESSAGE, getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("WARN: " + message.get());
                 super.setContentType(type);
             } else {
@@ -449,17 +449,17 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         if (message.isPresent()) {
             if (isCheckContentTypeOnInclude()) {
                 requestData.getRequestProgressTracker().log("ERROR: " + message.get());
-                LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
+                LOG.error("{}{}", CALL_STACK_MESSAGE, getCurrentStackTrace());
                 throw new ContentTypeChangeException(message.get());
             }
             if (isProtectHeadersOnInclude()) {
                 LOG.error(message.get());
-                LOG.error(CALL_STACK_MESSAGE + getCurrentStackTrace());
+                LOG.error("{}{}", CALL_STACK_MESSAGE, getCurrentStackTrace());
                 requestData.getRequestProgressTracker().log("ERROR: " + message.get());
                 return;
             }
             LOG.warn(message.get());
-            LOG.warn(CALL_STACK_MESSAGE + getCurrentStackTrace());
+            LOG.warn("{}{}", CALL_STACK_MESSAGE, getCurrentStackTrace());
             requestData.getRequestProgressTracker().log("WARN: " + message.get());
             super.setCharacterEncoding(charset);
         } else {
