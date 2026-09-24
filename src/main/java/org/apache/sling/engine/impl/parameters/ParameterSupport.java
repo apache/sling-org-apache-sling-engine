@@ -265,7 +265,11 @@ public class ParameterSupport {
             if (query != null) {
                 try {
                     InputStream input = Util.toInputStream(query);
-                    Util.parseQueryString(input, encoding, parameters, false);
+                    // the query string is always decoded with the byte-preserving
+                    // ISO-8859-1 encoding and later fixed up via the '_charset_'
+                    // parameter or the configured default encoding (see
+                    // Util.fixEncoding).
+                    Util.parseQueryString(input, Util.ENCODING_DIRECT, parameters, false);
                     addContainerParameters = checkForAdditionalParameters;
                 } catch (IllegalArgumentException e) {
                     this.log.error("getRequestParameterMapInternal: Error parsing request", e);
@@ -379,15 +383,17 @@ public class ParameterSupport {
             return false;
         }
 
-        // This check assumes the content type ends after the WWW_FORM_URL_ENC
-        // or continues with blank or semicolon. It will probably break if
-        // the content type is some string extension of WWW_FORM_URL_ENC
-        // such as "application/x-www-form-urlencoded-bla"
-        if (contentType.toLowerCase(Locale.ENGLISH).startsWith(WWW_FORM_URL_ENC)) {
-            return true;
+        // only the media type is relevant, optional parameters (such as
+        // charset) may follow separated by a semicolon. An exact match is
+        // required: a prefix match would treat unrelated media types such as
+        // "application/x-www-form-urlencoded-bla" as form encoded content and
+        // parse a request body which container level inspection does not
+        // consider to carry parameters
+        final int semi = contentType.indexOf(';');
+        if (semi >= 0) {
+            contentType = contentType.substring(0, semi);
         }
-
-        return false;
+        return WWW_FORM_URL_ENC.equals(contentType.trim().toLowerCase(Locale.ENGLISH));
     }
 
     private RequestContext getMultiPartContext() {
