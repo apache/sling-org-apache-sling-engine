@@ -38,6 +38,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.atMostOnce;
@@ -938,5 +939,62 @@ public class SlingHttpServletResponseImplTest {
         include.addHeader("bar", "another");
 
         Mockito.verifyNoInteractions(orig);
+    }
+
+    @Test
+    public void testCharsetsEqualIdenticalNames() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualDifferingOnlyByCase() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("utf-8", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualAliasNames() {
+        // "UTF8" and "UTF-8" differ by more than case, but are the same
+        // charset (UTF8 is a registered alias)
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF8", "UTF-8"));
+        // "Cp1252" and "windows-1252" are aliases for the same charset
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("Cp1252", "windows-1252"));
+    }
+
+    @Test
+    public void testCharsetsEqualDifferentCharsets() {
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", "ISO-8859-1"));
+    }
+
+    @Test
+    public void testCharsetsEqualBothNull() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual(null, null));
+    }
+
+    @Test
+    public void testCharsetsEqualOneNull() {
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual(null, "UTF-8"));
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", null));
+    }
+
+    @Test
+    public void testCharsetsEqualIdenticalUnsupportedNamesFallsBackToTextualMatch() {
+        // neither name resolves to a known Charset, but they are textually
+        // equal (ignoring case), so the fast path short-circuits before any
+        // Charset.forName lookup is attempted
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual(
+                "bogus-unknown-charset-xyz", "BOGUS-UNKNOWN-CHARSET-XYZ"));
+    }
+
+    @Test
+    public void testCharsetsEqualUnsupportedNameFallsBackWithoutThrowing() {
+        // "bogus-unknown-charset-xyz" is a syntactically valid charset name
+        // that is simply not registered/supported (UnsupportedCharsetException)
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("bogus-unknown-charset-xyz", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualIllegalCharsetNameFallsBackWithoutThrowing() {
+        // this name is not even syntactically valid (IllegalCharsetNameException)
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("not a real charset!!", "UTF-8"));
     }
 }

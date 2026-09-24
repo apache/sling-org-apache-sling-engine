@@ -21,6 +21,8 @@ package org.apache.sling.engine.impl;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.nio.charset.IllegalCharsetNameException;
+import java.nio.charset.UnsupportedCharsetException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -28,6 +30,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -430,7 +433,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         final boolean isFirstViolation =
                 requestData.getSlingRequestProcessor().getContentTypeHeaderState() != ContentTypeHeaderState.VIOLATED;
         final String currentCharset = getCharacterEncoding();
-        if (charset != null && charset.equalsIgnoreCase(currentCharset)) {
+        if (charset != null && charsetsEqual(charset, currentCharset)) {
             // not an effective change
             return Optional.empty();
         }
@@ -485,7 +488,7 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
             if (currentCharset == null) {
                 currentCharset = getCharacterEncoding();
             }
-            if (!setCharset.equalsIgnoreCase(currentCharset)) {
+            if (!charsetsEqual(setCharset, currentCharset)) {
                 requestData.getSlingRequestProcessor().setContentTypeHeaderState(ContentTypeHeaderState.VIOLATED);
                 return Optional.of(
                         isFirstViolation
@@ -525,6 +528,39 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
             }
         }
         return null;
+    }
+
+    /**
+     * Compares two charset names for equality, treating charsets that are
+     * merely spelled differently (e.g. {@code UTF8} vs. {@code UTF-8}, or
+     * {@code Cp1252} vs. {@code windows-1252}) as equal, not just names that
+     * differ by case. Both names are resolved via {@link Charset#forName(String)}
+     * and compared as canonical {@link Charset} instances; if either name is
+     * not a valid or supported charset name - which the Servlet API does not
+     * strictly forbid - this falls back to a case-insensitive textual
+     * comparison instead of throwing.
+     *
+     * @param a the first charset name, may be {@code null}
+     * @param b the second charset name, may be {@code null}
+     * @return {@code true} if the two names identify the same charset, or are
+     *         textually equal (ignoring case) when at least one of them
+     *         cannot be resolved to a {@link Charset}
+     */
+    static boolean charsetsEqual(@Nullable final String a, @Nullable final String b) {
+        if (a == null || b == null) {
+            return Objects.equals(a, b);
+        }
+        if (a.equalsIgnoreCase(b)) {
+            return true;
+        }
+        try {
+            return Charset.forName(a).equals(Charset.forName(b));
+        } catch (IllegalCharsetNameException | UnsupportedCharsetException e) {
+            // already known to differ textually (checked above), and at
+            // least one name is not a valid/known charset name, so canonical
+            // comparison is not possible
+            return false;
+        }
     }
 
     /**
