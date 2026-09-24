@@ -42,7 +42,7 @@ import static org.mockito.Mockito.when;
 public class ParameterSupportTest {
 
     @Test
-    public void testQueryStringDecodingIgnoresClientControlledCharacterEncoding() throws Exception {
+    public void testQueryStringDecodingIgnoresClientControlledCharacterEncoding() {
         // the client claims (via Content-Type) that the request uses UTF-16BE.
         // Per HTTP this only applies to the request body, not the query
         // string. If the engine honored it for the query string anyway, the
@@ -78,7 +78,7 @@ public class ParameterSupportTest {
     }
 
     @Test
-    public void testWwwFormEncodedContentTypeWithCharsetParameterIsParsedAsFormParameters() throws Exception {
+    public void testWwwFormEncodedContentTypeWithCharsetParameterIsParsedAsFormParameters() throws IOException {
         final HttpServletRequest request = postRequest("application/x-www-form-urlencoded; charset=UTF-8", "a=b");
 
         final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
@@ -87,7 +87,7 @@ public class ParameterSupportTest {
     }
 
     @Test
-    public void testContentTypeThatOnlyStartsWithFormEncodedMediaTypeIsNotParsedAsFormParameters() throws Exception {
+    public void testContentTypeThatOnlyStartsWithFormEncodedMediaTypeIsNotParsedAsFormParameters() throws IOException {
         // a container/perimeter doing an exact media type match considers
         // this request to carry no parameters at all; if the engine parsed
         // the body anyway (prefix match) it would act on data invisible to
