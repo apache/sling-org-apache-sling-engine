@@ -19,6 +19,8 @@
 package org.apache.sling.engine.impl;
 
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.stream.Collectors;
@@ -33,16 +35,22 @@ import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.anyString;
 import static org.mockito.Mockito.atMostOnce;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.startsWith;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.when;
 
 public class SlingHttpServletResponseImplTest {
@@ -123,8 +131,8 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testNoViolationChecksOnCommittedResponseWhenSendRedirect() throws IOException {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
-        Mockito.when(orig.isCommitted()).thenReturn(true);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        when(orig.isCommitted()).thenReturn(true);
 
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -132,18 +140,18 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
-        SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
+        SlingJakartaHttpServletResponseImpl spyInclude = spy(include);
 
         spyInclude.sendRedirect("somewhere");
 
         spyInclude.setContentType("someOtherType");
-        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
-        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+        verify(orig, times(1)).setContentType(any());
+        verify(spyInclude, never()).checkContentTypeOverride(any());
     }
 
     @Test
     public void testSendRedirectOverloadsProtectedOnInclude() throws IOException {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -157,12 +165,12 @@ public class SlingHttpServletResponseImplTest {
         include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
         include.setTrailerFields(java.util.Collections::emptyMap);
 
-        Mockito.verifyNoInteractions(orig);
+        verifyNoInteractions(orig);
     }
 
     @Test
     public void testSendRedirectOverloadsDelegateWhenNotProtected() throws IOException {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -174,14 +182,14 @@ public class SlingHttpServletResponseImplTest {
         include.sendRedirect("/target", true);
         include.sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
 
-        Mockito.verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY);
-        Mockito.verify(orig, times(1)).sendRedirect("/target", true);
-        Mockito.verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
+        verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY);
+        verify(orig, times(1)).sendRedirect("/target", true);
+        verify(orig, times(1)).sendRedirect("/target", HttpServletResponse.SC_MOVED_PERMANENTLY, false);
     }
 
     @Test
     public void testNoViolationChecksOnCommittedResponseWhenSendError() throws IOException {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
 
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -190,21 +198,21 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
-        SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
+        SlingJakartaHttpServletResponseImpl spyInclude = spy(include);
 
         spyInclude.sendError(501);
         // send error will eventually commit the response, let's mock this
-        Mockito.when(orig.isCommitted()).thenReturn(true);
+        when(orig.isCommitted()).thenReturn(true);
 
         spyInclude.setContentType("someOtherType");
-        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
-        Mockito.verify(spyInclude, never()).checkContentTypeOverride(Mockito.any());
+        verify(orig, times(1)).setContentType(any());
+        verify(spyInclude, never()).checkContentTypeOverride(any());
     }
 
     @Test
     public void testViolationChecksOnCommittedResponses() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
-        Mockito.when(orig.isCommitted()).thenReturn(true);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        when(orig.isCommitted()).thenReturn(true);
 
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
@@ -215,11 +223,11 @@ public class SlingHttpServletResponseImplTest {
         when(requestData.getRequestProgressTracker()).thenReturn(rpt);
 
         final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
-        SlingJakartaHttpServletResponseImpl spyInclude = Mockito.spy(include);
+        SlingJakartaHttpServletResponseImpl spyInclude = spy(include);
 
         spyInclude.setContentType("someOtherType");
-        Mockito.verify(orig, times(1)).setContentType(Mockito.any());
-        Mockito.verify(spyInclude, Mockito.times(1)).checkContentTypeOverride(Mockito.any());
+        verify(orig, times(1)).setContentType(any());
+        verify(spyInclude, times(1)).checkContentTypeOverride(any());
     }
 
     @Test
@@ -236,13 +244,13 @@ public class SlingHttpServletResponseImplTest {
         when(originalResponse.isCommitted()).thenReturn(false);
         includeResponse.reset();
         verify(originalResponse, times(1)).isCommitted();
-        Mockito.verifyNoMoreInteractions(originalResponse);
+        verifyNoMoreInteractions(originalResponse);
 
         when(originalResponse.isCommitted()).thenReturn(true);
         includeResponse.reset();
         verify(originalResponse, times(2)).isCommitted();
         verify(originalResponse, times(1)).reset();
-        Mockito.verifyNoMoreInteractions(originalResponse);
+        verifyNoMoreInteractions(originalResponse);
     }
 
     @Test
@@ -261,11 +269,11 @@ public class SlingHttpServletResponseImplTest {
         includeResponse.reset();
         verify(originalResponse, times(1)).reset();
 
-        Mockito.verifyNoMoreInteractions(originalResponse);
+        verifyNoMoreInteractions(originalResponse);
     }
 
     private String callTesteeAndGetRequestProgressTrackerMessage(String[] logMessages) {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -288,13 +296,13 @@ public class SlingHttpServletResponseImplTest {
         include.setLocale(null);
         include.setBufferSize(4500);
 
-        Mockito.verify(orig, never()).setContentLength(54);
-        Mockito.verify(orig, never()).setContentLengthLong(33L);
-        Mockito.verify(orig, never()).setContentType("text/plain");
-        Mockito.verify(orig, never()).setLocale(null);
-        Mockito.verify(orig, Mockito.times(1)).setBufferSize(4500);
+        verify(orig, never()).setContentLength(54);
+        verify(orig, never()).setContentLengthLong(33L);
+        verify(orig, never()).setContentType("text/plain");
+        verify(orig, never()).setLocale(null);
+        verify(orig, times(1)).setBufferSize(4500);
 
-        Mockito.verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(Mockito.any());
+        verify(requestProcessor, atMostOnce()).setContentTypeHeaderState(any());
 
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());
@@ -336,7 +344,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentMethodsOnForward() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -352,18 +360,18 @@ public class SlingHttpServletResponseImplTest {
         include.setLocale(null);
         include.setBufferSize(4500);
 
-        Mockito.verify(orig, times(1)).setContentLength(54);
-        Mockito.verify(orig, times(1)).setContentLengthLong(33L);
-        Mockito.verify(orig, times(1)).setContentType("text/plain");
-        Mockito.verify(orig, times(1)).setLocale(null);
-        Mockito.verify(orig, times(1)).setBufferSize(4500);
+        verify(orig, times(1)).setContentLength(54);
+        verify(orig, times(1)).setContentLengthLong(33L);
+        verify(orig, times(1)).setContentType("text/plain");
+        verify(orig, times(1)).setLocale(null);
+        verify(orig, times(1)).setBufferSize(4500);
 
-        Mockito.verifyNoInteractions(requestProgressTracker);
+        verifyNoInteractions(requestProgressTracker);
     }
 
     @Test
     public void testContentTypeOverrideEnabled() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -386,7 +394,7 @@ public class SlingHttpServletResponseImplTest {
         } catch (RuntimeException e) {
             throwable = e;
         }
-        Mockito.verify(orig, never()).setContentType("application/json");
+        verify(orig, never()).setContentType("application/json");
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());
         String logMessage = logCaptor.getValue();
@@ -414,7 +422,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentTypeOverrideEnforcedForSetHeader() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -447,14 +455,14 @@ public class SlingHttpServletResponseImplTest {
         }
         assertNotNull("Expected addHeader(\"content-type\", ...) to be blocked.", addHeaderThrowable);
 
-        Mockito.verify(orig, never()).setHeader(Mockito.anyString(), Mockito.anyString());
-        Mockito.verify(orig, never()).addHeader(Mockito.anyString(), Mockito.anyString());
-        Mockito.verify(orig, never()).setContentType(Mockito.anyString());
+        verify(orig, never()).setHeader(anyString(), anyString());
+        verify(orig, never()).addHeader(anyString(), anyString());
+        verify(orig, never()).setContentType(anyString());
     }
 
     @Test
     public void testUnrelatedHeadersNotRoutedThroughContentTypeCheck() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -466,13 +474,13 @@ public class SlingHttpServletResponseImplTest {
         include.setHeader("X-Custom", "value");
         include.addHeader("X-Custom", "another");
 
-        Mockito.verify(orig, times(1)).setHeader("X-Custom", "value");
-        Mockito.verify(orig, times(1)).addHeader("X-Custom", "another");
+        verify(orig, times(1)).setHeader("X-Custom", "value");
+        verify(orig, times(1)).addHeader("X-Custom", "another");
     }
 
     @Test
     public void testContentTypeOverrideDisabled() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -488,7 +496,7 @@ public class SlingHttpServletResponseImplTest {
         final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
-        Mockito.verify(orig, times(1)).setContentType("application/json");
+        verify(orig, times(1)).setContentType("application/json");
 
         ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
         verify(requestProgressTracker, times(1)).log(logCaptor.capture());
@@ -507,7 +515,7 @@ public class SlingHttpServletResponseImplTest {
 
     @Test
     public void testContentTypeOverrideStillEnforcedAfterPreviousViolation() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -531,12 +539,12 @@ public class SlingHttpServletResponseImplTest {
             throwable = e;
         }
         assertNotNull("Expected the repeated override attempt to still be blocked.", throwable);
-        Mockito.verify(orig, never()).setContentType("text/html");
+        verify(orig, never()).setContentType("text/html");
     }
 
     @Test
     public void testContentTypeOverrideStillIgnoredAfterPreviousViolationWithProtectHeaders() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -555,12 +563,12 @@ public class SlingHttpServletResponseImplTest {
 
         include.setContentType("text/html");
 
-        Mockito.verify(orig, never()).setContentType("text/html");
+        verify(orig, never()).setContentType("text/html");
     }
 
     @Test
     public void testNoOverrideProtectHeadersContentTypeOverride() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
@@ -576,13 +584,343 @@ public class SlingHttpServletResponseImplTest {
         final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
         when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
         include.setContentType("application/json");
-        Mockito.verify(orig, times(1)).setContentType("application/json");
-        Mockito.verifyNoInteractions(requestProgressTracker);
+        verify(orig, times(1)).setContentType("application/json");
+        verifyNoInteractions(requestProgressTracker);
+    }
+
+    @Test
+    public void testCharacterEncodingProtectedOnInclude() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        when(orig.getContentType()).thenReturn("text/html;charset=UTF-8");
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setCharacterEncoding("ISO-2022-JP");
+
+        verify(orig, never()).setCharacterEncoding(anyString());
+        ArgumentCaptor<String> logCaptor = ArgumentCaptor.forClass(String.class);
+        verify(requestProgressTracker, times(1)).log(logCaptor.capture());
+        assertTrue(logCaptor.getValue().startsWith("ERROR: "));
+    }
+
+    @Test
+    public void testCharacterEncodingCharsetVariantProtectedOnInclude() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setCharacterEncoding(StandardCharsets.UTF_16);
+
+        verify(orig, never()).setCharacterEncoding(anyString());
+        verify(orig, never()).setCharacterEncoding(any(Charset.class));
+    }
+
+    @Test
+    public void testCharacterEncodingUnchangedNotFlaggedOnInclude() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setCharacterEncoding("utf-8");
+
+        verify(orig, times(1)).setCharacterEncoding("utf-8");
+        verifyNoInteractions(requestProgressTracker);
+    }
+
+    @Test
+    public void testCharacterEncodingDelegatedOutsideInclude() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.FORWARD);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+
+        final HttpServletResponse response = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        response.setCharacterEncoding("ISO-2022-JP");
+
+        verify(orig, times(1)).setCharacterEncoding("ISO-2022-JP");
+    }
+
+    @Test
+    public void testContentTypeCharsetChangeDetectedOnInclude() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html;charset=UTF-8");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable throwable = null;
+        try {
+            include.setContentType("text/html;charset=UTF-7");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        assertNotNull("Expected a RuntimeException for the charset change.", throwable);
+        verify(orig, never()).setContentType(anyString());
+    }
+
+    @Test
+    public void testContentTypeSameMimeAndCharsetCaseInsensitiveNotFlagged() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html; charset=UTF-8");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setProtectHeadersOnInclude(true);
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setContentType("TEXT/HTML;charset=utf-8");
+
+        verify(orig, times(1)).setContentType("TEXT/HTML;charset=utf-8");
+        verifyNoInteractions(requestProgressTracker);
+    }
+
+    @Test
+    public void testCharacterEncodingCheckContentTypeOnIncludeThrows() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        when(orig.getContentType()).thenReturn("text/html;charset=UTF-8");
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable throwable = null;
+        try {
+            include.setCharacterEncoding("ISO-2022-JP");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        assertNotNull("Expected a RuntimeException for the character encoding change.", throwable);
+        verify(orig, never()).setCharacterEncoding(anyString());
+        verify(requestProgressTracker, times(1)).log(startsWith("ERROR: "));
+    }
+
+    @Test
+    public void testCharacterEncodingStillEnforcedAfterPreviousViolation() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html;charset=UTF-8");
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        // a violation has already been detected earlier within this request
+        when(requestProcessor.getContentTypeHeaderState()).thenReturn(ContentTypeHeaderState.VIOLATED);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable throwable = null;
+        try {
+            include.setCharacterEncoding("ISO-2022-JP");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        assertNotNull("Expected the repeated override attempt to still be blocked.", throwable);
+        verify(orig, never()).setCharacterEncoding(anyString());
+        // the short message must not require the RequestProgressTracker messages again
+        verify(requestProgressTracker, never()).getMessages();
+    }
+
+    @Test
+    public void testCharacterEncodingNoViolationChecksOnCommittedResponseWhenSendRedirect() throws IOException {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        when(orig.isCommitted()).thenReturn(true);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
+
+        final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+        SlingJakartaHttpServletResponseImpl spyInclude = spy(include);
+
+        spyInclude.sendRedirect("somewhere");
+
+        spyInclude.setCharacterEncoding("ISO-2022-JP");
+        verify(orig, times(1)).setCharacterEncoding("ISO-2022-JP");
+        verify(spyInclude, never()).checkCharacterEncodingOverride(any());
+    }
+
+    @Test
+    public void testCharacterEncodingNoViolationChecksOnCommittedResponseWhenSendError() throws IOException {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getSlingRequestProcessor()).thenReturn(mock(SlingRequestProcessorImpl.class));
+        when(requestData.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
+
+        final SlingJakartaHttpServletResponseImpl include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+        SlingJakartaHttpServletResponseImpl spyInclude = spy(include);
+
+        spyInclude.sendError(501);
+        // send error will eventually commit the response, let's mock this
+        when(orig.isCommitted()).thenReturn(true);
+
+        spyInclude.setCharacterEncoding("ISO-2022-JP");
+        verify(orig, times(1)).setCharacterEncoding("ISO-2022-JP");
+        verify(spyInclude, never()).checkCharacterEncodingOverride(any());
+    }
+
+    @Test
+    public void testCharacterEncodingNullCharsetFallsBackToDelegate() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        when(orig.getContentType()).thenReturn("text/html;charset=UTF-8");
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setProtectHeadersOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        include.setCharacterEncoding((Charset) null);
+
+        verify(orig, never()).setCharacterEncoding(anyString());
+        verify(requestProgressTracker, times(1)).log(startsWith("ERROR: "));
+    }
+
+    @Test
+    public void testContentTypeCharsetFallsBackToCurrentCharacterEncodingWhenNotInContentType() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        // current 'Content-Type' has no charset parameter, but the response
+        // already has a character encoding assigned
+        when(orig.getContentType()).thenReturn("text/html");
+        when(orig.getCharacterEncoding()).thenReturn("UTF-8");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        when(requestData.getActiveServletName()).thenReturn(ACTIVE_SERVLET_NAME);
+        ArrayList<String> logMessagesList = new ArrayList<>(Arrays.asList(logMessages));
+        when(requestProgressTracker.getMessages()).thenAnswer(invocation -> logMessagesList.iterator());
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        Throwable throwable = null;
+        try {
+            include.setContentType("text/html;charset=UTF-7");
+        } catch (RuntimeException e) {
+            throwable = e;
+        }
+        assertNotNull(
+                "Expected a RuntimeException since the charset differs from the current character encoding.",
+                throwable);
+        verify(orig, never()).setContentType(anyString());
+    }
+
+    @Test
+    public void testContentTypeQuotedCharsetParsedCorrectly() {
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
+        final RequestData requestData = mock(RequestData.class);
+        final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
+        final RequestProgressTracker requestProgressTracker = mock(RequestProgressTracker.class);
+        when(requestData.getDispatchingInfo()).thenReturn(info);
+        when(orig.getContentType()).thenReturn("text/html; charset=\"UTF-8\"");
+        when(requestData.getRequestProgressTracker()).thenReturn(requestProgressTracker);
+        info.setProtectHeadersOnInclude(true);
+        info.setCheckContentTypeOnInclude(true);
+
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final HttpServletResponse include = new SlingJakartaHttpServletResponseImpl(requestData, orig);
+
+        // same mime type and same (quoted vs. unquoted) charset must not be flagged
+        include.setContentType("text/html; charset=UTF-8");
+
+        verify(orig, times(1)).setContentType("text/html; charset=UTF-8");
+        verifyNoInteractions(requestProgressTracker);
     }
 
     @Test
     public void testCookies() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -592,12 +930,12 @@ public class SlingHttpServletResponseImplTest {
 
         include.addCookie(new Cookie("foo", "bar"));
 
-        Mockito.verifyNoInteractions(orig);
+        verifyNoInteractions(orig);
     }
 
     @Test
     public void testSendError() throws IOException {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -608,12 +946,12 @@ public class SlingHttpServletResponseImplTest {
         include.sendError(500);
         include.sendError(500, "Error");
 
-        Mockito.verifyNoInteractions(orig);
+        verifyNoInteractions(orig);
     }
 
     @Test
     public void testSetStatus() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -623,12 +961,12 @@ public class SlingHttpServletResponseImplTest {
 
         include.setStatus(500);
 
-        Mockito.verifyNoInteractions(orig);
+        verifyNoInteractions(orig);
     }
 
     @Test
     public void testHeaders() {
-        final SlingJakartaHttpServletResponse orig = Mockito.mock(SlingJakartaHttpServletResponse.class);
+        final SlingJakartaHttpServletResponse orig = mock(SlingJakartaHttpServletResponse.class);
         final RequestData requestData = mock(RequestData.class);
         final DispatchingInfo info = new DispatchingInfo(DispatcherType.INCLUDE);
         when(requestData.getDispatchingInfo()).thenReturn(info);
@@ -643,6 +981,63 @@ public class SlingHttpServletResponseImplTest {
         include.setHeader("foo", "value");
         include.addHeader("bar", "another");
 
-        Mockito.verifyNoInteractions(orig);
+        verifyNoInteractions(orig);
+    }
+
+    @Test
+    public void testCharsetsEqualIdenticalNames() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualDifferingOnlyByCase() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("utf-8", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualAliasNames() {
+        // "UTF8" and "UTF-8" differ by more than case, but are the same
+        // charset (UTF8 is a registered alias)
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF8", "UTF-8"));
+        // "Cp1252" and "windows-1252" are aliases for the same charset
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual("Cp1252", "windows-1252"));
+    }
+
+    @Test
+    public void testCharsetsEqualDifferentCharsets() {
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", "ISO-8859-1"));
+    }
+
+    @Test
+    public void testCharsetsEqualBothNull() {
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual(null, null));
+    }
+
+    @Test
+    public void testCharsetsEqualOneNull() {
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual(null, "UTF-8"));
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("UTF-8", null));
+    }
+
+    @Test
+    public void testCharsetsEqualIdenticalUnsupportedNamesFallsBackToTextualMatch() {
+        // neither name resolves to a known Charset, but they are textually
+        // equal (ignoring case), so the fast path short-circuits before any
+        // Charset.forName lookup is attempted
+        assertTrue(SlingJakartaHttpServletResponseImpl.charsetsEqual(
+                "bogus-unknown-charset-xyz", "BOGUS-UNKNOWN-CHARSET-XYZ"));
+    }
+
+    @Test
+    public void testCharsetsEqualUnsupportedNameFallsBackWithoutThrowing() {
+        // "bogus-unknown-charset-xyz" is a syntactically valid charset name
+        // that is simply not registered/supported (UnsupportedCharsetException)
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("bogus-unknown-charset-xyz", "UTF-8"));
+    }
+
+    @Test
+    public void testCharsetsEqualIllegalCharsetNameFallsBackWithoutThrowing() {
+        // this name is not even syntactically valid (IllegalCharsetNameException)
+        assertFalse(SlingJakartaHttpServletResponseImpl.charsetsEqual("not a real charset!!", "UTF-8"));
     }
 }
