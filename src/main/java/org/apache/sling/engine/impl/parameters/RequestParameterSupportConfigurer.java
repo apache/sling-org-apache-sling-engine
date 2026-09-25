@@ -132,9 +132,10 @@ public class RequestParameterSupportConfigurer implements Filter {
         @AttributeDefinition(
                 name = "Fail on Parameter Limit",
                 description = "Whether to throw an exception when the maximum number of parameters is exceeded. "
-                        + "If false (default), a warning is logged and processing continues with truncated parameters. "
-                        + "If true, an IllegalStateException is thrown.")
-        boolean sling_default_parameter_fail_on_limit() default false;
+                        + "If true (default), an exception is thrown and the request is rejected with a 400 Bad "
+                        + "Request response. If false, a warning is logged and processing continues with the "
+                        + "parameter map silently truncated after the configured limit.")
+        boolean sling_default_parameter_fail_on_limit() default true;
     }
 
     static final String PID = "org.apache.sling.engine.parameters";
