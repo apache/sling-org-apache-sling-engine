@@ -66,6 +66,7 @@ import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
+import org.apache.sling.engine.impl.parameters.ParameterParseException;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
@@ -310,6 +311,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // send this exception as a 404 status
             log.debug("service: Resource {} not found", rnfe.getResource());
             handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(), request, response);
+
+        } catch (final ParameterParseException ppe) {
+            // the request parameters could not be processed (e.g. too many
+            // parameters); the request itself is malformed/excessive, not the
+            // server, so send this exception as a 400 status
+            log.debug("service: Failed processing request parameters", ppe);
+            handleError(HttpServletResponse.SC_BAD_REQUEST, ppe.getMessage(), request, response);
 
         } catch (final SlingException se) {
             // send this exception as is (albeit unwrapping and wrapped

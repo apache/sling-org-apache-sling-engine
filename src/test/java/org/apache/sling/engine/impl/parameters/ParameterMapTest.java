@@ -76,7 +76,7 @@ public class ParameterMapTest {
         assertEquals(2, pm.size());
 
         // Should throw exception when exceeding limit
-        exception.expect(IllegalStateException.class);
+        exception.expect(ParameterParseException.class);
         exception.expectMessage("Too many name/value pairs");
         exception.expectMessage("2");
         pm.addParameter(createTestParameter("param3", "value3"), false);
@@ -123,7 +123,7 @@ public class ParameterMapTest {
         assertEquals(5, pm.size());
 
         // Next should fail
-        exception.expect(IllegalStateException.class);
+        exception.expect(ParameterParseException.class);
         exception.expectMessage("Too many name/value pairs");
         exception.expectMessage("5");
         pm.addParameter(createTestParameter("param6", "value6"), false);
