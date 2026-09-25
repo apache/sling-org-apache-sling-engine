@@ -124,6 +124,12 @@ public class ParameterSupport {
     private boolean requestDataUsed;
 
     /**
+     * Set when parsing the request parameters failed. The failure is cached
+     * and rethrown on every subsequent parameter access.
+     */
+    private SlingParameterParseException parseFailure;
+
+    /**
      * Returns the {@code ParameterSupport} instance supporting request
      * parameter for the give {@code request}. For a single request only a
      * single instance is actually used. This single instance is cached as a
@@ -240,6 +246,9 @@ public class ParameterSupport {
     }
 
     private ParameterMap getRequestParameterMapInternal() {
+        if (this.parseFailure != null) {
+            throw this.parseFailure;
+        }
         if (this.postParameterMap == null) {
 
             // SLING-508 Try to force servlet container to decode parameters
@@ -272,11 +281,11 @@ public class ParameterSupport {
                     Util.parseQueryString(input, Util.ENCODING_DIRECT, parameters, false);
                     addContainerParameters = checkForAdditionalParameters;
                 } catch (IllegalArgumentException e) {
-                    this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                    throw failParse("Error parsing query string", e);
                 } catch (UnsupportedEncodingException e) {
                     throw new SlingUnsupportedEncodingException(e);
                 } catch (IOException e) {
-                    this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                    throw failParse("Error parsing query string", e);
                 }
                 useFallback = false;
             } else {
@@ -294,11 +303,11 @@ public class ParameterSupport {
                         Util.parseQueryString(input, encoding, parameters, false);
                         addContainerParameters = checkForAdditionalParameters;
                     } catch (IllegalArgumentException e) {
-                        this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                        throw failParse("Error parsing request body", e);
                     } catch (UnsupportedEncodingException e) {
                         throw new SlingUnsupportedEncodingException(e);
                     } catch (IOException e) {
-                        this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                        throw failParse("Error parsing request body", e);
                     }
                     this.requestDataUsed = true;
                     useFallback = false;
@@ -316,8 +325,7 @@ public class ParameterSupport {
                             this.log.debug(
                                     "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
                         } catch (final FileUploadException | IOException e) {
-                            this.log.error(
-                                    "getRequestParameterMapInternal: Error parsing multipart streamed request", e);
+                            throw failParse("Error parsing multipart streamed request", e);
                         }
                         // The request data has been passed to the RequestPartsIterator, hence from a RequestParameter
                         // pov its been used, and must not be used again.
@@ -345,6 +353,16 @@ public class ParameterSupport {
             this.postParameterMap = parameters;
         }
         return this.postParameterMap;
+    }
+
+    /**
+     * Records a request-parameter parse failure and returns the exception to
+     * throw. Parse errors must be request-fatal.
+     */
+    private SlingParameterParseException failParse(final String message, final Exception cause) {
+        this.log.error("getRequestParameterMapInternal: {}", message, cause);
+        this.parseFailure = new SlingParameterParseException(message, cause);
+        return this.parseFailure;
     }
 
     /**
@@ -431,12 +449,12 @@ public class ParameterSupport {
         upload.setFileCountMax(ParameterSupport.maxFileCount);
         final RequestContext rc = this.getMultiPartContext();
 
-        // Parse the request
+        // Parse the request. A FileUploadException is request-fatal.
         List<?> /* FileItem */ items = null;
         try {
             items = upload.parseRequest(rc);
         } catch (FileUploadException fue) {
-            this.log.error("parseMultiPartPost: Error parsing request", fue);
+            throw failParse("Error parsing multipart request", fue);
         }
 
         if (items != null && items.size() > 0) {
