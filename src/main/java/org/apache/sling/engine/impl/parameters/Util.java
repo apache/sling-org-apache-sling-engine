@@ -360,9 +360,32 @@ public class Util {
         final int hi = hexDigit(chCode[0]);
         final int lo = hexDigit(chCode[1]);
         if (hi < 0 || lo < 0) {
-            throw new IllegalArgumentException("Bad escape sequence: %" + new String(chCode));
+            throw new IllegalArgumentException("Bad escape sequence: %" + toSafeString(chCode));
         }
         return (hi << 4) + lo;
+    }
+
+    /**
+     * Returns a representation of the given raw request input that is safe to
+     * embed in exception and, transitively, log messages: every character
+     * outside the printable US-ASCII range - in particular CR and LF, which
+     * would split a log record into what looks like two separate,
+     * attacker-authored entries - is replaced by its unicode escape. Raw,
+     * unvalidated request bytes must never reach a log message unneutralized.
+     *
+     * @param raw the raw input characters
+     * @return a printable representation of {@code raw}
+     */
+    private static String toSafeString(final char[] raw) {
+        final StringBuilder sb = new StringBuilder(raw.length);
+        for (final char c : raw) {
+            if (c >= 0x20 && c < 0x7f) {
+                sb.append(c);
+            } else {
+                sb.append(String.format("\\u%04x", (int) c));
+            }
+        }
+        return sb.toString();
     }
 
     private static int hexDigit(final char c) {
