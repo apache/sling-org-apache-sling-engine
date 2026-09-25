@@ -30,6 +30,7 @@ import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -97,6 +98,67 @@ public class ParameterSupportTest {
         final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
 
         assertNull(parameterSupport.getParameter("a"));
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedQueryStringIsRejected() {
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        // a malformed escape aborts the parse after 'a' was already added;
+        // 'c' must not be silently dropped while processing continues
+        when(request.getQueryString()).thenReturn("a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("c");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedQueryStringFailureIsCachedAcrossAccessors() {
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getQueryString()).thenReturn("a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        try {
+            support.getParameter("c");
+            fail("Expected the first access to throw SlingParameterParseException");
+        } catch (SlingParameterParseException expected) {
+            // expected on first access; the point of this test is that the
+            // failure must be cached and rethrown on the *next* access too -
+            // even via a different accessor method - instead of silently
+            // continuing with a partial map
+        }
+        support.getRequestParameterMap();
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedFormEncodedBodyIsRejected() throws IOException {
+        final HttpServletRequest request = postRequest("application/x-www-form-urlencoded", "a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("c");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedMultipartBodyIsRejected() throws IOException {
+        // "multipart/form-data" without a boundary parameter is structurally
+        // malformed and rejected outright by commons-fileupload
+        final HttpServletRequest request = postRequest("multipart/form-data", "irrelevant body content");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("anything");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedStreamedMultipartBodyIsRejected() throws IOException {
+        // same malformed multipart body, but with streamed upload mode
+        // requested - the RequestPartsIterator construction itself must fail
+        // closed instead of silently producing an empty part sequence
+        final HttpServletRequest request = postRequest("multipart/form-data", "irrelevant body content");
+        when(request.getHeader(ParameterSupport.SLING_UPLOADMODE_HEADER)).thenReturn(ParameterSupport.STREAM_UPLOAD);
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("anything");
     }
 
     private static HttpServletRequest postRequest(final String contentType, final String body) throws IOException {
