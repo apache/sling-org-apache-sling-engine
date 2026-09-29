@@ -54,7 +54,8 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for {@link SlingRequestProcessorImpl}, in particular the
  * {@code SlingParameterParseException} to HTTP 400 mapping performed in
- * {@code doProcessRequest}.
+ * {@code doProcessRequest} (regression tests for SLING-13364 and
+ * SLING-13138).
  */
 public class SlingRequestProcessorImplTest {
 
@@ -105,11 +106,31 @@ public class SlingRequestProcessorImplTest {
      * instead of propagating as a server error or being swallowed.
      */
     @Test
-    public void testDoProcessRequestMapsParameterParseExceptionToBadRequest() throws Exception {
+    public void testDoProcessRequestMapsSlingParameterParseExceptionToBadRequest() throws Exception {
+        assertDoProcessRequestMapsExceptionToBadRequest(
+                new SlingParameterParseException("Error parsing query string", new IllegalArgumentException("bad")),
+                "Error parsing query string");
+    }
+
+    /**
+     * {@link SlingParameterParseException} raised while servicing a request
+     * (here simulated by the resolved servlet, standing in for the parameter
+     * limit check that {@code RequestData.service} triggers indirectly via
+     * {@code ParameterMap.addParameter}) must be caught by
+     * {@code doProcessRequest} and mapped to a 400 response, instead of
+     * propagating as a server error.
+     */
+    @Test
+    public void testDoProcessRequestMapsParameterLimitExceptionToBadRequest() throws Exception {
+        assertDoProcessRequestMapsExceptionToBadRequest(
+                new SlingParameterParseException("Too many name/value pairs, limit is 10000", null),
+                "Too many name/value pairs");
+    }
+
+    private void assertDoProcessRequestMapsExceptionToBadRequest(
+            final RuntimeException exceptionToThrow, final String expectedMessageFragment) throws Exception {
         final Servlet servlet = mock(Servlet.class);
-        doThrow(new SlingParameterParseException("Error parsing query string", new IllegalArgumentException("bad")))
-                .when(servlet)
-                .service(any(ServletRequest.class), any(ServletResponse.class));
+        doThrow(exceptionToThrow).when(servlet).service(any(ServletRequest.class), any(ServletResponse.class));
 
         final Resource resource = getMockedResource("/content/test");
 
@@ -141,7 +162,7 @@ public class SlingRequestProcessorImplTest {
 
         verify(httpServletResponse).setStatus(SC_BAD_REQUEST);
         writer.flush();
-        assertTrue(writer.toString().contains("Error parsing query string"));
+        assertTrue(writer.toString().contains(expectedMessageFragment));
     }
 
     private static @NotNull Resource getMockedResource(final @NotNull String path) {
