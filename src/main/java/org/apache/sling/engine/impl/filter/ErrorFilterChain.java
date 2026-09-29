@@ -24,10 +24,12 @@ import jakarta.servlet.DispatcherType;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
+import jakarta.servlet.ServletResponseWrapper;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
+import org.apache.sling.engine.impl.StaticResponseHeader;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 
 public class ErrorFilterChain extends AbstractSlingFilterChain {
@@ -124,8 +126,8 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
             }
 
             // reset the response to clear headers and body
-            if (response instanceof SlingJakartaHttpServletResponseImpl) {
-                SlingJakartaHttpServletResponseImpl slingResponse = (SlingJakartaHttpServletResponseImpl) response;
+            final SlingJakartaHttpServletResponseImpl slingResponse = unwrap(response);
+            if (slingResponse != null) {
                 /*
                  * Below section stores the original dispatching info for later restoration.
                  * This is necessary to ensure that the dispatching info is set to ERROR
@@ -140,6 +142,14 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                     final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
                     slingResponse.getRequestData().setDispatchingInfo(dispatchInfo);
                     response.reset();
+                    // reset() clears any operator-configured static response headers; 
+                    // re-apply them so error pages are not served without these security headers
+                    for (final StaticResponseHeader mapping : slingResponse
+                            .getRequestData()
+                            .getSlingRequestProcessor()
+                            .getAdditionalResponseHeaders()) {
+                        slingResponse.addHeader(mapping.getResponseHeaderName(), mapping.getResponseHeaderValue());
+                    }
                     super.doFilter(request, response);
                 } finally {
                     slingResponse.getRequestData().setDispatchingInfo(originalInfo);
@@ -151,6 +161,28 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
         } else {
             super.doFilter(request, response);
         }
+    }
+
+    /**
+     * Unwraps the given response, following the chain of
+     * {@link ServletResponseWrapper#getResponse()} calls, to find the
+     * underlying {@link SlingJakartaHttpServletResponseImpl}.
+     * 
+     * @return the underlying {@code SlingJakartaHttpServletResponseImpl}, or
+     *         {@code null} if none is found in the wrapper chain
+     */
+    private static SlingJakartaHttpServletResponseImpl unwrap(ServletResponse response) {
+        while (response != null) {
+            if (response instanceof SlingJakartaHttpServletResponseImpl) {
+                return (SlingJakartaHttpServletResponseImpl) response;
+            }
+            if (response instanceof ServletResponseWrapper) {
+                response = ((ServletResponseWrapper) response).getResponse();
+            } else {
+                return null;
+            }
+        }
+        return null;
     }
 
     protected void render(final SlingJakartaHttpServletRequest request, final SlingJakartaHttpServletResponse response)

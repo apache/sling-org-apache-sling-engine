@@ -19,6 +19,7 @@
 package org.apache.sling.engine.impl.filter;
 
 import java.io.IOException;
+import java.util.Collections;
 import java.util.Objects;
 
 import jakarta.servlet.DispatcherType;
@@ -27,6 +28,8 @@ import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.engine.impl.DefaultErrorHandler;
 import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
+import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
+import org.apache.sling.engine.impl.StaticResponseHeader;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -97,6 +100,9 @@ public class ErrorFilterChainTest {
         final SlingJakartaHttpServletResponseImpl response = Mockito.mock(SlingJakartaHttpServletResponseImpl.class);
         RequestData requestData = Mockito.mock(RequestData.class);
         when(response.getRequestData()).thenReturn(requestData);
+        final SlingRequestProcessorImpl requestProcessor = Mockito.mock(SlingRequestProcessorImpl.class);
+        when(requestProcessor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
 
         final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 404, "not found");
         chain2.doFilter(request, response);
@@ -109,5 +115,39 @@ public class ErrorFilterChainTest {
         // ensure that the original request dispatcher info that is restored after the
         // error handling was performed, in this case null
         verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(Objects::isNull));
+    }
+
+    @Test
+    public void testAdditionalResponseHeadersReappliedAfterReset()
+            throws IOException, jakarta.servlet.ServletException {
+        // mocks a final method in SlingJakartaHttpServletResponseImpl, needs
+        // mockito-inline
+        final DefaultErrorHandler handler = new DefaultErrorHandler();
+        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        handler.setDelegate(null, errorHandler);
+
+        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponseImpl response = Mockito.mock(SlingJakartaHttpServletResponseImpl.class);
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        when(response.getRequestData()).thenReturn(requestData);
+        final SlingRequestProcessorImpl requestProcessor = Mockito.mock(SlingRequestProcessorImpl.class);
+        final StaticResponseHeader nosniff = Mockito.mock(StaticResponseHeader.class);
+        when(nosniff.getResponseHeaderName()).thenReturn("X-Content-Type-Options");
+        when(nosniff.getResponseHeaderValue()).thenReturn("nosniff");
+        final StaticResponseHeader frameOptions = Mockito.mock(StaticResponseHeader.class);
+        when(frameOptions.getResponseHeaderName()).thenReturn("X-Frame-Options");
+        when(frameOptions.getResponseHeaderValue()).thenReturn("SAMEORIGIN");
+        when(requestProcessor.getAdditionalResponseHeaders())
+                .thenReturn(java.util.Arrays.asList(nosniff, frameOptions));
+        when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
+
+        final ErrorFilterChain chain = new ErrorFilterChain(new FilterHandle[0], handler, 404, "not found");
+        chain.doFilter(request, response);
+
+        // response.reset() clears headers set at response-wrapper construction
+        // time; the configured static headers must be re-applied afterwards
+        verify(response, times(1)).reset();
+        verify(response, times(1)).addHeader("X-Content-Type-Options", "nosniff");
+        verify(response, times(1)).addHeader("X-Frame-Options", "SAMEORIGIN");
     }
 }
