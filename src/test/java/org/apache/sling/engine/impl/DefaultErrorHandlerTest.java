@@ -37,8 +37,8 @@ import static org.mockito.Mockito.when;
 /**
  * Tests for {@link DefaultErrorHandler}: with no {@code ErrorHandler}/
  * {@code JakartaErrorHandler} service bound, the built-in error response must
- * not leak the exception's stacktrace or the {@link RequestProgressTracker}
- * dump to the client.
+ * not leak the exception's stacktrace, the {@link RequestProgressTracker}
+ * dump, or the server/JVM/OS fingerprint footer to the client.
  */
 public class DefaultErrorHandlerTest {
 
@@ -83,6 +83,9 @@ public class DefaultErrorHandlerTest {
         assertFalse("response body must not contain the tracker dump section", body.contains("Request Progress"));
         verify(tracker, never()).dump(org.mockito.ArgumentMatchers.any(PrintWriter.class));
 
+        // the server/JVM/OS fingerprint footer must never be written either
+        assertFalse("response body must not contain a server/address footer", body.contains("<address>"));
+
         // a minimal, generic error page is still rendered
         assertTrue(body.contains("RequestURI="));
     }
@@ -93,7 +96,9 @@ public class DefaultErrorHandlerTest {
 
         verify(response).setStatus(404);
         responseBody.flush();
-        assertTrue(responseBody.toString().contains("not found"));
+        final String body = responseBody.toString();
+        assertTrue(body.contains("not found"));
+        assertFalse("response body must not contain a server/address footer", body.contains("<address>"));
     }
 
     @Test

@@ -48,8 +48,6 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private volatile String serverInfo = ProductInfoProvider.PRODUCT_NAME;
-
     /** Use this if not null, and if that fails output a report about that failure */
     private volatile JakartaErrorHandler delegate;
 
@@ -57,10 +55,6 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     private volatile JakartaErrorHandler jakartaErrorHandler;
     private volatile ServiceReference<?> errorHandlerRef;
     private volatile ServiceReference<?> jakartaErrorHandlerRef;
-
-    void setServerInfo(final String serverInfo) {
-        this.serverInfo = (serverInfo != null) ? serverInfo : ProductInfoProvider.PRODUCT_NAME;
-    }
 
     @SuppressWarnings("deprecation")
     public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
@@ -145,9 +139,8 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
      * Backend implementation of the HttpServletResponse.sendError methods.
      * <p>
      * This implementation resets the response before sending back a
-     * standardized response which just conveys the status, the message (either
-     * provided or a message derived from the status code), and server
-     * information.
+     * standardized response which just conveys the status and the message
+     * (either provided or a message derived from the status code).
      * <p>
      * This method logs error and does not write back and response data if the
      * response has already been committed.
@@ -189,10 +182,10 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
      * <p>
      * This implementation resets the response before sending back a
      * standardized response which just conveys the status as 500/INTERNAL
-     * SERVER ERROR, the message from the throwable, and server information.
-     * The exception's stacktrace and the {@code RequestProgressTracker} dump
-     * are not sent to the client; they are only available in the server-side
-     * log (see the caller of this method).
+     * SERVER ERROR and the message from the throwable. The exception's
+     * stacktrace and the {@code RequestProgressTracker} dump are not sent to
+     * the client; they are only available in the server-side log (see the
+     * caller of this method).
      * <p>
      * This method logs error and does not write back and response data if the
      * response has already been committed.
@@ -263,9 +256,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         }
         pw.println("</p>");
 
-        pw.println("<hr /><address>");
-        pw.println(ResponseUtil.escapeXml(serverInfo));
-        pw.println("</address></body></html>");
+        pw.println("</body></html>");
 
         // commit the response
         response.flushBuffer();
