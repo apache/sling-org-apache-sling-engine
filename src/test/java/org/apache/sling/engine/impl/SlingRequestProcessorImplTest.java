@@ -28,6 +28,8 @@ import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
+import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
@@ -36,6 +38,7 @@ import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.parameters.ParameterParseException;
+import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
@@ -51,15 +54,17 @@ import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link SlingRequestProcessorImpl}, in particular the
- * {@code ParameterParseException} to HTTP 400 mapping performed in
- * {@code doProcessRequest} (regression test for SLING-13138/f018: a
- * request refused for exceeding the configured parameter limit must
- * surface as a 400 Bad Request, not an uncaught 500).
+ * {@code SlingParameterParseException} (SLING-13364/f019) and
+ * {@code ParameterParseException} (SLING-13138/f018) to HTTP 400 mapping
+ * performed in {@code doProcessRequest}.
  */
 public class SlingRequestProcessorImplTest {
 
     private SlingRequestProcessorImpl processor;
     private ServletFilterManager filterManager;
+    private SlingJakartaHttpServletRequest request;
+    private SlingJakartaHttpServletResponse response;
+    private StringWriter responseBody;
 
     @Before
     public void setup() throws Exception {
@@ -68,6 +73,14 @@ public class SlingRequestProcessorImplTest {
         filterManager = mock(ServletFilterManager.class);
         when(filterManager.getFilters(FilterChainType.ERROR)).thenReturn(new FilterHandle[0]);
         setField(processor, "filterManager", filterManager);
+
+        request = mock(SlingJakartaHttpServletRequest.class);
+        when(request.getRequestProgressTracker()).thenReturn(mock(RequestProgressTracker.class));
+        when(request.getRequestURI()).thenReturn("/test");
+
+        response = mock(SlingJakartaHttpServletResponse.class);
+        responseBody = new StringWriter();
+        when(response.getWriter()).thenReturn(new PrintWriter(responseBody));
     }
 
     private static void setField(final Object target, final String name, final Object value) throws Exception {
@@ -77,11 +90,48 @@ public class SlingRequestProcessorImplTest {
     }
 
     @Test
+    public void testHandleErrorWithNullMessageStillSetsStatus() throws Exception {
+        processor.handleError(SC_BAD_REQUEST, null, request, response);
+
+        verify(response).setStatus(SC_BAD_REQUEST);
+        responseBody.flush();
+        assertTrue(responseBody.toString().contains(String.valueOf(SC_BAD_REQUEST)));
+    }
+
+    /**
+     * End-to-end regression test for SLING-13364: a
+     * {@link SlingParameterParseException} raised while servicing a request
+     * (here simulated by the resolved servlet, standing in for the parameter
+     * parsing that {@code RequestData.service} triggers indirectly) must be
+     * caught by {@code doProcessRequest} and mapped to a 400 response,
+     * instead of propagating as a server error or being swallowed.
+     */
+    @Test
+    public void testDoProcessRequestMapsSlingParameterParseExceptionToBadRequest() throws Exception {
+        assertDoProcessRequestMapsExceptionToBadRequest(
+                new SlingParameterParseException("Error parsing query string", new IllegalArgumentException("bad")),
+                "Error parsing query string");
+    }
+
+    /**
+     * End-to-end regression test for SLING-13138/f018: a
+     * {@link ParameterParseException} raised while servicing a request (here
+     * simulated by the resolved servlet, standing in for the parameter
+     * limit check that {@code RequestData.service} triggers indirectly via
+     * {@code ParameterMap.addParameter}) must be caught by
+     * {@code doProcessRequest} and mapped to a 400 response, instead of
+     * propagating as a server error.
+     */
+    @Test
     public void testDoProcessRequestMapsParameterParseExceptionToBadRequest() throws Exception {
+        assertDoProcessRequestMapsExceptionToBadRequest(
+                new ParameterParseException("Too many name/value pairs, limit is 10000"), "Too many name/value pairs");
+    }
+
+    private void assertDoProcessRequestMapsExceptionToBadRequest(
+            final RuntimeException exceptionToThrow, final String expectedMessageFragment) throws Exception {
         final Servlet servlet = mock(Servlet.class);
-        doThrow(new ParameterParseException("Too many name/value pairs, limit is 10000"))
-                .when(servlet)
-                .service(any(ServletRequest.class), any(ServletResponse.class));
+        doThrow(exceptionToThrow).when(servlet).service(any(ServletRequest.class), any(ServletResponse.class));
 
         final Resource resource = getMockedResource("/content/test");
 
@@ -113,7 +163,7 @@ public class SlingRequestProcessorImplTest {
 
         verify(httpServletResponse).setStatus(SC_BAD_REQUEST);
         writer.flush();
-        assertTrue(writer.toString().contains("Too many name/value pairs"));
+        assertTrue(writer.toString().contains(expectedMessageFragment));
     }
 
     private static @NotNull Resource getMockedResource(final @NotNull String path) {

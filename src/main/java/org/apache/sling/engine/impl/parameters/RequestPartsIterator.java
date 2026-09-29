@@ -63,8 +63,8 @@ public class RequestPartsIterator implements Iterator<Part> {
             return itemIterator.hasNext();
         } catch (final FileUploadException | IOException e) {
             LOG.error("hasNext Item failed cause:" + e.getMessage(), e);
+            throw new SlingParameterParseException("Error reading next part from the request stream", e);
         }
-        return false;
     }
 
     @Override
@@ -73,8 +73,8 @@ public class RequestPartsIterator implements Iterator<Part> {
             return new StreamedRequestPart(itemIterator.next());
         } catch (final FileUploadException | IOException e) {
             LOG.error("next Item failed cause:" + e.getMessage(), e);
+            throw new SlingParameterParseException("Error reading next part from the request stream", e);
         }
-        return null;
     }
 
     @Override

@@ -68,6 +68,7 @@ import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.parameters.ParameterParseException;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
+import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -318,6 +319,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // server, so send this exception as a 400 status
             log.debug("service: Failed processing request parameters", ppe);
             handleError(HttpServletResponse.SC_BAD_REQUEST, ppe.getMessage(), request, response);
+
+        } catch (final SlingParameterParseException sppe) {
+            // the request parameters could not be parsed completely/within
+            // configured limits; the request itself is malformed, not the
+            // server, so send this exception as a 400 status
+            log.debug("service: Failed parsing request parameters", sppe);
+            handleError(HttpServletResponse.SC_BAD_REQUEST, sppe.getMessage(), request, response);
 
         } catch (final SlingException se) {
             // send this exception as is (albeit unwrapping and wrapped
