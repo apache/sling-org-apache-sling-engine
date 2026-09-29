@@ -142,7 +142,7 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
                     final DispatchingInfo dispatchInfo = new DispatchingInfo(DispatcherType.ERROR);
                     slingResponse.getRequestData().setDispatchingInfo(dispatchInfo);
                     response.reset();
-                    // reset() clears any operator-configured static response headers; 
+                    // reset() clears any operator-configured static response headers;
                     // re-apply them so error pages are not served without these security headers
                     for (final StaticResponseHeader mapping : slingResponse
                             .getRequestData()
@@ -167,7 +167,7 @@ public class ErrorFilterChain extends AbstractSlingFilterChain {
      * Unwraps the given response, following the chain of
      * {@link ServletResponseWrapper#getResponse()} calls, to find the
      * underlying {@link SlingJakartaHttpServletResponseImpl}.
-     * 
+     *
      * @return the underlying {@code SlingJakartaHttpServletResponseImpl}, or
      *         {@code null} if none is found in the wrapper chain
      */
