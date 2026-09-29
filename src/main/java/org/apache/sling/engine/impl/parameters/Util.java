@@ -368,8 +368,8 @@ public class Util {
     /**
      * Returns a representation of the given raw request input that is safe to
      * embed in exception and, transitively, log messages: every character
-     * outside the printable US-ASCII range - in particular CR and LF - 
-     * is replaced by its unicode escape. 
+     * outside the printable US-ASCII range - in particular CR and LF -
+     * is replaced by its unicode escape.
      *
      * @param raw the raw input characters
      * @return a printable representation of {@code raw}
