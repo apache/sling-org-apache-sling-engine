@@ -176,8 +176,7 @@ public class UtilTest extends TestCase {
     public void test_bad_escape_sequence_message_is_sanitized() throws Exception {
         // raw CR/LF bytes after the '%' escape, as they may occur in an
         // application/x-www-form-urlencoded POST body; the exception message
-        // (which ends up in the error log) must not carry them unneutralized,
-        // otherwise the attacker can split the log record (CVE-2022-32549 class)
+        // must not carry them unneutralized.
         final String query = "a=%\r\n&b=2";
         try {
             Util.parseQueryString(
