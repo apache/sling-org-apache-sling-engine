@@ -28,7 +28,6 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
-import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.ResponseUtil;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
@@ -171,6 +170,11 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             return;
         }
 
+        log.warn(
+                "handleError: No ErrorHandler service registered; every Sling instance should have one. "
+                        + "Falling back to the minimal built-in error response for status {}",
+                status);
+
         if (message == null) {
             message = "HTTP ERROR:" + String.valueOf(status);
         } else {
@@ -185,8 +189,10 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
      * <p>
      * This implementation resets the response before sending back a
      * standardized response which just conveys the status as 500/INTERNAL
-     * SERVER ERROR, the message from the throwable, the stacktrace, and server
-     * information.
+     * SERVER ERROR, the message from the throwable, and server information.
+     * The exception's stacktrace and the {@code RequestProgressTracker} dump
+     * are not sent to the client; they are only available in the server-side
+     * log (see the caller of this method).
      * <p>
      * This method logs error and does not write back and response data if the
      * response has already been committed.
@@ -208,6 +214,9 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             }
             return;
         }
+
+        log.warn("handleError: No ErrorHandler service registered; every Sling instance should have one. "
+                + "Falling back to the minimal built-in error response.");
 
         sendError(status, throwable.getMessage(), throwable, request, response);
     }
@@ -253,25 +262,6 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             pw.println(ResponseUtil.escapeXml(servletName));
         }
         pw.println("</p>");
-
-        if (throwable != null) {
-            final PrintWriter escapingWriter = new PrintWriter(ResponseUtil.getXmlEscapingWriter(pw));
-            pw.println("<h3>Exception stacktrace:</h3>");
-            pw.println("<pre>");
-            pw.flush();
-            throwable.printStackTrace(escapingWriter);
-            escapingWriter.flush();
-            pw.println("</pre>");
-
-            final RequestProgressTracker tracker =
-                    ((SlingJakartaHttpServletRequest) request).getRequestProgressTracker();
-            pw.println("<h3>Request Progress:</h3>");
-            pw.println("<pre>");
-            pw.flush();
-            tracker.dump(new PrintWriter(escapingWriter));
-            escapingWriter.flush();
-            pw.println("</pre>");
-        }
 
         pw.println("<hr /><address>");
         pw.println(ResponseUtil.escapeXml(serverInfo));
