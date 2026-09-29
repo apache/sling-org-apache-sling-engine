@@ -32,12 +32,13 @@ import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.StaticResponseHeader;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
-import org.mockito.Mockito;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.argThat;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -52,12 +53,12 @@ public class ErrorFilterChainTest {
     @Test
     public void testResponseCommitted() throws IOException, jakarta.servlet.ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler errorHandler = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
 
-        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
-        final SlingJakartaHttpServletResponse response = Mockito.mock(SlingJakartaHttpServletResponse.class);
-        Mockito.when(response.isCommitted()).thenReturn(true);
+        final SlingJakartaHttpServletRequest request = mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponse response = mock(SlingJakartaHttpServletResponse.class);
+        when(response.isCommitted()).thenReturn(true);
 
         final ErrorFilterChain chain1 = new ErrorFilterChain(new FilterHandle[0], handler, new Exception());
         chain1.doFilter(request, response);
@@ -65,27 +66,27 @@ public class ErrorFilterChainTest {
         final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 500, "message");
         chain2.doFilter(request, response);
 
-        Mockito.verify(errorHandler, never()).handleError(any(Throwable.class), eq(null), eq(response));
-        Mockito.verify(errorHandler, never()).handleError(anyInt(), anyString(), eq(null), eq(response));
+        verify(errorHandler, never()).handleError(any(Throwable.class), eq(null), eq(response));
+        verify(errorHandler, never()).handleError(anyInt(), anyString(), eq(null), eq(response));
     }
 
     @Test
     public void testResponseNotCommitted() throws IOException, jakarta.servlet.ServletException {
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler errorHandler = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
 
-        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
-        final SlingJakartaHttpServletResponse response = Mockito.mock(SlingJakartaHttpServletResponse.class);
-        Mockito.when(response.isCommitted()).thenReturn(false);
+        final SlingJakartaHttpServletRequest request = mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponse response = mock(SlingJakartaHttpServletResponse.class);
+        when(response.isCommitted()).thenReturn(false);
 
         final ErrorFilterChain chain1 = new ErrorFilterChain(new FilterHandle[0], handler, new Exception());
         chain1.doFilter(request, response);
-        Mockito.verify(errorHandler, times(1)).handleError(any(Throwable.class), eq(request), eq(response));
+        verify(errorHandler, times(1)).handleError(any(Throwable.class), eq(request), eq(response));
 
         final ErrorFilterChain chain2 = new ErrorFilterChain(new FilterHandle[0], handler, 500, "message");
         chain2.doFilter(request, response);
-        Mockito.verify(errorHandler, times(1)).handleError(anyInt(), anyString(), eq(request), eq(response));
+        verify(errorHandler, times(1)).handleError(anyInt(), anyString(), eq(request), eq(response));
     }
 
     @Test
@@ -93,14 +94,14 @@ public class ErrorFilterChainTest {
         // mocks a final method in SlingJakartaHttpServletResponseImpl, needs
         // mockito-inline
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler errorHandler = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
 
-        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
-        final SlingJakartaHttpServletResponseImpl response = Mockito.mock(SlingJakartaHttpServletResponseImpl.class);
-        RequestData requestData = Mockito.mock(RequestData.class);
+        final SlingJakartaHttpServletRequest request = mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponseImpl response = mock(SlingJakartaHttpServletResponseImpl.class);
+        RequestData requestData = mock(RequestData.class);
         when(response.getRequestData()).thenReturn(requestData);
-        final SlingRequestProcessorImpl requestProcessor = Mockito.mock(SlingRequestProcessorImpl.class);
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
         when(requestProcessor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
         when(requestData.getSlingRequestProcessor()).thenReturn(requestProcessor);
 
@@ -110,11 +111,11 @@ public class ErrorFilterChainTest {
 
         // ensure that the dispatching info of type ERROR is set on the request data
         verify(requestData, times(1))
-                .setDispatchingInfo(Mockito.argThat(info -> info != null && info.getType() == DispatcherType.ERROR));
+                .setDispatchingInfo(argThat(info -> info != null && info.getType() == DispatcherType.ERROR));
 
         // ensure that the original request dispatcher info that is restored after the
         // error handling was performed, in this case null
-        verify(requestData, times(1)).setDispatchingInfo(Mockito.argThat(Objects::isNull));
+        verify(requestData, times(1)).setDispatchingInfo(argThat(Objects::isNull));
     }
 
     @Test
@@ -123,18 +124,18 @@ public class ErrorFilterChainTest {
         // mocks a final method in SlingJakartaHttpServletResponseImpl, needs
         // mockito-inline
         final DefaultErrorHandler handler = new DefaultErrorHandler();
-        final JakartaErrorHandler errorHandler = Mockito.mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler errorHandler = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, errorHandler);
 
-        final SlingJakartaHttpServletRequest request = Mockito.mock(SlingJakartaHttpServletRequest.class);
-        final SlingJakartaHttpServletResponseImpl response = Mockito.mock(SlingJakartaHttpServletResponseImpl.class);
-        final RequestData requestData = Mockito.mock(RequestData.class);
+        final SlingJakartaHttpServletRequest request = mock(SlingJakartaHttpServletRequest.class);
+        final SlingJakartaHttpServletResponseImpl response = mock(SlingJakartaHttpServletResponseImpl.class);
+        final RequestData requestData = mock(RequestData.class);
         when(response.getRequestData()).thenReturn(requestData);
-        final SlingRequestProcessorImpl requestProcessor = Mockito.mock(SlingRequestProcessorImpl.class);
-        final StaticResponseHeader nosniff = Mockito.mock(StaticResponseHeader.class);
+        final SlingRequestProcessorImpl requestProcessor = mock(SlingRequestProcessorImpl.class);
+        final StaticResponseHeader nosniff = mock(StaticResponseHeader.class);
         when(nosniff.getResponseHeaderName()).thenReturn("X-Content-Type-Options");
         when(nosniff.getResponseHeaderValue()).thenReturn("nosniff");
-        final StaticResponseHeader frameOptions = Mockito.mock(StaticResponseHeader.class);
+        final StaticResponseHeader frameOptions = mock(StaticResponseHeader.class);
         when(frameOptions.getResponseHeaderName()).thenReturn("X-Frame-Options");
         when(frameOptions.getResponseHeaderValue()).thenReturn("SAMEORIGIN");
         when(requestProcessor.getAdditionalResponseHeaders())
