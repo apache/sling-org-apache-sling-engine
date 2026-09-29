@@ -78,7 +78,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         // check number of parameters
         if (maxParameters > -1 && this.requestParameters.size() >= maxParameters) {
             if (failOnParameterLimit) {
-                throw new ParameterParseException("Too many name/value pairs, limit is " + maxParameters);
+                throw new SlingParameterParseException("Too many name/value pairs, limit is " + maxParameters, null);
             }
             LoggerFactory.getLogger(Util.class)
                     .warn("Too many name/value pairs, stopped processing after " + maxParameters + " entries");

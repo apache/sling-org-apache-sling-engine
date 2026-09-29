@@ -37,7 +37,6 @@ import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
-import org.apache.sling.engine.impl.parameters.ParameterParseException;
 import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -54,9 +53,9 @@ import static org.mockito.Mockito.when;
 
 /**
  * Tests for {@link SlingRequestProcessorImpl}, in particular the
- * {@code SlingParameterParseException} (SLING-13364/f019) and
- * {@code ParameterParseException} (SLING-13138/f018) to HTTP 400 mapping
- * performed in {@code doProcessRequest}.
+ * {@code SlingParameterParseException} to HTTP 400 mapping performed in
+ * {@code doProcessRequest} (regression tests for SLING-13364 and
+ * SLING-13138).
  */
 public class SlingRequestProcessorImplTest {
 
@@ -114,18 +113,18 @@ public class SlingRequestProcessorImplTest {
     }
 
     /**
-     * End-to-end regression test for SLING-13138/f018: a
-     * {@link ParameterParseException} raised while servicing a request (here
-     * simulated by the resolved servlet, standing in for the parameter
+     * {@link SlingParameterParseException} raised while servicing a request
+     * (here simulated by the resolved servlet, standing in for the parameter
      * limit check that {@code RequestData.service} triggers indirectly via
      * {@code ParameterMap.addParameter}) must be caught by
      * {@code doProcessRequest} and mapped to a 400 response, instead of
      * propagating as a server error.
      */
     @Test
-    public void testDoProcessRequestMapsParameterParseExceptionToBadRequest() throws Exception {
+    public void testDoProcessRequestMapsParameterLimitExceptionToBadRequest() throws Exception {
         assertDoProcessRequestMapsExceptionToBadRequest(
-                new ParameterParseException("Too many name/value pairs, limit is 10000"), "Too many name/value pairs");
+                new SlingParameterParseException("Too many name/value pairs, limit is 10000", null),
+                "Too many name/value pairs");
     }
 
     private void assertDoProcessRequestMapsExceptionToBadRequest(
