@@ -33,7 +33,6 @@ import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.Servlet;
-import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
@@ -65,7 +64,6 @@ import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
-import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
 import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
 import org.apache.sling.engine.impl.request.ContentData;
@@ -154,15 +152,6 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
         this.disableCheckCompliantGetUserPrincipal = config.disable_spec_compliant_getuserprincipal();
-    }
-
-    @Reference(target = SlingServletContext.TARGET, policy = ReferencePolicy.DYNAMIC, updated = "bindServletContext")
-    void bindServletContext(final ServletContext servletContext) {
-        this.errorHandler.setServerInfo(servletContext.getServerInfo());
-    }
-
-    void unbindServletContext(final ServletContext servletContext) {
-        // nothing to do here, but DS requires this method
     }
 
     @Reference(
