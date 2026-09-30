@@ -230,7 +230,7 @@ public class RequestData {
                 // the same canonical (decoded) form as the container provided path info
                 final String rawPath = new URI(requestURL.toString()).getPath();
                 final String prefix = request.getContextPath().concat(request.getServletPath());
-                if (rawPath != null && rawPath.startsWith(prefix)) {
+                if (rawPath.startsWith(prefix)) {
                     final String candidate = rawPath.substring(prefix.length());
                     if (path.equals(stripPathParameters(candidate))) {
                         path = candidate;
@@ -268,11 +268,15 @@ public class RequestData {
      * @return the path without path parameters
      */
     static String stripPathParameters(final String path) {
-        if (path.indexOf(';') < 0) {
+        final int firstSemicolon = path.indexOf(';');
+        if (firstSemicolon < 0) {
             return path;
         }
         final StringBuilder builder = new StringBuilder(path.length());
-        for (int i = 0; i < path.length(); i++) {
+        // everything up to the first ';' is guaranteed to be free of path parameters, so it
+        // can be copied in one go instead of being re-scanned character by character
+        builder.append(path, 0, firstSemicolon);
+        for (int i = firstSemicolon; i < path.length(); i++) {
             final char c = path.charAt(i);
             if (c == ';') {
                 // skip the path parameter(s) up to the end of the current segment
