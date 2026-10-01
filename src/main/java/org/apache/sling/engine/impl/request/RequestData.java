@@ -242,7 +242,11 @@ public class RequestData {
                     }
                 }
             } catch (final URISyntaxException e) {
-                // ignore and use the container provided path info
+                // Unlike java.net.URL (used here previously), java.net.URI validates the
+                // string and rejects characters that are illegal in a URI, e.g. a raw,
+                // unencoded space. In that case we fall back to the container provided path
+                // info, which is always safe, but, as a compatibility consequence, drops the
+                // path parameters for such (strictly invalid) raw request URLs.
             }
         }
 
