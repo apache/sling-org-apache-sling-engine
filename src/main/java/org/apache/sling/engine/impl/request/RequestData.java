@@ -21,8 +21,8 @@ package org.apache.sling.engine.impl.request;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
@@ -218,13 +218,35 @@ public class RequestData {
 
         StringBuffer requestURL = servletRequest.getRequestURL();
         String path = request.getPathInfo();
-        if (requestURL.indexOf(";") > -1 && !path.contains(";")) {
+        if (requestURL.indexOf(";") > -1 && path != null && !path.contains(";")) {
+            // The container stripped path parameters (';...') from the path info. Re-derive
+            // the path from the raw request URL to preserve them, but only use the re-derived
+            // path if it is equivalent to the container provided path info modulo the path
+            // parameters. Otherwise every upstream path based decision (container
+            // normalization, authentication requirements, filter patterns, access rules)
+            // would have been made on a different path than the one resolved here.
             try {
-                final URL rUrl = new URL(requestURL.toString());
+                // java.net.URI#getPath decodes percent escapes, so the derived path is in
+                // the same canonical (decoded) form as the container provided path info
+                final String rawPath = new URI(requestURL.toString()).getPath();
                 final String prefix = request.getContextPath().concat(request.getServletPath());
-                path = rUrl.getPath().substring(prefix.length());
-            } catch (final MalformedURLException e) {
-                // ignore
+                if (rawPath.startsWith(prefix)) {
+                    final String candidate = rawPath.substring(prefix.length());
+                    if (path.equals(stripPathParameters(candidate))) {
+                        path = candidate;
+                    } else {
+                        log.debug(
+                                "initResource: ignoring path with parameters {} not equivalent to container provided path {}",
+                                candidate,
+                                path);
+                    }
+                }
+            } catch (final URISyntaxException e) {
+                // Unlike java.net.URL (used here previously), java.net.URI validates the
+                // string and rejects characters that are illegal in a URI, e.g. a raw,
+                // unencoded space. In that case we fall back to the container provided path
+                // info, which is always safe, but, as a compatibility consequence, drops the
+                // path parameters for such (strictly invalid) raw request URLs.
             }
         }
 
@@ -238,6 +260,38 @@ public class RequestData {
                 getServletRequest().getRequestURI(),
                 resource);
         return resource;
+    }
+
+    /**
+     * Removes URL path parameters ({@code ;name=value}, scoped to a path segment as per
+     * RFC 3986) from the given path. Used to verify that a path re-derived from the raw
+     * request URL only differs from the container provided path info by the path
+     * parameters it preserves.
+     *
+     * @param path the path to strip path parameters from
+     * @return the path without path parameters
+     */
+    static String stripPathParameters(final String path) {
+        final int firstSemicolon = path.indexOf(';');
+        if (firstSemicolon < 0) {
+            return path;
+        }
+        final StringBuilder builder = new StringBuilder(path.length());
+        // everything up to the first ';' is guaranteed to be free of path parameters, so it
+        // can be copied in one go instead of being re-scanned character by character
+        builder.append(path, 0, firstSemicolon);
+        for (int i = firstSemicolon; i < path.length(); i++) {
+            final char c = path.charAt(i);
+            if (c == ';') {
+                // skip the path parameter(s) up to the end of the current segment
+                while (i + 1 < path.length() && path.charAt(i + 1) != '/') {
+                    i++;
+                }
+            } else {
+                builder.append(c);
+            }
+        }
+        return builder.toString();
     }
 
     public void initServlet(final Resource resource, final ServletResolver sr) {
