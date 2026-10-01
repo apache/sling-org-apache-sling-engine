@@ -44,22 +44,51 @@ public class RequestPartsIterator implements Iterator<Part> {
     /** The CommonsFile Upload streaming API iterator */
     private final FileItemIterator itemIterator;
 
+    /** The maximum number of parts allowed in the request, -1 for unlimited */
+    private final long fileCountMax;
+
+    /** The number of parts returned so far */
+    private long partCount;
+
     /**
      * Create and initialse the iterator using the request. The request must be fresh. Headers can have been read but the stream
      * must not have been parsed.
-     * @param servletRequest the request
+     * <p>
+     * The configured multipart limits are enforced on the streamed request just
+     * as they are for the buffered (non-streamed) code path: a client-selected
+     * upload mode must not bypass the operator-configured controls.
+     *
+     * @param context the request context
+     * @param sizeMax the maximum allowed size of the complete request (-1 for unlimited)
+     * @param fileSizeMax the maximum allowed size of a single file/part (-1 for unlimited)
+     * @param fileCountMax the maximum allowed number of files/parts in the request
      * @throws IOException when there is a problem reading the request.
      * @throws FileUploadException when there is a problem parsing the request.
      */
-    public RequestPartsIterator(final RequestContext context) throws FileUploadException, IOException {
+    public RequestPartsIterator(
+            final RequestContext context, final long sizeMax, final long fileSizeMax, final long fileCountMax)
+            throws FileUploadException, IOException {
+        this.fileCountMax = fileCountMax;
         FileUpload upload = new FileUpload();
-        upload.setFileCountMax(50);
+        upload.setSizeMax(sizeMax);
+        upload.setFileSizeMax(fileSizeMax);
+        upload.setFileCountMax(fileCountMax);
         itemIterator = upload.getItemIterator(context);
     }
 
     @Override
     public boolean hasNext() {
         try {
+            // enforce the part count limit here as well, as the streaming API of
+            // commons-fileupload 1.x does not check fileCountMax itself
+            if (fileCountMax >= 0 && partCount >= fileCountMax) {
+                if (itemIterator.hasNext()) {
+                    LOG.error(
+                            "hasNext: the request contains more than the allowed number of {} parts, further parts are not processed",
+                            fileCountMax);
+                }
+                return false;
+            }
             return itemIterator.hasNext();
         } catch (final FileUploadException | IOException e) {
             LOG.error("hasNext Item failed cause:" + e.getMessage(), e);
@@ -70,6 +99,7 @@ public class RequestPartsIterator implements Iterator<Part> {
     @Override
     public Part next() {
         try {
+            partCount++;
             return new StreamedRequestPart(itemIterator.next());
         } catch (final FileUploadException | IOException e) {
             LOG.error("next Item failed cause:" + e.getMessage(), e);
@@ -111,7 +141,11 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         @Override
         public long getSize() {
-            return 0;
+            // The part is streamed, so its size is not known in advance. Return
+            // -1 (unknown) instead of 0 so that consumers enforcing size limits
+            // via getSize() reject the part instead of accepting arbitrarily
+            // large parts as empty.
+            return -1;
         }
 
         @Override
