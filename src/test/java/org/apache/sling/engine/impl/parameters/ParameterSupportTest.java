@@ -22,16 +22,23 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
 import java.util.Collections;
+import java.util.Iterator;
 
 import jakarta.servlet.ReadListener;
 import jakarta.servlet.ServletInputStream;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.Part;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -159,6 +166,52 @@ public class ParameterSupportTest {
 
         final ParameterSupport support = ParameterSupport.getInstance(request);
         support.getParameter("anything");
+    }
+
+    @Test
+    public void testStreamedUploadModeEnforcesConfiguredFileCountLimit() throws Exception {
+        // the streamed upload path used to apply a hardcoded fileCountMax of
+        // 50 regardless of configuration; configuring a stricter limit here
+        // (1) and sending two parts proves that ParameterSupport actually
+        // plumbs its configured limit into RequestPartsIterator instead of
+        // silently falling back to the old hardcoded default.
+        ParameterSupport.configure(-1, null, -1, -1, false, 1);
+        try {
+            final String boundary = "AaB03x";
+            final String body = "--" + boundary + "\r\n"
+                    + "Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\"\r\n"
+                    + "Content-Type: text/plain\r\n"
+                    + "\r\n"
+                    + "hello\r\n"
+                    + "--" + boundary + "\r\n"
+                    + "Content-Disposition: form-data; name=\"file2\"; filename=\"b.txt\"\r\n"
+                    + "Content-Type: text/plain\r\n"
+                    + "\r\n"
+                    + "world\r\n"
+                    + "--" + boundary + "--\r\n";
+            final HttpServletRequest request = postRequest("multipart/form-data; boundary=" + boundary, body);
+            when(request.getHeader(ParameterSupport.SLING_UPLOADMODE_HEADER))
+                    .thenReturn(ParameterSupport.STREAM_UPLOAD);
+
+            final ParameterSupport support = ParameterSupport.getInstance(request);
+            support.getRequestParameterMap();
+
+            @SuppressWarnings("unchecked")
+            final ArgumentCaptor<Iterator<Part>> captor = ArgumentCaptor.forClass(Iterator.class);
+            verify(request).setAttribute(eq(ParameterSupport.REQUEST_PARTS_ITERATOR_ATTRIBUTE), captor.capture());
+            final Iterator<Part> parts = captor.getValue();
+
+            assertTrue("the first part must still be reachable", parts.hasNext());
+            parts.next();
+            assertFalse(
+                    "the configured file count limit of 1 must be enforced on the "
+                            + "streamed path, not the previous hardcoded default of 50",
+                    parts.hasNext());
+        } finally {
+            // restore defaults so this test does not leak static state into
+            // the other tests in this class
+            ParameterSupport.configure(-1, null, -1, -1, false, 50);
+        }
     }
 
     private static HttpServletRequest postRequest(final String contentType, final String body) throws IOException {
