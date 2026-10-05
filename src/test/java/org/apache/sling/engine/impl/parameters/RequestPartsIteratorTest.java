@@ -21,22 +21,50 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.NoSuchElementException;
 
+import jakarta.servlet.http.Part;
 import org.apache.commons.fileupload.FileItemIterator;
 import org.apache.commons.fileupload.FileUploadException;
 import org.apache.commons.fileupload.RequestContext;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
  * Regression tests for SLING-13364: a stream turning malformed
  * mid-body must surface as an error from {@link RequestPartsIterator}
  * instead of silently truncating the part sequence.
+ * <p>
+ * Also covers the fix for the streamed upload mode bypassing the configured
+ * multipart limits: the configured {@code sizeMax}/{@code fileSizeMax}/
+ * {@code fileCountMax} must be enforced on the streamed path exactly as they
+ * are on the buffered path, and {@link Part#getSize()} must report the size
+ * as unknown ({@code -1}) rather than falsely claiming an empty part.
  */
 public class RequestPartsIteratorTest {
+
+    private static final String BOUNDARY = "AaB03x";
+
+    private static final String MULTI_PART_BODY = "--" + BOUNDARY + "\r\n"
+            + "Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\"\r\n"
+            + "Content-Type: text/plain\r\n"
+            + "\r\n"
+            + "hello\r\n"
+            + "--" + BOUNDARY + "\r\n"
+            + "Content-Disposition: form-data; name=\"file2\"; filename=\"b.txt\"\r\n"
+            + "Content-Type: text/plain\r\n"
+            + "\r\n"
+            + "world\r\n"
+            + "--" + BOUNDARY + "--\r\n";
 
     @Test(expected = SlingParameterParseException.class)
     public void testHasNextIsRejectedOnFileUploadException() throws Exception {
@@ -102,7 +130,7 @@ public class RequestPartsIteratorTest {
         when(context.getCharacterEncoding()).thenReturn("UTF-8");
         when(context.getContentLength()).thenReturn(body.length());
         when(context.getInputStream()).thenReturn(new ByteArrayInputStream(body.getBytes(Util.ENCODING_DIRECT)));
-        return new RequestPartsIterator(context);
+        return new RequestPartsIterator(context, -1, -1, 50);
     }
 
     private static void injectDelegate(final RequestPartsIterator iterator, final FileItemIterator delegate)
@@ -110,5 +138,94 @@ public class RequestPartsIteratorTest {
         final Field field = RequestPartsIterator.class.getDeclaredField("itemIterator");
         field.setAccessible(true);
         field.set(iterator, delegate);
+    }
+
+    private static RequestContext multiPartContext() throws IOException {
+        final byte[] body = MULTI_PART_BODY.getBytes(Util.ENCODING_DIRECT);
+        final RequestContext context = mock(RequestContext.class);
+        when(context.getContentType()).thenReturn("multipart/form-data; boundary=" + BOUNDARY);
+        when(context.getCharacterEncoding()).thenReturn("UTF-8");
+        when(context.getContentLength()).thenReturn(body.length);
+        when(context.getInputStream()).thenReturn(new ByteArrayInputStream(body));
+        return context;
+    }
+
+    @Test
+    public void testAllPartsIteratedWithoutLimits() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 50);
+        assertTrue(it.hasNext());
+        final Part first = it.next();
+        assertNotNull(first);
+        assertEquals("file1", first.getName());
+        assertTrue(it.hasNext());
+        final Part second = it.next();
+        assertNotNull(second);
+        assertEquals("file2", second.getName());
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void testFileCountMaxEnforced() throws Exception {
+        // the configured count must be enforced even though commons-fileupload's
+        // streaming API does not check fileCountMax itself
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 1);
+        assertTrue(it.hasNext());
+        assertNotNull(it.next());
+        // the second part exceeds the configured count limit
+        assertFalse(it.hasNext());
+        assertThrows(NoSuchElementException.class, it::next);
+    }
+
+    @Test
+    public void testFileCountMaxEnforcedWithoutHasNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 1);
+        assertEquals("file1", it.next().getName());
+        final FileItemIterator delegate = mock(FileItemIterator.class);
+        injectDelegate(it, delegate);
+
+        assertThrows(NoSuchElementException.class, it::next);
+        assertThrows(NoSuchElementException.class, it::next);
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void testZeroFileCountMaxRejectsNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 0);
+        final FileItemIterator delegate = mock(FileItemIterator.class);
+        injectDelegate(it, delegate);
+
+        assertThrows(NoSuchElementException.class, it::next);
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void testUnlimitedFileCountAllowsNextWithoutHasNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, -1);
+
+        assertEquals("file1", it.next().getName());
+        assertEquals("file2", it.next().getName());
+        assertThrows(NoSuchElementException.class, it::next);
+        assertFalse(it.hasNext());
+    }
+
+    @Test
+    public void testSizeMaxEnforced() throws Exception {
+        try {
+            new RequestPartsIterator(multiPartContext(), 10, -1, 50);
+            fail("Expected the configured request size limit to be enforced");
+        } catch (FileUploadException expected) {
+            // the request exceeds the configured maximum request size
+        }
+    }
+
+    @Test
+    public void testGetSizeIsUnknownNotZero() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 50);
+        assertTrue(it.hasNext());
+        final Part part = it.next();
+        assertNotNull(part);
+        // the size of a streamed part is unknown: it must not read as an empty
+        // part to size-limit checks of downstream consumers
+        assertEquals(-1, part.getSize());
     }
 }

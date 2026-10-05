@@ -321,7 +321,11 @@ public class ParameterSupport {
                             this.getServletRequest()
                                     .setAttribute(
                                             REQUEST_PARTS_ITERATOR_ATTRIBUTE,
-                                            new RequestPartsIterator(this.getMultiPartContext()));
+                                            new RequestPartsIterator(
+                                                    this.getMultiPartContext(),
+                                                    ParameterSupport.maxRequestSize,
+                                                    ParameterSupport.maxFileSize,
+                                                    ParameterSupport.maxFileCount));
                             this.log.debug(
                                     "getRequestParameterMapInternal: Iterator<javax.servlet.http.Part> available as request attribute named request-parts-iterator");
                         } catch (final FileUploadException | IOException e) {
