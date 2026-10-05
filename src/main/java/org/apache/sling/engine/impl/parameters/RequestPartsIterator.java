@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.NoSuchElementException;
 
 import jakarta.servlet.http.Part;
 import org.apache.commons.fileupload.FileItemIterator;
@@ -98,9 +99,13 @@ public class RequestPartsIterator implements Iterator<Part> {
 
     @Override
     public Part next() {
+        if (fileCountMax >= 0 && partCount >= fileCountMax) {
+            throw new NoSuchElementException("The configured limit of " + fileCountMax + " parts has been reached");
+        }
         try {
+            final Part part = new StreamedRequestPart(itemIterator.next());
             partCount++;
-            return new StreamedRequestPart(itemIterator.next());
+            return part;
         } catch (final FileUploadException | IOException e) {
             LOG.error("next Item failed cause:" + e.getMessage(), e);
             throw new SlingParameterParseException("Error reading next part from the request stream", e);

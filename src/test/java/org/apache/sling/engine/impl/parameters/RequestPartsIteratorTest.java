@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.util.NoSuchElementException;
 
 import jakarta.servlet.http.Part;
 import org.apache.commons.fileupload.FileItemIterator;
@@ -31,9 +32,11 @@ import org.junit.Test;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -169,6 +172,39 @@ public class RequestPartsIteratorTest {
         assertTrue(it.hasNext());
         assertNotNull(it.next());
         // the second part exceeds the configured count limit
+        assertFalse(it.hasNext());
+        assertThrows(NoSuchElementException.class, it::next);
+    }
+
+    @Test
+    public void testFileCountMaxEnforcedWithoutHasNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 1);
+        assertEquals("file1", it.next().getName());
+        final FileItemIterator delegate = mock(FileItemIterator.class);
+        injectDelegate(it, delegate);
+
+        assertThrows(NoSuchElementException.class, it::next);
+        assertThrows(NoSuchElementException.class, it::next);
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void testZeroFileCountMaxRejectsNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 0);
+        final FileItemIterator delegate = mock(FileItemIterator.class);
+        injectDelegate(it, delegate);
+
+        assertThrows(NoSuchElementException.class, it::next);
+        verifyNoInteractions(delegate);
+    }
+
+    @Test
+    public void testUnlimitedFileCountAllowsNextWithoutHasNext() throws Exception {
+        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, -1);
+
+        assertEquals("file1", it.next().getName());
+        assertEquals("file2", it.next().getName());
+        assertThrows(NoSuchElementException.class, it::next);
         assertFalse(it.hasNext());
     }
 
