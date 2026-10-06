@@ -27,6 +27,8 @@ import java.io.Writer;
 @Deprecated
 public class ResponseUtil {
 
+    private ResponseUtil() {}
+
     /**
      * Escape xml text
      * @param input The text to escape

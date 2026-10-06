@@ -29,6 +29,8 @@ import java.util.Map;
 @Deprecated
 public class RequestUtil {
 
+    private RequestUtil() {}
+
     /**
      * Parses a header of the form:
      *

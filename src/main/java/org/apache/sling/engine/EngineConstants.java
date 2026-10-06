@@ -26,6 +26,8 @@ package org.apache.sling.engine;
  */
 public class EngineConstants {
 
+    private EngineConstants() {}
+
     /**
      * The name of the framework property defining the Sling home directory
      * (value is "sling.home"). This is a Platform file system directory below

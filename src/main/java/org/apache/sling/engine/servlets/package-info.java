@@ -17,5 +17,8 @@
  * under the License.
  */
 
+/**
+ * Provides support and base classes for servlet and filter configuration within the Sling Engine.
+ */
 @org.osgi.annotation.versioning.Version("2.0.10")
 package org.apache.sling.engine.servlets;

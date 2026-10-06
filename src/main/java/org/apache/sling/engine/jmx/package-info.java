@@ -17,5 +17,8 @@
  * under the License.
  */
 
+/**
+ * Provides JMX MBeans for monitoring and management of the Sling Engine.
+ */
 @org.osgi.annotation.versioning.Version("1.1.1")
 package org.apache.sling.engine.jmx;
