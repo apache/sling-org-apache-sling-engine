@@ -33,7 +33,10 @@ public class RequestUtil {
      * @deprecated Utility class constructor
      */
     @Deprecated
-    public RequestUtil() {}
+    @SuppressWarnings("java:S1118")
+    public RequestUtil() {
+        // Explicit constructor for backward binary compatibility
+    }
 
     /**
      * Parses a header of the form:

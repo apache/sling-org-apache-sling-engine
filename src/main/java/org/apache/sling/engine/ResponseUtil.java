@@ -31,7 +31,10 @@ public class ResponseUtil {
      * @deprecated Utility class constructor
      */
     @Deprecated
-    public ResponseUtil() {}
+    @SuppressWarnings("java:S1118")
+    public ResponseUtil() {
+        // Explicit constructor for backward binary compatibility
+    }
 
     /**
      * Escape xml text

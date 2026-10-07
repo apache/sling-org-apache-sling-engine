@@ -29,7 +29,10 @@ public class EngineConstants {
     /**
      * Explicit public constructor for backward binary compatibility.
      */
-    public EngineConstants() {}
+    @SuppressWarnings("java:S1118")
+    public EngineConstants() {
+        // Explicit constructor for backward binary compatibility
+    }
 
     /**
      * The name of the framework property defining the Sling home directory
