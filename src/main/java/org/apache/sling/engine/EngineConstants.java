@@ -26,7 +26,11 @@ package org.apache.sling.engine;
  */
 public class EngineConstants {
 
-    private EngineConstants() {}
+    /**
+     * @deprecated Utility class constructor
+     */
+    @Deprecated
+    public EngineConstants() {}
 
     /**
      * The name of the framework property defining the Sling home directory

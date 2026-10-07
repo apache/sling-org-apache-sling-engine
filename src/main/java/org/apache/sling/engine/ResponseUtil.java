@@ -27,7 +27,11 @@ import java.io.Writer;
 @Deprecated
 public class ResponseUtil {
 
-    private ResponseUtil() {}
+    /**
+     * @deprecated Utility class constructor
+     */
+    @Deprecated
+    public ResponseUtil() {}
 
     /**
      * Escape xml text

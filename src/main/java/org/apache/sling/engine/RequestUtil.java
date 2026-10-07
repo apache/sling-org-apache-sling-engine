@@ -29,7 +29,11 @@ import java.util.Map;
 @Deprecated
 public class RequestUtil {
 
-    private RequestUtil() {}
+    /**
+     * @deprecated Utility class constructor
+     */
+    @Deprecated
+    public RequestUtil() {}
 
     /**
      * Parses a header of the form:
