@@ -27,9 +27,8 @@ package org.apache.sling.engine;
 public class EngineConstants {
 
     /**
-     * @deprecated Utility class constructor
+     * Explicit public constructor for backward binary compatibility.
      */
-    @Deprecated
     public EngineConstants() {}
 
     /**
