@@ -57,9 +57,4 @@ public class ResponseUtilTest {
                 "&lt;bonnie&gt; &amp; &lt;/clyde&gt; &amp;&amp; others are having fun with &quot; and &apos; characters",
                 sw.toString());
     }
-
-    @Test
-    public void testConstructor() {
-        org.junit.Assert.assertNotNull(new ResponseUtil());
-    }
 }

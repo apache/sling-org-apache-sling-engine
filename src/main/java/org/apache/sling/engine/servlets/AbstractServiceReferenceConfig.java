@@ -102,9 +102,9 @@ public abstract class AbstractServiceReferenceConfig {
     }
 
     /**
-     * Returns the names of the servlet's initialization parameters as an
+     * Returns the property keys of the underlying OSGi {@link ServiceReference} as an
      * {@code Enumeration} of String objects, or an empty {@code Enumeration}
-     * if the servlet has no initialization parameters.
+     * if there are no properties.
      *
      * @return An {@code Enumeration} of parameter names.
      */

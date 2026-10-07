@@ -28,7 +28,7 @@ import java.io.Writer;
 public class ResponseUtil {
 
     /**
-     * @deprecated Utility class constructor
+     * @deprecated Instantiation not intended. Use {@link org.apache.sling.api.request.ResponseUtil} instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1118")

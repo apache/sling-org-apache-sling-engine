@@ -28,7 +28,9 @@ public class EngineConstants {
 
     /**
      * Explicit public constructor for backward binary compatibility.
+     * @deprecated Instantiation not intended.
      */
+    @Deprecated
     @SuppressWarnings("java:S1118")
     public EngineConstants() {
         // Explicit constructor for backward binary compatibility

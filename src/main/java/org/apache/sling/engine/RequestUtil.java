@@ -30,7 +30,7 @@ import java.util.Map;
 public class RequestUtil {
 
     /**
-     * @deprecated Utility class constructor
+     * @deprecated Instantiation not intended. Use {@link org.apache.sling.api.request.RequestUtil} instead.
      */
     @Deprecated
     @SuppressWarnings("java:S1118")
