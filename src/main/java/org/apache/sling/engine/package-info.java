@@ -17,5 +17,8 @@
  * under the License.
  */
 
+/**
+ * Provides the main framework and interfaces for the Sling Engine.
+ */
 @org.osgi.annotation.versioning.Version("2.7.0")
 package org.apache.sling.engine;
