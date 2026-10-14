@@ -27,10 +27,6 @@ import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.imposters.ByteBuddyClassImposteriser;
-import org.jmock.integration.junit4.JUnit4Mockery;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -44,218 +40,120 @@ public class SlingHttpServletRequestImplTest {
 
     SlingJakartaHttpServletRequestImpl slingHttpServletRequestImpl;
 
-    private Mockery context = new JUnit4Mockery() {
-        {
-            setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
-        }
-    };
-
     @Test
     public void getUserPrincipal_testWithRemoteUserFallback() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn("remoteUser");
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue("remoteUser"));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(null));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(false));
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(null);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(false);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(
                 "UserPrincipal: remoteUser",
                 slingHttpServletRequestImpl.getUserPrincipal().toString());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     @Test
     public void getUserPrincipal_testWithRemoteUserFallback_nonspeccompliant() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn("remoteUser");
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue("remoteUser"));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(null));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(true));
-                allowing(requestData).logNonCompliantGetUserPrincipalWarning();
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(null);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(true);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(
                 "UserPrincipal: remoteUser",
                 slingHttpServletRequestImpl.getUserPrincipal().toString());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     @Test
     public void getUserPrincipal_testUnauthenticated() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn(null);
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue(null));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-        final Principal principal = context.mock(Principal.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(principal));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(false));
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        final Principal principal = Mockito.mock(Principal.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(principal);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(false);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertNull(slingHttpServletRequestImpl.getUserPrincipal());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     @Test
     public void getUserPrincipal_testUnauthenticated_nonspeccompliant() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn(null);
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue(null));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-        final Principal principal = context.mock(Principal.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(principal));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(true));
-                allowing(requestData).logNonCompliantGetUserPrincipalWarning();
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        final Principal principal = Mockito.mock(Principal.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(principal);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(true);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertSame(principal, slingHttpServletRequestImpl.getUserPrincipal());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     @Test
     public void getUserPrincipal_testWithPrincipal() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn("remoteUser");
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue("remoteUser"));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-        final Principal principal = context.mock(Principal.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(principal));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(false));
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        final Principal principal = Mockito.mock(Principal.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(principal);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(false);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(principal, slingHttpServletRequestImpl.getUserPrincipal());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     @Test
     public void getUserPrincipal_testWithPrincipal_nonspeccompliant() {
-        final HttpServletRequest servletRequest = context.mock(HttpServletRequest.class);
+        final HttpServletRequest servletRequest = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(servletRequest.getServletPath()).thenReturn("/path");
+        Mockito.when(servletRequest.getPathInfo()).thenReturn("/path");
+        Mockito.when(servletRequest.getRemoteUser()).thenReturn("remoteUser");
 
-        context.checking(new Expectations() {
-            {
-                oneOf(servletRequest).getServletPath();
-                will(returnValue("/path"));
-                allowing(servletRequest).getPathInfo();
-                will(returnValue("/path"));
-                allowing(servletRequest).getRemoteUser();
-                will(returnValue("remoteUser"));
-            }
-        });
-
-        final RequestData requestData = context.mock(RequestData.class, "requestData");
-        final ResourceResolver resourceResolver = context.mock(ResourceResolver.class);
-        final Principal principal = context.mock(Principal.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(requestData).getResourceResolver();
-                will(returnValue(resourceResolver));
-                allowing(resourceResolver).adaptTo(Principal.class);
-                will(returnValue(principal));
-                allowing(requestData).isDisableCheckCompliantGetUserPrincipal();
-                will(returnValue(true));
-            }
-        });
+        final RequestData requestData = Mockito.mock(RequestData.class);
+        final ResourceResolver resourceResolver = Mockito.mock(ResourceResolver.class);
+        final Principal principal = Mockito.mock(Principal.class);
+        Mockito.when(requestData.getResourceResolver()).thenReturn(resourceResolver);
+        Mockito.when(resourceResolver.adaptTo(Principal.class)).thenReturn(principal);
+        Mockito.when(requestData.isDisableCheckCompliantGetUserPrincipal()).thenReturn(true);
 
         slingHttpServletRequestImpl = new SlingJakartaHttpServletRequestImpl(requestData, servletRequest);
         assertEquals(principal, slingHttpServletRequestImpl.getUserPrincipal());
+        Mockito.verify(servletRequest).getServletPath();
     }
 
     private void assertEmptyEnumerator(final Enumeration<String> e) {

@@ -19,9 +19,8 @@
 package org.apache.sling.engine.impl.filter;
 
 import jakarta.servlet.Filter;
-import org.jmock.Mockery;
-import org.jmock.integration.junit4.JUnit4Mockery;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 
@@ -30,17 +29,15 @@ import static org.junit.Assert.assertEquals;
  */
 public class SlingFilterChainHelperTest {
 
-    private final Mockery context = new JUnit4Mockery();
-
     @Test
     public void testOrdering() {
         final SlingFilterChainHelper chain = new SlingFilterChainHelper();
 
-        chain.addFilter(context.mock(Filter.class, "A"), null, null, 1L, 100, "1:100", null);
-        chain.addFilter(context.mock(Filter.class, "B"), null, null, 2L, 100, "2:100", null);
-        chain.addFilter(context.mock(Filter.class, "C"), null, null, 3L, -100, "3:-100", null);
-        chain.addFilter(context.mock(Filter.class, "D"), null, null, 4L, -1000, "4:-1000", null);
-        chain.addFilter(context.mock(Filter.class, "E"), null, null, 5L, 1000, "5:1000", null);
+        chain.addFilter(Mockito.mock(Filter.class, "A"), null, null, 1L, 100, "1:100", null);
+        chain.addFilter(Mockito.mock(Filter.class, "B"), null, null, 2L, 100, "2:100", null);
+        chain.addFilter(Mockito.mock(Filter.class, "C"), null, null, 3L, -100, "3:-100", null);
+        chain.addFilter(Mockito.mock(Filter.class, "D"), null, null, 4L, -1000, "4:-1000", null);
+        chain.addFilter(Mockito.mock(Filter.class, "E"), null, null, 5L, 1000, "5:1000", null);
 
         final FilterHandle[] entries = chain.getFilters();
         assertEquals(5, entries.length);
