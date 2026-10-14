@@ -25,15 +25,11 @@ import jakarta.servlet.Filter;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.builder.Builders;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.integration.junit4.JUnit4Mockery;
+import org.mockito.Mockito;
 import org.osgi.framework.Bundle;
 import org.osgi.framework.ServiceReference;
 
 public abstract class AbstractFilterTest {
-
-    protected final Mockery context = new JUnit4Mockery();
 
     protected ServiceReference<Filter> mockService(Object... map) {
 
@@ -87,70 +83,37 @@ public abstract class AbstractFilterTest {
             final String[] selectors,
             final String method,
             final String suffix) {
-        final RequestPathInfo info = context.mock(RequestPathInfo.class, "info " + path + extension + method + suffix);
-        context.checking(new Expectations() {
-            {
-                allowing(info).getExtension();
-                will(returnValue(extension));
-                allowing(info).getSuffix();
-                will(returnValue(suffix));
-                allowing(info).getSelectors();
-                will(returnValue(selectors == null ? new String[0] : selectors));
-                allowing(info).getResourcePath();
-                will(returnValue(path));
-            }
-        });
+        final RequestPathInfo info = Mockito.mock(RequestPathInfo.class, "info " + path + extension + method + suffix);
+        Mockito.when(info.getExtension()).thenReturn(extension);
+        Mockito.when(info.getSuffix()).thenReturn(suffix);
+        Mockito.when(info.getSelectors()).thenReturn(selectors == null ? new String[0] : selectors);
+        Mockito.when(info.getResourcePath()).thenReturn(path);
 
         final SlingJakartaHttpServletRequest req =
-                context.mock(SlingJakartaHttpServletRequest.class, "req " + path + extension + method + suffix);
-        context.checking(new Expectations() {
-            {
-                allowing(req).getRequestProgressTracker();
-                will(returnValue(Builders.newRequestProgressTracker()));
-                allowing(req).getRequestPathInfo();
-                will(returnValue(info));
-                allowing(req).getMethod();
-                will(returnValue(method));
-                allowing(req).getPathInfo();
-                will(returnValue(path));
-                allowing(req).getServletPath();
-                will(returnValue(path));
-                allowing(req).getAttribute(with(any(String.class)));
-                will(returnValue(new Object()));
-            }
-        });
+                Mockito.mock(SlingJakartaHttpServletRequest.class, "req " + path + extension + method + suffix);
+        Mockito.when(req.getRequestProgressTracker()).thenReturn(Builders.newRequestProgressTracker());
+        Mockito.when(req.getRequestPathInfo()).thenReturn(info);
+        Mockito.when(req.getMethod()).thenReturn(method);
+        Mockito.when(req.getPathInfo()).thenReturn(path);
+        Mockito.when(req.getServletPath()).thenReturn(path);
+        Mockito.when(req.getAttribute(Mockito.anyString())).thenReturn(new Object());
         return req;
     }
 
     protected SlingJakartaHttpServletRequest mockRequest(
             final String resourcePath, final String requestPath, final String extension) {
         final RequestPathInfo info =
-                context.mock(RequestPathInfo.class, "info " + resourcePath + requestPath + extension);
-        context.checking(new Expectations() {
-            {
-                allowing(info).getExtension();
-                will(returnValue(extension));
-                allowing(info).getSuffix();
-                will(returnValue(null));
-                allowing(info).getSelectors();
-                will(returnValue(new String[0]));
-                allowing(info).getResourcePath();
-                will(returnValue(resourcePath));
-            }
-        });
+                Mockito.mock(RequestPathInfo.class, "info " + resourcePath + requestPath + extension);
+        Mockito.when(info.getExtension()).thenReturn(extension);
+        Mockito.when(info.getSuffix()).thenReturn(null);
+        Mockito.when(info.getSelectors()).thenReturn(new String[0]);
+        Mockito.when(info.getResourcePath()).thenReturn(resourcePath);
 
         final SlingJakartaHttpServletRequest req =
-                context.mock(SlingJakartaHttpServletRequest.class, "req " + resourcePath + requestPath + extension);
-        context.checking(new Expectations() {
-            {
-                allowing(req).getRequestPathInfo();
-                will(returnValue(info));
-                allowing(req).getMethod();
-                will(returnValue(null));
-                allowing(req).getPathInfo();
-                will(returnValue(requestPath));
-            }
-        });
+                Mockito.mock(SlingJakartaHttpServletRequest.class, "req " + resourcePath + requestPath + extension);
+        Mockito.when(req.getRequestPathInfo()).thenReturn(info);
+        Mockito.when(req.getMethod()).thenReturn(null);
+        Mockito.when(req.getPathInfo()).thenReturn(requestPath);
         return req;
     }
 

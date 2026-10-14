@@ -24,17 +24,15 @@ import java.util.Collections;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.apache.sling.api.request.RequestProgressTracker;
+import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceResolver;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.junit.runners.Parameterized.Parameters;
+import org.mockito.Mockito;
 
 /**
  * Verifies {@link RequestData#initResource(ResourceResolver)}, in particular the fallback
@@ -64,13 +62,11 @@ import org.junit.runners.Parameterized.Parameters;
 @RunWith(Parameterized.class)
 public class InitResourceTest {
 
-    private Mockery context;
     private RequestData requestData;
     private HttpServletRequest req;
     private HttpServletResponse resp;
     private ResourceResolver resourceResolver;
 
-    private final String description;
     private final String rawRequestURL;
     private final String containerPathInfo;
     private final String expectedResolvedPath;
@@ -256,13 +252,12 @@ public class InitResourceTest {
     }
 
     public InitResourceTest(
-            String description,
+            String description, // just a test description, not used
             String rawRequestURL,
             String containerPathInfo,
             String expectedResolvedPath,
             String contextPath,
             String servletPath) {
-        this.description = description;
         this.rawRequestURL = rawRequestURL;
         this.containerPathInfo = containerPathInfo;
         this.expectedResolvedPath = expectedResolvedPath;
@@ -272,59 +267,22 @@ public class InitResourceTest {
 
     @Before
     public void setup() throws Exception {
-        context = new Mockery() {
-            {
-                setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
-            }
-        };
+        req = Mockito.mock(HttpServletRequest.class);
+        resp = Mockito.mock(HttpServletResponse.class);
+        resourceResolver = Mockito.mock(ResourceResolver.class);
+        final SlingRequestProcessorImpl processor = Mockito.mock(SlingRequestProcessorImpl.class);
+        final Resource resource = Mockito.mock(Resource.class);
 
-        req = context.mock(HttpServletRequest.class);
-        resp = context.mock(HttpServletResponse.class);
-        resourceResolver = context.mock(ResourceResolver.class);
-        final SlingRequestProcessorImpl processor = context.mock(SlingRequestProcessorImpl.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(req).getRequestURL();
-                will(returnValue(new StringBuffer(rawRequestURL)));
-
-                allowing(req).getRequestURI();
-
-                allowing(req).getPathInfo();
-                will(returnValue(containerPathInfo));
-
-                allowing(req).getContextPath();
-                will(returnValue(contextPath));
-
-                allowing(req).getServletPath();
-                will(returnValue(servletPath));
-
-                allowing(req).getMethod();
-                will(returnValue("GET"));
-
-                allowing(req).getAttribute(RequestData.REQUEST_RESOURCE_PATH_ATTR);
-                will(returnValue(null));
-                allowing(req)
-                        .setAttribute(with(equal(RequestData.REQUEST_RESOURCE_PATH_ATTR)), with(any(Object.class)));
-
-                allowing(req).getAttribute(RequestProgressTracker.class.getName());
-                will(returnValue(null));
-
-                // Verify that the ResourceResolver is called with the expected (re-derived or
-                // passed-through) path
-                if (expectedResolvedPath == null) {
-                    allowing(resourceResolver).resolve(with(any(HttpServletRequest.class)), with(aNull(String.class)));
-                } else {
-                    allowing(resourceResolver)
-                            .resolve(with(any(HttpServletRequest.class)), with(equal(expectedResolvedPath)));
-                }
-
-                allowing(processor).getMaxCallCounter();
-                will(returnValue(2));
-                allowing(processor).getAdditionalResponseHeaders();
-                will(returnValue(Collections.emptyList()));
-            }
-        });
+        Mockito.when(req.getRequestURL()).thenReturn(new StringBuffer(rawRequestURL));
+        Mockito.when(req.getPathInfo()).thenReturn(containerPathInfo);
+        Mockito.when(req.getContextPath()).thenReturn(contextPath);
+        Mockito.when(req.getServletPath()).thenReturn(servletPath);
+        Mockito.when(req.getMethod()).thenReturn("GET");
+        Mockito.when(processor.getMaxCallCounter()).thenReturn(2);
+        Mockito.when(processor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
+        Mockito.when(resourceResolver.resolve(Mockito.any(HttpServletRequest.class), Mockito.eq(expectedResolvedPath)))
+                .thenReturn(resource);
+        Mockito.when(resource.getPath()).thenReturn("/");
 
         requestData = new RequestData(processor, req, resp, false, false, true);
     }
@@ -332,5 +290,7 @@ public class InitResourceTest {
     @Test
     public void resolverPathMatches() {
         requestData.initResource(resourceResolver);
+        Mockito.verify(resourceResolver)
+                .resolve(Mockito.any(HttpServletRequest.class), Mockito.eq(expectedResolvedPath));
     }
 }

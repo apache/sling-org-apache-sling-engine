@@ -34,6 +34,7 @@ import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertTrue;
 
@@ -65,11 +66,11 @@ public class AbstractSlingFilterChainTest extends AbstractFilterTest {
         };
         HttpServletRequest httpReq = whateverRequest();
         final RequestData requestData = new RequestData(
-                new SlingRequestProcessorImpl(), httpReq, context.mock(HttpServletResponse.class), false, false, true);
+                new SlingRequestProcessorImpl(), httpReq, Mockito.mock(HttpServletResponse.class), false, false, true);
         final SlingJakartaHttpServletRequestImpl req = new SlingJakartaHttpServletRequestImpl(requestData, httpReq);
         boolean illegalStateCaught = false;
         try {
-            chain.doFilter(req, context.mock(SlingJakartaHttpServletResponse.class));
+            chain.doFilter(req, Mockito.mock(SlingJakartaHttpServletResponse.class));
         } catch (IllegalStateException e) {
             illegalStateCaught = true;
         }

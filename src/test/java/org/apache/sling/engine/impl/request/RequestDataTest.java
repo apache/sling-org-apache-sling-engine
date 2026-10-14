@@ -24,28 +24,23 @@ import java.util.Collections;
 import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
-import org.apache.sling.api.request.RequestProgressTracker;
+import org.apache.sling.api.request.RequestPathInfo;
 import org.apache.sling.api.request.TooManyCallsException;
 import org.apache.sling.engine.impl.SlingJakartaHttpServletRequestImpl;
 import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.imposters.ByteBuddyClassImposteriser;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 
 public class RequestDataTest {
 
-    private Mockery context;
     private RequestData requestData;
     private HttpServletRequest req;
     private HttpServletResponse resp;
@@ -54,55 +49,25 @@ public class RequestDataTest {
 
     @Before
     public void setup() throws ServletException, IOException {
-        context = new Mockery() {
-            {
-                setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
-            }
-        };
+        req = Mockito.mock(HttpServletRequest.class);
+        resp = Mockito.mock(HttpServletResponse.class);
 
-        req = context.mock(HttpServletRequest.class);
-        resp = context.mock(HttpServletResponse.class);
-
-        final ContentData contentData = context.mock(ContentData.class);
-        final Servlet servlet = context.mock(Servlet.class);
-        final ServletConfig servletConfig = context.mock(ServletConfig.class);
-        final SlingRequestProcessorImpl processor = context.mock(SlingRequestProcessorImpl.class);
-        context.checking(new Expectations() {
-            {
-                allowing(req).getServletPath();
-                will(returnValue("/"));
-
-                allowing(req).getPathInfo();
-                will(returnValue(""));
-
-                allowing(req).getMethod();
-                will(returnValue("GET"));
-
-                allowing(req).setAttribute(with(any(String.class)), with(any(Object.class)));
-                allowing(req).setAttribute(with(any(String.class)), with(aNull(Object.class)));
-
-                allowing(contentData).getServlet();
-                will(returnValue(servlet));
-
-                allowing(servlet).getServletConfig();
-                will(returnValue(servletConfig));
-
-                allowing(contentData).getRequestPathInfo();
-
-                allowing(servlet).service(with(any(ServletRequest.class)), with(any(ServletResponse.class)));
-
-                allowing(servletConfig).getServletName();
-                will(returnValue("SERVLET_NAME"));
-
-                allowing(req).getAttribute(RequestProgressTracker.class.getName());
-                will(returnValue(null));
-
-                allowing(processor).getMaxCallCounter();
-                will(returnValue(2));
-                allowing(processor).getAdditionalResponseHeaders();
-                will(returnValue(Collections.emptyList()));
-            }
-        });
+        final ContentData contentData = Mockito.mock(ContentData.class);
+        final RequestPathInfo requestPathInfo = Mockito.mock(RequestPathInfo.class);
+        final Servlet servlet = Mockito.mock(Servlet.class);
+        final ServletConfig servletConfig = Mockito.mock(ServletConfig.class);
+        final SlingRequestProcessorImpl processor = Mockito.mock(SlingRequestProcessorImpl.class);
+        Mockito.when(req.getServletPath()).thenReturn("/");
+        Mockito.when(req.getPathInfo()).thenReturn("");
+        Mockito.when(req.getMethod()).thenReturn("GET");
+        Mockito.when(contentData.getRequestPathInfo()).thenReturn(requestPathInfo);
+        Mockito.when(requestPathInfo.getResourcePath()).thenReturn("/");
+        Mockito.when(requestPathInfo.getSelectors()).thenReturn(new String[0]);
+        Mockito.when(contentData.getServlet()).thenReturn(servlet);
+        Mockito.when(servlet.getServletConfig()).thenReturn(servletConfig);
+        Mockito.when(servletConfig.getServletName()).thenReturn("SERVLET_NAME");
+        Mockito.when(processor.getMaxCallCounter()).thenReturn(2);
+        Mockito.when(processor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
 
         requestData = new RequestData(processor, req, resp, false, false, true) {
             @Override
@@ -129,23 +94,12 @@ public class RequestDataTest {
 
     @Test
     public void testTooManyCallsDefault() throws Exception {
-        context.checking(new Expectations() {
-            {
-                allowing(req).getAttribute(with(any(String.class)));
-                will(returnValue(null));
-            }
-        });
         assertTooManyCallsException(3);
     }
 
     @Test
     public void testTooManyCallsOverride() throws Exception {
-        context.checking(new Expectations() {
-            {
-                allowing(req).getAttribute(with(any(String.class)));
-                will(returnValue(1));
-            }
-        });
+        Mockito.when(req.getAttribute(Mockito.anyString())).thenReturn(1);
         assertTooManyCallsException(2);
     }
 
