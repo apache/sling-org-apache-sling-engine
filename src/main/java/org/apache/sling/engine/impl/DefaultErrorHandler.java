@@ -159,19 +159,16 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     }
 
     /**
-     * A request accepts html if it explicitly accepts {@code text/html} or {@code *}{@code /*}.
-     * A missing accept header and partial wildcards like {@code text/*} are not considered html.
+     * A request is treated as HTML if its Accept header matches {@code text/html},
+     * including through {@code text/*}, and does not contain {@code *}{@code /*}.
+     * A missing or blank Accept header, or any header containing {@code *}{@code /*},
+     * is treated as non-HTML, even if it also explicitly accepts {@code text/html}.
      * Only the accept header is evaluated: request parameters are not read, as parameter
      * parsing might itself be the cause of the error being handled.
      */
     private static boolean acceptsHtml(final SlingJakartaHttpServletRequest request) {
-        final String accept = request.getHeader(JakartaMediaRangeList.HEADER_ACCEPT);
-        if (accept == null || accept.trim().isEmpty()) {
-            return false;
-        }
-        // TODO - do we want to treat */* as html?
-        return new JakartaMediaRangeList(accept).prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML, ALL_CONTENT_TYPES)
-                != null;
+        final JakartaMediaRangeList acceptList = JakartaMediaRangeList.fromRequest(request);
+        return !acceptList.matchesAll() && acceptList.prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML) != null;
     }
 
     // ---------- ErrorHandler interface (default implementation) --------------

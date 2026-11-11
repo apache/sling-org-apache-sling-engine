@@ -177,7 +177,7 @@ public class DefaultErrorHandlerTest {
     }
 
     @Test
-    public void testHtmlRequestUsesMainDelegateEvenIfNonHtmlDelegateExists() throws Exception {
+    public void testHtmlRequestWithWildcardUsesNonHtmlDelegate() throws Exception {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
@@ -186,8 +186,8 @@ public class DefaultErrorHandlerTest {
 
         handler.handleError(500, "error", request, response);
 
-        verify(main).handleError(500, "error", request, response);
-        verifyNoInteractions(nonHtml);
+        verify(nonHtml).handleError(500, "error", request, response);
+        verifyNoInteractions(main);
     }
 
     @Test
@@ -228,7 +228,7 @@ public class DefaultErrorHandlerTest {
     }
 
     @Test
-    public void testWildcardAcceptIsTreatedAsHtml() throws Exception {
+    public void testWildcardAcceptIsTreatedAsNonHtml() throws Exception {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
@@ -237,12 +237,12 @@ public class DefaultErrorHandlerTest {
 
         handler.handleError(404, null, request, response);
 
-        verify(main).handleError(404, null, request, response);
-        verifyNoInteractions(nonHtml);
+        verify(nonHtml).handleError(404, null, request, response);
+        verifyNoInteractions(main);
     }
 
     @Test
-    public void testWildcardWithLowerQualityIsTreatedAsHtml() throws Exception {
+    public void testWildcardWithLowerQualityIsTreatedAsNonHtml() throws Exception {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
@@ -251,12 +251,12 @@ public class DefaultErrorHandlerTest {
 
         handler.handleError(404, null, request, response);
 
-        verify(main).handleError(404, null, request, response);
-        verifyNoInteractions(nonHtml);
+        verify(nonHtml).handleError(404, null, request, response);
+        verifyNoInteractions(main);
     }
 
     @Test
-    public void testTextWildcardAcceptIsTreatedAsNonHtml() throws Exception {
+    public void testTextWildcardAcceptIsTreatedAsHtml() throws Exception {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
@@ -265,8 +265,8 @@ public class DefaultErrorHandlerTest {
 
         handler.handleError(404, null, request, response);
 
-        verify(nonHtml).handleError(404, null, request, response);
-        verifyNoInteractions(main);
+        verify(main).handleError(404, null, request, response);
+        verifyNoInteractions(nonHtml);
     }
 
     @Test
