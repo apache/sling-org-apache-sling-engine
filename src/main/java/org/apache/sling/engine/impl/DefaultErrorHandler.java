@@ -228,7 +228,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         final String contentType = new JakartaMediaRangeList(request).prefer(HTML_CONTENT_TYPE);
         if (contentType == null) {
             response.setStatus(status);
-            response.setContentType(contentType);
+            response.setContentLength(0);
             // commit the response
             response.flushBuffer();
             return;
