@@ -54,13 +54,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    // TODO - move this to API
-    private static final String HTML_CONTENT_TYPE = "text/html";
-
     private static final String ALL_CONTENT_TYPES = "*/*";
-
-    // TODO - move this to API
-    static final String NON_HTML = "nonhtml";
 
     /** Use this if not null, and if that fails output a report about that failure */
     private volatile JakartaErrorHandler delegate;
@@ -176,7 +170,8 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             return false;
         }
         // TODO - do we want to treat */* as html?
-        return new JakartaMediaRangeList(accept).prefer(HTML_CONTENT_TYPE, ALL_CONTENT_TYPES) != null;
+        return new JakartaMediaRangeList(accept).prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML, ALL_CONTENT_TYPES)
+                != null;
     }
 
     // ---------- ErrorHandler interface (default implementation) --------------
@@ -312,7 +307,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
 
     private boolean matchesName(final ServiceReference<JakartaErrorHandler> ref, final String name) {
         final String[] names = Converters.standardConverter()
-                .convert(ref.getProperty(SlingRequestProcessorImpl.ERROR_HANDLER_NAME))
+                .convert(ref.getProperty(JakartaErrorHandler.PROPERTY_NAME))
                 .to(String[].class);
 
         for (final String n : names) {
@@ -329,7 +324,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     private void setNonHtmlErrorHandler() {
         final Optional<Map.Entry<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler>> first =
                 jakartaErrorHandlers.entrySet().stream()
-                        .filter(entry -> matchesName(entry.getKey(), DefaultErrorHandler.NON_HTML))
+                        .filter(entry -> matchesName(entry.getKey(), JakartaErrorHandler.NAME_NONHTML))
                         .findFirst();
         if (first.isPresent()) {
             this.nonHtmlDelegate = first.get().getValue();

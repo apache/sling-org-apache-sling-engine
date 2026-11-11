@@ -85,9 +85,6 @@ import org.slf4j.LoggerFactory;
         configurationPid = Config.PID)
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
-    // TODO - move this to API
-    static final String ERROR_HANDLER_NAME = "sling.error.handler";
-
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingRequestProcessorImpl.class);
 
@@ -160,7 +157,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     @Reference(
             name = "JakartaErrorHandler",
-            target = "(!(" + ERROR_HANDLER_NAME + "=*))",
+            target = "(!(" + JakartaErrorHandler.PROPERTY_NAME + "=*))",
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
@@ -178,7 +175,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
      * @param ref The ServiceReference associated with the JakartaErrorHandler instance.
      */
     @Reference(
-            target = "(" + ERROR_HANDLER_NAME + "=*)",
+            target = "(" + JakartaErrorHandler.PROPERTY_NAME + "=*)",
             cardinality = ReferenceCardinality.MULTIPLE,
             policy = ReferencePolicy.DYNAMIC)
     void setNamedJakartaErrorHandler(
