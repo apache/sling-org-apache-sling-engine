@@ -85,6 +85,9 @@ import org.slf4j.LoggerFactory;
         configurationPid = Config.PID)
 public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
+    // TODO - move this to API
+    static final String ERROR_HANDLER_NAME = "sling.error.handler";
+
     /** default log */
     private final Logger log = LoggerFactory.getLogger(SlingRequestProcessorImpl.class);
 
@@ -156,6 +159,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     @Reference(
             name = "JakartaErrorHandler",
+            target = "(!(" + ERROR_HANDLER_NAME + "=*))",
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
@@ -165,6 +169,28 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     void unsetJakartaErrorHandler(final JakartaErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (JakartaErrorHandler) null);
+    }
+
+    /**
+     * Add named error handlers
+     * @param handler The JakartaErrorHandler instance to add as a named delegate.
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance.
+     */
+    @Reference(
+            target = "(" + ERROR_HANDLER_NAME + "=*)",
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC)
+    void setNamedJakartaErrorHandler(
+            final JakartaErrorHandler handler, final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.addNamedDelegate(ref, handler);
+    }
+
+    /**
+     * Remove named error handlers
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance to remove.
+     */
+    void unsetNamedJakartaErrorHandler(final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.removeNamedDelegate(ref);
     }
 
     @SuppressWarnings("deprecation")
