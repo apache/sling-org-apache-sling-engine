@@ -215,8 +215,8 @@ public class SlingRequestProcessorImplTest {
                 nonHtml,
                 Constants.SERVICE_RANKING,
                 1000,
-                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
-                DefaultErrorHandler.NON_HTML);
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
         final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
 
         when(request.getHeader("Accept")).thenReturn("text/html");
@@ -237,8 +237,8 @@ public class SlingRequestProcessorImplTest {
         context.registerService(
                 JakartaErrorHandler.class,
                 nonHtml,
-                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
-                DefaultErrorHandler.NON_HTML);
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
 
         when(request.getHeader("Accept")).thenReturn("application/json");
         osgiProcessor.handleError(404, "not found", request, response);
@@ -257,7 +257,7 @@ public class SlingRequestProcessorImplTest {
                         JakartaErrorHandler.class,
                         nonHtml,
                         new java.util.Hashtable<>(Collections.singletonMap(
-                                SlingRequestProcessorImpl.ERROR_HANDLER_NAME, DefaultErrorHandler.NON_HTML)));
+                                JakartaErrorHandler.PROPERTY_NAME, JakartaErrorHandler.NAME_NONHTML)));
         final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
 
         reg.unregister();
@@ -294,8 +294,8 @@ public class SlingRequestProcessorImplTest {
         context.registerService(
                 JakartaErrorHandler.class,
                 nonHtml,
-                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
-                DefaultErrorHandler.NON_HTML);
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
         final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi("enable.accept.header.check", false);
 
         when(request.getHeader("Accept")).thenReturn("application/json");
@@ -313,8 +313,8 @@ public class SlingRequestProcessorImplTest {
         context.registerService(
                 JakartaErrorHandler.class,
                 nonHtml,
-                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
-                DefaultErrorHandler.NON_HTML);
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
         final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
         when(request.getHeader("Accept")).thenReturn("application/json");
 

@@ -28,7 +28,7 @@ import org.osgi.service.component.annotations.Component;
 
 @Component(
         service = JakartaErrorHandler.class,
-        property = {SlingRequestProcessorImpl.ERROR_HANDLER_NAME + "=" + DefaultErrorHandler.NON_HTML})
+        property = {JakartaErrorHandler.PROPERTY_NAME + "=" + JakartaErrorHandler.NAME_NONHTML})
 public class DefaultNonHtmlErrorHandler implements JakartaErrorHandler {
 
     @Override

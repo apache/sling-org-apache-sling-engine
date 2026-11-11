@@ -136,7 +136,7 @@ public class DefaultErrorHandlerTest {
     private ServiceReference<JakartaErrorHandler> registerNamed(
             final JakartaErrorHandler eh, final int ranking, final Object names) {
         final Hashtable<String, Object> props = new Hashtable<>();
-        props.put(SlingRequestProcessorImpl.ERROR_HANDLER_NAME, names);
+        props.put(JakartaErrorHandler.PROPERTY_NAME, names);
         props.put(Constants.SERVICE_RANKING, ranking);
         return (ServiceReference<JakartaErrorHandler>) context.bundleContext()
                 .registerService(JakartaErrorHandler.class, eh, props)
@@ -152,7 +152,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
 
         handler.handleError(404, "not found", request, response);
@@ -166,7 +166,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
 
         final Exception cause = new IllegalStateException("boom");
@@ -181,7 +181,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8");
 
         handler.handleError(500, "error", request, response);
@@ -195,7 +195,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
 
         handler.handleError(404, null, request, response);
 
@@ -208,7 +208,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("  ");
 
         handler.handleError(404, null, request, response);
@@ -232,7 +232,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("*/*");
 
         handler.handleError(404, null, request, response);
@@ -246,7 +246,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json, */*;q=0.1");
 
         handler.handleError(404, null, request, response);
@@ -260,7 +260,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("text/*");
 
         handler.handleError(404, null, request, response);
@@ -274,7 +274,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json, text/html;q=0.1");
 
         handler.handleError(404, null, request, response);
@@ -288,7 +288,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
         // parameter parsing might be the cause of the error being handled
         when(request.getParameter(any())).thenThrow(new IllegalStateException("parameter parsing failed"));
@@ -325,7 +325,7 @@ public class DefaultErrorHandlerTest {
     @Test
     public void testNonHtmlDelegateWithoutMainDelegate() throws Exception {
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
 
         accept("application/json");
         handler.handleError(404, null, request, response);
@@ -356,7 +356,7 @@ public class DefaultErrorHandlerTest {
     public void testNamedDelegateWithMultipleNamesIncludingNonHtml() throws Exception {
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.addNamedDelegate(
-                registerNamed(nonHtml, 0, new String[] {"something-else", DefaultErrorHandler.NON_HTML}), nonHtml);
+                registerNamed(nonHtml, 0, new String[] {"something-else", JakartaErrorHandler.NAME_NONHTML}), nonHtml);
         accept("application/json");
 
         handler.handleError(404, null, request, response);
@@ -369,9 +369,9 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler low = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler high = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler mid = mock(JakartaErrorHandler.class);
-        handler.addNamedDelegate(registerNamed(low, -10, DefaultErrorHandler.NON_HTML), low);
-        handler.addNamedDelegate(registerNamed(high, 100, DefaultErrorHandler.NON_HTML), high);
-        handler.addNamedDelegate(registerNamed(mid, 10, DefaultErrorHandler.NON_HTML), mid);
+        handler.addNamedDelegate(registerNamed(low, -10, JakartaErrorHandler.NAME_NONHTML), low);
+        handler.addNamedDelegate(registerNamed(high, 100, JakartaErrorHandler.NAME_NONHTML), high);
+        handler.addNamedDelegate(registerNamed(mid, 10, JakartaErrorHandler.NAME_NONHTML), mid);
         accept("application/json");
 
         handler.handleError(404, null, request, response);
@@ -384,8 +384,10 @@ public class DefaultErrorHandlerTest {
     public void testOlderNonHtmlDelegateWinsOnEqualRanking() throws Exception {
         final JakartaErrorHandler first = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler second = mock(JakartaErrorHandler.class);
-        final ServiceReference<JakartaErrorHandler> firstRef = registerNamed(first, 0, DefaultErrorHandler.NON_HTML);
-        final ServiceReference<JakartaErrorHandler> secondRef = registerNamed(second, 0, DefaultErrorHandler.NON_HTML);
+        final ServiceReference<JakartaErrorHandler> firstRef =
+                registerNamed(first, 0, JakartaErrorHandler.NAME_NONHTML);
+        final ServiceReference<JakartaErrorHandler> secondRef =
+                registerNamed(second, 0, JakartaErrorHandler.NAME_NONHTML);
         // bind in reverse registration order
         handler.addNamedDelegate(secondRef, second);
         handler.addNamedDelegate(firstRef, first);
@@ -403,8 +405,8 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler low = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler high = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        final ServiceReference<JakartaErrorHandler> lowRef = registerNamed(low, 0, DefaultErrorHandler.NON_HTML);
-        final ServiceReference<JakartaErrorHandler> highRef = registerNamed(high, 10, DefaultErrorHandler.NON_HTML);
+        final ServiceReference<JakartaErrorHandler> lowRef = registerNamed(low, 0, JakartaErrorHandler.NAME_NONHTML);
+        final ServiceReference<JakartaErrorHandler> highRef = registerNamed(high, 10, JakartaErrorHandler.NAME_NONHTML);
         handler.addNamedDelegate(lowRef, low);
         handler.addNamedDelegate(highRef, high);
         accept("application/json");
@@ -424,10 +426,10 @@ public class DefaultErrorHandlerTest {
     public void testRemovingUnknownNamedDelegateIsHarmless() throws Exception {
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler unknown = mock(JakartaErrorHandler.class);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
 
-        handler.removeNamedDelegate(registerNamed(unknown, 0, DefaultErrorHandler.NON_HTML));
+        handler.removeNamedDelegate(registerNamed(unknown, 0, JakartaErrorHandler.NAME_NONHTML));
         handler.handleError(404, null, request, response);
 
         verify(nonHtml).handleError(404, null, request, response);
@@ -445,7 +447,7 @@ public class DefaultErrorHandlerTest {
                         any(SlingJakartaHttpServletRequest.class),
                         any(SlingJakartaHttpServletResponse.class));
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
 
         handler.handleError(404, "not found", request, response);
@@ -462,7 +464,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         handler.setEnableAcceptHeaderCheck(false);
         accept("application/json");
 
@@ -479,7 +481,7 @@ public class DefaultErrorHandlerTest {
     @Test
     public void testDisabledAcceptHeaderCheckWithoutMainDelegateUsesBuiltInResponse() throws Exception {
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         handler.setEnableAcceptHeaderCheck(false);
         accept("application/json");
 
@@ -496,7 +498,7 @@ public class DefaultErrorHandlerTest {
         final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
         final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
         handler.setDelegate(null, main);
-        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, JakartaErrorHandler.NAME_NONHTML), nonHtml);
         accept("application/json");
 
         handler.setEnableAcceptHeaderCheck(false);
