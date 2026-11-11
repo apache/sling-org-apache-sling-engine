@@ -40,6 +40,7 @@ import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
@@ -55,6 +56,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -195,11 +197,11 @@ public class SlingRequestProcessorImplTest {
         return any(SlingJakartaHttpServletResponse.class);
     }
 
-    private SlingRequestProcessorImpl activateProcessorWithOsgi() {
+    private SlingRequestProcessorImpl activateProcessorWithOsgi(final Object... config) {
         context.registerService(ServletResolver.class, mock(ServletResolver.class));
         context.registerService(ServletFilterManager.class, filterManager);
         context.registerService(RequestProcessorMBeanImpl.class, mock(RequestProcessorMBeanImpl.class));
-        return context.registerInjectActivateService(SlingRequestProcessorImpl.class);
+        return context.registerInjectActivateService(SlingRequestProcessorImpl.class, config);
     }
 
     @Test
@@ -282,5 +284,52 @@ public class SlingRequestProcessorImplTest {
         verifyNoInteractions(main);
         responseBody.flush();
         assertTrue(responseBody.toString().isEmpty());
+    }
+
+    @Test
+    public void testDisabledAcceptHeaderCheckUsesDefaultErrorHandlerForNonHtmlRequests() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
+                DefaultErrorHandler.NON_HTML);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi("enable.accept.header.check", false);
+
+        when(request.getHeader("Accept")).thenReturn("application/json");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(main).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+        verifyNoInteractions(nonHtml);
+    }
+
+    @Test
+    public void testAcceptHeaderCheckCanBeToggledByModifyingConfiguration() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                SlingRequestProcessorImpl.ERROR_HANDLER_NAME,
+                DefaultErrorHandler.NON_HTML);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+        when(request.getHeader("Accept")).thenReturn("application/json");
+
+        // enabled by default
+        osgiProcessor.handleError(404, "not found", request, response);
+        verify(nonHtml).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+
+        MockOsgi.modified(osgiProcessor, context.bundleContext(), "enable.accept.header.check", false);
+        osgiProcessor.handleError(410, "gone", request, response);
+        verify(main).handleError(eq(410), eq("gone"), anyRequest(), anyResponse());
+        verify(nonHtml, never()).handleError(eq(410), eq("gone"), anyRequest(), anyResponse());
+
+        MockOsgi.modified(osgiProcessor, context.bundleContext(), "enable.accept.header.check", true);
+        osgiProcessor.handleError(403, "forbidden", request, response);
+        verify(nonHtml).handleError(eq(403), eq("forbidden"), anyRequest(), anyResponse());
+        verify(main, never()).handleError(eq(403), eq("forbidden"), anyRequest(), anyResponse());
     }
 }

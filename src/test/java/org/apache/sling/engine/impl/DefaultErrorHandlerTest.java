@@ -456,4 +456,56 @@ public class DefaultErrorHandlerTest {
         responseBody.flush();
         assertTrue(responseBody.toString().contains("not found"));
     }
+
+    @Test
+    public void testDisabledAcceptHeaderCheckAlwaysUsesMainDelegate() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        handler.setDelegate(null, main);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.setEnableAcceptHeaderCheck(false);
+        accept("application/json");
+
+        handler.handleError(404, null, request, response);
+        final Exception cause = new IllegalStateException("boom");
+        handler.handleError(cause, request, response);
+
+        verify(main).handleError(404, null, request, response);
+        verify(main).handleError(cause, request, response);
+        verifyNoInteractions(nonHtml);
+        verify(request, never()).getHeader(any());
+    }
+
+    @Test
+    public void testDisabledAcceptHeaderCheckWithoutMainDelegateUsesBuiltInResponse() throws Exception {
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        handler.setEnableAcceptHeaderCheck(false);
+        accept("application/json");
+
+        handler.handleError(404, "not found", request, response);
+
+        verifyNoInteractions(nonHtml);
+        verify(response).setStatus(404);
+        responseBody.flush();
+        assertTrue(responseBody.toString().contains("not found"));
+    }
+
+    @Test
+    public void testReEnablingAcceptHeaderCheckUsesNonHtmlDelegateAgain() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        handler.setDelegate(null, main);
+        handler.addNamedDelegate(registerNamed(nonHtml, 0, DefaultErrorHandler.NON_HTML), nonHtml);
+        accept("application/json");
+
+        handler.setEnableAcceptHeaderCheck(false);
+        handler.handleError(404, null, request, response);
+        verify(main).handleError(404, null, request, response);
+
+        handler.setEnableAcceptHeaderCheck(true);
+        handler.handleError(410, null, request, response);
+        verify(nonHtml).handleError(410, null, request, response);
+        verify(main, never()).handleError(410, null, request, response);
+    }
 }

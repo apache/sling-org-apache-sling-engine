@@ -155,6 +155,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
         this.disableCheckCompliantGetUserPrincipal = config.disable_spec_compliant_getuserprincipal();
+        this.errorHandler.setEnableAcceptHeaderCheck(config.enable_accept_header_check());
     }
 
     @Reference(

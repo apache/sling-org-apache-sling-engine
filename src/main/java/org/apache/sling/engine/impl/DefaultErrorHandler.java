@@ -76,6 +76,9 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     private final Map<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler> jakartaErrorHandlers =
             new TreeMap<>(Comparator.reverseOrder());
 
+    /** Flag for html accept header check for error handling */
+    private volatile boolean enableAcceptHeaderCheck = true;
+
     @SuppressWarnings("deprecation")
     public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
         if (eh != null) {
@@ -155,7 +158,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
 
     protected JakartaErrorHandler getErrorHandler(final SlingJakartaHttpServletRequest request) {
         final JakartaErrorHandler nonHtml = this.nonHtmlDelegate;
-        if (nonHtml != null && !acceptsHtml(request)) {
+        if (this.enableAcceptHeaderCheck && nonHtml != null && !acceptsHtml(request)) {
             return nonHtml;
         }
         return this.delegate;
@@ -353,5 +356,9 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     public synchronized void removeNamedDelegate(final ServiceReference<JakartaErrorHandler> ref) {
         this.jakartaErrorHandlers.remove(ref);
         this.setNonHtmlErrorHandler();
+    }
+
+    public void setEnableAcceptHeaderCheck(final boolean enable) {
+        this.enableAcceptHeaderCheck = enable;
     }
 }
