@@ -29,6 +29,7 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.ResponseUtil;
+import org.apache.sling.api.request.header.JakartaMediaRangeList;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
@@ -44,6 +45,8 @@ import org.slf4j.LoggerFactory;
  * is registered, the actual response generated is delegated to that service.
  */
 public class DefaultErrorHandler implements JakartaErrorHandler {
+
+    private static final String HTML_CONTENT_TYPE = "text/html";
 
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
@@ -221,6 +224,16 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final HttpServletRequest request,
             final HttpServletResponse response)
             throws IOException {
+        // Is html requested?
+        final String contentType = new JakartaMediaRangeList(request).prefer(HTML_CONTENT_TYPE);
+        if (contentType == null) {
+            response.setStatus(status);
+            response.setContentType(contentType);
+            // commit the response
+            response.flushBuffer();
+            return;
+        }
+
         // error situation
         final String servletName = (String) request.getAttribute(RequestDispatcher.ERROR_SERVLET_NAME);
         String requestURI = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);

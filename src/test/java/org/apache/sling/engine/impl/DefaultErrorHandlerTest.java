@@ -27,6 +27,7 @@ import org.apache.sling.api.request.RequestProgressTracker;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -65,6 +66,7 @@ public class DefaultErrorHandlerTest {
 
     @Test
     public void testHandleThrowableWithoutDelegateDoesNotLeakStacktraceOrTracker() throws Exception {
+        when(request.getHeader("Accept")).thenReturn("text/html");
         final Exception cause = new IllegalStateException("some internal detail: /etc/secret-path");
 
         handler.handleError(cause, request, response);
@@ -92,6 +94,8 @@ public class DefaultErrorHandlerTest {
 
     @Test
     public void testHandleStatusWithoutDelegateStillRendersMessage() throws Exception {
+        when(request.getHeader("Accept")).thenReturn("text/html");
+
         handler.handleError(404, "not found", request, response);
 
         verify(response).setStatus(404);
@@ -99,6 +103,32 @@ public class DefaultErrorHandlerTest {
         final String body = responseBody.toString();
         assertTrue(body.contains("not found"));
         assertFalse("response body must not contain a server/address footer", body.contains("<address>"));
+    }
+
+    @Test
+    public void testHandleStatusWithoutDelegateForNonHtmlRequestDoesNotRenderBody() throws Exception {
+        when(request.getHeader("Accept")).thenReturn("application/json");
+
+        handler.handleError(404, "not found", request, response);
+
+        verify(response).setStatus(404);
+        verify(response).setContentType(null);
+        verify(response).flushBuffer();
+        verify(response, never()).getWriter();
+        assertEquals("", responseBody.toString());
+    }
+
+    @Test
+    public void testHandleThrowableWithoutDelegateForNonHtmlRequestDoesNotRenderBody() throws Exception {
+        when(request.getHeader("Accept")).thenReturn("text/plain");
+
+        handler.handleError(new IllegalStateException("some internal detail"), request, response);
+
+        verify(response).setStatus(500);
+        verify(response).setContentType(null);
+        verify(response).flushBuffer();
+        verify(response, never()).getWriter();
+        assertEquals("", responseBody.toString());
     }
 
     @Test
