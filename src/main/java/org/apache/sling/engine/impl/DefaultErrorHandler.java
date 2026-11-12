@@ -152,21 +152,24 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
 
     protected JakartaErrorHandler getErrorHandler(final SlingJakartaHttpServletRequest request) {
         final JakartaErrorHandler nonHtml = this.nonHtmlDelegate;
-        if (this.enableAcceptHeaderCheck && nonHtml != null && !acceptsHtml(request)) {
+        if (this.enableAcceptHeaderCheck && nonHtml != null && !serveHtmlErrorResponse(request)) {
             return nonHtml;
         }
         return this.delegate;
     }
 
     /**
-     * A request is treated as HTML if its Accept header matches {@code text/html},
-     * including through {@code text/*}, and does not contain {@code *}{@code /*}.
+     * Determines whether the request is classified as HTML for error-handler selection,
+     * rather than merely whether it accepts HTML.
+     * The Accept header must match {@code text/html}, including through {@code text/*},
+     * and must not contain {@code *}{@code /*}. HTML need not be the highest-quality match.
      * A missing or blank Accept header, or any header containing {@code *}{@code /*},
      * is treated as non-HTML, even if it also explicitly accepts {@code text/html}.
-     * Only the accept header is evaluated: request parameters are not read, as parameter
-     * parsing might itself be the cause of the error being handled.
+     *
+     * @param request the request to classify
+     * @return {@code true} if the request is classified as HTML, {@code false} otherwise
      */
-    private static boolean acceptsHtml(final SlingJakartaHttpServletRequest request) {
+    private static boolean serveHtmlErrorResponse(final SlingJakartaHttpServletRequest request) {
         final JakartaMediaRangeList acceptList = JakartaMediaRangeList.fromRequest(request);
         return !acceptList.matchesAll() && acceptList.prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML) != null;
     }
