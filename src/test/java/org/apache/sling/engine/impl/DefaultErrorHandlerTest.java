@@ -112,7 +112,6 @@ public class DefaultErrorHandlerTest {
         handler.handleError(404, "not found", request, response);
 
         verify(response).setStatus(404);
-        verify(response).setContentType(null);
         verify(response).flushBuffer();
         verify(response, never()).getWriter();
         assertEquals("", responseBody.toString());
@@ -125,7 +124,6 @@ public class DefaultErrorHandlerTest {
         handler.handleError(new IllegalStateException("some internal detail"), request, response);
 
         verify(response).setStatus(500);
-        verify(response).setContentType(null);
         verify(response).flushBuffer();
         verify(response, never()).getWriter();
         assertEquals("", responseBody.toString());

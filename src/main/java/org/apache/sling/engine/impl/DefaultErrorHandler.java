@@ -46,8 +46,6 @@ import org.slf4j.LoggerFactory;
  */
 public class DefaultErrorHandler implements JakartaErrorHandler {
 
-    private static final String HTML_CONTENT_TYPE = "text/html";
-
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
@@ -225,7 +223,8 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final HttpServletResponse response)
             throws IOException {
         // Is html requested?
-        final String contentType = new JakartaMediaRangeList(request).prefer(HTML_CONTENT_TYPE);
+        final String contentType =
+                JakartaMediaRangeList.fromRequest(request).prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML);
         if (contentType == null) {
             response.setStatus(status);
             response.setContentLength(0);
