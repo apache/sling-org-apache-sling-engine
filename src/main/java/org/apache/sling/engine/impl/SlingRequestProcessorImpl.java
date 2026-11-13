@@ -152,10 +152,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
         this.disableCheckCompliantGetUserPrincipal = config.disable_spec_compliant_getuserprincipal();
+        this.errorHandler.setEnableAcceptHeaderCheck(config.enable_accept_header_check());
     }
 
     @Reference(
             name = "JakartaErrorHandler",
+            target = "(!(" + JakartaErrorHandler.PROPERTY_NAME + "=*))",
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
@@ -165,6 +167,28 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     void unsetJakartaErrorHandler(final JakartaErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (JakartaErrorHandler) null);
+    }
+
+    /**
+     * Add named error handlers
+     * @param handler The JakartaErrorHandler instance to add as a named delegate.
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance.
+     */
+    @Reference(
+            target = "(" + JakartaErrorHandler.PROPERTY_NAME + "=*)",
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC)
+    void setNamedJakartaErrorHandler(
+            final JakartaErrorHandler handler, final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.addNamedDelegate(ref, handler);
+    }
+
+    /**
+     * Remove named error handlers
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance to remove.
+     */
+    void unsetNamedJakartaErrorHandler(final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.removeNamedDelegate(ref);
     }
 
     @SuppressWarnings("deprecation")

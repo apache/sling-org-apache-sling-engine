@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.lang.reflect.Field;
+import java.util.Collections;
 
 import jakarta.servlet.Servlet;
 import jakarta.servlet.ServletRequest;
@@ -33,22 +34,31 @@ import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.resource.Resource;
 import org.apache.sling.api.resource.ResourceMetadata;
 import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.api.servlets.ServletResolver;
 import org.apache.sling.engine.impl.filter.FilterHandle;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
+import org.apache.sling.testing.mock.osgi.MockOsgi;
+import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.osgi.framework.Constants;
+import org.osgi.framework.ServiceRegistration;
 
 import static jakarta.servlet.http.HttpServletResponse.SC_BAD_REQUEST;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -58,6 +68,9 @@ import static org.mockito.Mockito.when;
  * SLING-13138).
  */
 public class SlingRequestProcessorImplTest {
+
+    @Rule
+    public final OsgiContext context = new OsgiContext();
 
     private SlingRequestProcessorImpl processor;
     private ServletFilterManager filterManager;
@@ -172,5 +185,151 @@ public class SlingRequestProcessorImplTest {
         when(resource.getResourceMetadata()).thenReturn(resourceMetadata);
         when(resourceMetadata.getResolutionPathInfo()).thenReturn(path);
         return resource;
+    }
+
+    // ---------- error handler service wiring (DS reference targets) ----------
+
+    private static SlingJakartaHttpServletRequest anyRequest() {
+        return any(SlingJakartaHttpServletRequest.class);
+    }
+
+    private static SlingJakartaHttpServletResponse anyResponse() {
+        return any(SlingJakartaHttpServletResponse.class);
+    }
+
+    private SlingRequestProcessorImpl activateProcessorWithOsgi(final Object... config) {
+        context.registerService(ServletResolver.class, mock(ServletResolver.class));
+        context.registerService(ServletFilterManager.class, filterManager);
+        context.registerService(RequestProcessorMBeanImpl.class, mock(RequestProcessorMBeanImpl.class));
+        return context.registerInjectActivateService(SlingRequestProcessorImpl.class, config);
+    }
+
+    @Test
+    public void testNamedErrorHandlerIsNotBoundAsDefaultErrorHandler() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main, Constants.SERVICE_RANKING, 0);
+        // higher ranking, but must not replace the default handler as it is a named one
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                Constants.SERVICE_RANKING,
+                1000,
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+
+        when(request.getHeader("Accept")).thenReturn("text/html");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(main).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+        verifyNoInteractions(nonHtml);
+    }
+
+    @Test
+    public void testNamedNonHtmlErrorHandlerIsUsedForNonHtmlRequests() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+
+        // registered after activation: dynamic binding
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
+
+        when(request.getHeader("Accept")).thenReturn("application/json");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(nonHtml).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+        verifyNoInteractions(main);
+    }
+
+    @Test
+    public void testUnregisteringNonHtmlErrorHandlerFallsBackToDefaultErrorHandler() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        final ServiceRegistration<JakartaErrorHandler> reg = context.bundleContext()
+                .registerService(
+                        JakartaErrorHandler.class,
+                        nonHtml,
+                        new java.util.Hashtable<>(Collections.singletonMap(
+                                JakartaErrorHandler.PROPERTY_NAME, JakartaErrorHandler.NAME_NONHTML)));
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+
+        reg.unregister();
+        when(request.getHeader("Accept")).thenReturn("application/json");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(main).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+        verifyNoInteractions(nonHtml);
+    }
+
+    @Test
+    public void testDefaultNonHtmlErrorHandlerComponentIsUsedForNonHtmlRequests() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        // registered with the component properties from its DS metadata
+        context.registerInjectActivateService(DefaultNonHtmlErrorHandler.class);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+
+        when(request.getHeader("Accept")).thenReturn("application/json");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(response).setStatus(404);
+        verify(response).setContentLength(0);
+        verifyNoInteractions(main);
+        responseBody.flush();
+        assertTrue(responseBody.toString().isEmpty());
+    }
+
+    @Test
+    public void testDisabledAcceptHeaderCheckUsesDefaultErrorHandlerForNonHtmlRequests() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi("enable.accept.header.check", false);
+
+        when(request.getHeader("Accept")).thenReturn("application/json");
+        osgiProcessor.handleError(404, "not found", request, response);
+
+        verify(main).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+        verifyNoInteractions(nonHtml);
+    }
+
+    @Test
+    public void testAcceptHeaderCheckCanBeToggledByModifyingConfiguration() throws Exception {
+        final JakartaErrorHandler main = mock(JakartaErrorHandler.class);
+        final JakartaErrorHandler nonHtml = mock(JakartaErrorHandler.class);
+        context.registerService(JakartaErrorHandler.class, main);
+        context.registerService(
+                JakartaErrorHandler.class,
+                nonHtml,
+                JakartaErrorHandler.PROPERTY_NAME,
+                JakartaErrorHandler.NAME_NONHTML);
+        final SlingRequestProcessorImpl osgiProcessor = activateProcessorWithOsgi();
+        when(request.getHeader("Accept")).thenReturn("application/json");
+
+        // enabled by default
+        osgiProcessor.handleError(404, "not found", request, response);
+        verify(nonHtml).handleError(eq(404), eq("not found"), anyRequest(), anyResponse());
+
+        MockOsgi.modified(osgiProcessor, context.bundleContext(), "enable.accept.header.check", false);
+        osgiProcessor.handleError(410, "gone", request, response);
+        verify(main).handleError(eq(410), eq("gone"), anyRequest(), anyResponse());
+        verify(nonHtml, never()).handleError(eq(410), eq("gone"), anyRequest(), anyResponse());
+
+        MockOsgi.modified(osgiProcessor, context.bundleContext(), "enable.accept.header.check", true);
+        osgiProcessor.handleError(403, "forbidden", request, response);
+        verify(nonHtml).handleError(eq(403), eq("forbidden"), anyRequest(), anyResponse());
+        verify(main, never()).handleError(eq(403), eq("forbidden"), anyRequest(), anyResponse());
     }
 }

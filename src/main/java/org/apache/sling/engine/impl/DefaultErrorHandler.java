@@ -20,6 +20,10 @@ package org.apache.sling.engine.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -29,11 +33,13 @@ import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
 import org.apache.sling.api.request.ResponseUtil;
+import org.apache.sling.api.request.header.JakartaMediaRangeList;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
 import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
 import org.osgi.framework.ServiceReference;
+import org.osgi.util.converter.Converters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,13 +54,24 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
+    private static final String ALL_CONTENT_TYPES = "*/*";
+
     /** Use this if not null, and if that fails output a report about that failure */
     private volatile JakartaErrorHandler delegate;
+
+    /** Use this if not null for non html responses */
+    private volatile JakartaErrorHandler nonHtmlDelegate;
 
     private volatile JakartaErrorHandler errorHandler;
     private volatile JakartaErrorHandler jakartaErrorHandler;
     private volatile ServiceReference<?> errorHandlerRef;
     private volatile ServiceReference<?> jakartaErrorHandlerRef;
+
+    private final Map<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler> jakartaErrorHandlers =
+            new TreeMap<>(Comparator.reverseOrder());
+
+    /** Flag for html accept header check for error handling */
+    private volatile boolean enableAcceptHeaderCheck = true;
 
     @SuppressWarnings("deprecation")
     public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
@@ -133,6 +150,30 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         sendError(originalStatus, originalMessage, null, request, response);
     }
 
+    protected JakartaErrorHandler getErrorHandler(final SlingJakartaHttpServletRequest request) {
+        final JakartaErrorHandler nonHtml = this.nonHtmlDelegate;
+        if (this.enableAcceptHeaderCheck && nonHtml != null && !serveHtmlErrorResponse(request)) {
+            return nonHtml;
+        }
+        return this.delegate;
+    }
+
+    /**
+     * Determines whether the request is classified as HTML for error-handler selection,
+     * rather than merely whether it accepts HTML.
+     * The Accept header must match {@code text/html}, including through {@code text/*},
+     * and must not contain {@code *}{@code /*}. HTML need not be the highest-quality match.
+     * A missing or blank Accept header, or any header containing {@code *}{@code /*},
+     * is treated as non-HTML, even if it also explicitly accepts {@code text/html}.
+     *
+     * @param request the request to classify
+     * @return {@code true} if the request is classified as HTML, {@code false} otherwise
+     */
+    private static boolean serveHtmlErrorResponse(final SlingJakartaHttpServletRequest request) {
+        final JakartaMediaRangeList acceptList = JakartaMediaRangeList.fromRequest(request);
+        return !acceptList.matchesAll() && acceptList.prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML) != null;
+    }
+
     // ---------- ErrorHandler interface (default implementation) --------------
 
     /**
@@ -153,7 +194,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final SlingJakartaHttpServletResponse response)
             throws IOException {
         // If we have a delegate let it handle the error
-        final JakartaErrorHandler local = this.delegate;
+        final JakartaErrorHandler local = this.getErrorHandler(request);
         if (local != null) {
             try {
                 local.handleError(status, message, request, response);
@@ -198,7 +239,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
-        final JakartaErrorHandler local = this.delegate;
+        final JakartaErrorHandler local = this.getErrorHandler(request);
         if (local != null) {
             try {
                 local.handleError(throwable, request, response);
@@ -262,5 +303,57 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         response.flushBuffer();
         // close the response (SLING-2724)
         pw.close();
+    }
+
+    private boolean matchesName(final ServiceReference<JakartaErrorHandler> ref, final String name) {
+        final String[] names = Converters.standardConverter()
+                .convert(ref.getProperty(JakartaErrorHandler.PROPERTY_NAME))
+                .to(String[].class);
+
+        for (final String n : names) {
+            if (name.equals(n)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Set the non html error handler
+     */
+    private void setNonHtmlErrorHandler() {
+        final Optional<Map.Entry<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler>> first =
+                jakartaErrorHandlers.entrySet().stream()
+                        .filter(entry -> matchesName(entry.getKey(), JakartaErrorHandler.NAME_NONHTML))
+                        .findFirst();
+        if (first.isPresent()) {
+            this.nonHtmlDelegate = first.get().getValue();
+        } else {
+            this.nonHtmlDelegate = null;
+        }
+    }
+
+    /**
+     * Add a named delegate for handling non-HTML errors.
+     * @param ref the service reference for the delegate
+     * @param handler the error handler instance for the delegate
+     */
+    public synchronized void addNamedDelegate(
+            final ServiceReference<JakartaErrorHandler> ref, final JakartaErrorHandler handler) {
+        this.jakartaErrorHandlers.put(ref, handler);
+        this.setNonHtmlErrorHandler();
+    }
+
+    /**
+     * Remove a named delegate for handling non-HTML errors.
+     * @param ref the service reference for the delegate
+     */
+    public synchronized void removeNamedDelegate(final ServiceReference<JakartaErrorHandler> ref) {
+        this.jakartaErrorHandlers.remove(ref);
+        this.setNonHtmlErrorHandler();
+    }
+
+    public void setEnableAcceptHeaderCheck(final boolean enable) {
+        this.enableAcceptHeaderCheck = enable;
     }
 }
