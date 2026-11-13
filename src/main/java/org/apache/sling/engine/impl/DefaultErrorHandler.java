@@ -262,6 +262,17 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final HttpServletRequest request,
             final HttpServletResponse response)
             throws IOException {
+        // Is html requested?
+        final String contentType =
+                JakartaMediaRangeList.fromRequest(request).prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML);
+        if (contentType == null) {
+            response.setStatus(status);
+            response.setContentLength(0);
+            // commit the response
+            response.flushBuffer();
+            return;
+        }
+
         // error situation
         final String servletName = (String) request.getAttribute(RequestDispatcher.ERROR_SERVLET_NAME);
         String requestURI = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);

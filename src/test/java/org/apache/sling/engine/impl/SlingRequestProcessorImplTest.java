@@ -103,6 +103,8 @@ public class SlingRequestProcessorImplTest {
 
     @Test
     public void testHandleErrorWithNullMessageStillSetsStatus() throws Exception {
+        when(request.getHeader("Accept")).thenReturn("text/html");
+
         processor.handleError(SC_BAD_REQUEST, null, request, response);
 
         verify(response).setStatus(SC_BAD_REQUEST);
@@ -166,6 +168,7 @@ public class SlingRequestProcessorImplTest {
         when(httpServletRequest.getContextPath()).thenReturn("");
         when(httpServletRequest.getServletPath()).thenReturn("");
         when(httpServletRequest.getMethod()).thenReturn("GET");
+        when(httpServletRequest.getHeader("Accept")).thenReturn("text/html");
 
         final HttpServletResponse httpServletResponse = mock(HttpServletResponse.class);
         final StringWriter writer = new StringWriter();
