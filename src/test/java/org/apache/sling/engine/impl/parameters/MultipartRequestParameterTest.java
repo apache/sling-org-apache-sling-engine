@@ -21,6 +21,7 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.http.Part;
 import org.junit.Before;
@@ -171,11 +172,55 @@ public class MultipartRequestParameterTest {
 
         // with some invalid encoding
         param.setEncoding("invalid1");
-        assertEquals("", param.getString());
+        assertEquals("hi", param.getString());
 
         // with some valid encoding
         param.setEncoding("UTF-8");
         assertEquals("hi", param.getString());
+    }
+
+    @Test
+    public void testGetStringForFileFieldUsesPartCharset() throws IOException {
+        Mockito.when(part1.getSubmittedFileName()).thenReturn("file.txt");
+        Mockito.when(mockPartInputStream().readAllBytes()).thenReturn("\u00e4".getBytes(StandardCharsets.UTF_8));
+        param.setEncoding("UTF-16BE");
+
+        for (String contentType : new String[] {
+            "text/plain; charset=UTF-8", "text/plain; CHARSET = \"UTF-8\"", "text/plain; format=flowed; charset=UTF-8"
+        }) {
+            Mockito.when(part1.getContentType()).thenReturn(contentType);
+            assertEquals(contentType, "\u00e4", param.getString());
+        }
+    }
+
+    @Test
+    public void testGetStringForFileFieldDefaultsToIso88591() throws IOException {
+        Mockito.when(part1.getSubmittedFileName()).thenReturn("file.txt");
+        Mockito.when(mockPartInputStream().readAllBytes()).thenReturn("\u00e4".getBytes(StandardCharsets.ISO_8859_1));
+        param.setEncoding("UTF-8");
+
+        for (String contentType : new String[] {null, "text/plain", "text/plain; charset=\"\""}) {
+            Mockito.when(part1.getContentType()).thenReturn(contentType);
+            assertEquals(contentType, "\u00e4", param.getString());
+        }
+    }
+
+    @Test
+    public void testGetStringForFileFieldWithUnsupportedPartCharset() throws IOException {
+        mockPartInputStream();
+        Mockito.when(part1.getSubmittedFileName()).thenReturn("file.txt");
+        Mockito.when(part1.getContentType()).thenReturn("text/plain; charset=invalid1");
+
+        assertEquals("", param.getString());
+    }
+
+    @Test
+    public void testGetStringWithExplicitCharsetOverridesPartCharset() throws IOException {
+        Mockito.when(part1.getSubmittedFileName()).thenReturn("file.txt");
+        Mockito.when(part1.getContentType()).thenReturn("text/plain; charset=ISO-8859-1");
+        Mockito.when(mockPartInputStream().readAllBytes()).thenReturn("\u00e4".getBytes(StandardCharsets.UTF_8));
+
+        assertEquals("\u00e4", param.getString("UTF-8"));
     }
 
     /**

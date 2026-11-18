@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.nio.charset.StandardCharsets;
 
 import jakarta.servlet.http.Part;
+import org.apache.sling.engine.impl.helper.ContentTypeUtil;
 
 /**
  * The <code>MultipartRequestParameter</code> represents a request parameter
@@ -123,8 +124,8 @@ public class MultipartRequestParameter extends AbstractRequestParameter {
             return this.cachedValue;
         }
 
-        // try explicit encoding if available
-        String encoding = getEncoding();
+        // File content uses its own charset, independently of the request encoding.
+        String encoding = ContentTypeUtil.getCharset(getContentType());
         if (encoding == null) {
             // fallback to be used when no explicit value is provided
             encoding = StandardCharsets.ISO_8859_1.name();
