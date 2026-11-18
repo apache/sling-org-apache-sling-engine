@@ -31,9 +31,9 @@ import org.apache.sling.engine.impl.helper.ContentTypeUtil;
  * The <code>MultipartRequestParameter</code> represents a request parameter
  * from a multipart/form-data POST request.
  * <p>
- * To not add a dependency to Servlet API 3 this class does not implement the
- * Servlet API 3 {@code Part} interface. To support Servlet API 3 {@code Part}s
- * the {@link SlingPart} class wraps instances of this class.
+ * This class adapts a servlet {@link Part} to Sling's request parameter API.
+ * The {@link SlingPart} wrapper exposes the parameter through the {@code Part}
+ * interface while preserving Sling's file name decoding.
  */
 public class MultipartRequestParameter extends AbstractRequestParameter {
 
