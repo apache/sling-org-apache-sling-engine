@@ -31,11 +31,12 @@ import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertSame;
+import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
-/**
- *
- */
 public class RequestPartsIteratorTest {
 
     private RequestPartsIterator iterator;
@@ -53,9 +54,6 @@ public class RequestPartsIteratorTest {
         return part1;
     }
 
-    /**
-     * Test method for {@link org.apache.sling.engine.impl.parameters.RequestPartsIterator#hasNext()}.
-     */
     @Test
     public void testHasNextWithNoElements() {
         assertFalse(iterator.hasNext());
@@ -66,33 +64,99 @@ public class RequestPartsIteratorTest {
         mockParts();
 
         assertTrue(iterator.hasNext());
-
         iterator.next();
         assertFalse(iterator.hasNext());
+        Mockito.verify(mockRequest, Mockito.times(1)).getParts();
     }
 
     @Test
-    public void testHasNextWithCaughtException() throws IOException, ServletException {
-        Mockito.doThrow(ServletException.class).when(mockRequest).getParts();
-        assertFalse(iterator.hasNext());
+    public void testHasNextIsRejectedOnServletException() throws IOException, ServletException {
+        assertParseFailure(new ServletException("Missing multipart boundary"), false);
+    }
+
+    @Test
+    public void testHasNextIsRejectedOnIOException() throws IOException, ServletException {
+        assertParseFailure(new IOException("Connection reset"), false);
+    }
+
+    @Test
+    public void testNextIsRejectedOnServletException() throws IOException, ServletException {
+        assertParseFailure(new ServletException("Missing multipart boundary"), true);
+    }
+
+    @Test
+    public void testNextIsRejectedOnIOException() throws IOException, ServletException {
+        assertParseFailure(new IOException("Connection reset"), true);
+    }
+
+    @Test
+    public void testContainerSizeLimitIsRejected() throws IOException, ServletException {
+        assertParseFailure(new IllegalStateException("Request exceeds configured multipart size"), false);
+    }
+
+    private void assertParseFailure(Exception cause, boolean next) throws IOException, ServletException {
+        Mockito.doThrow(cause).when(mockRequest).getParts();
+        final SlingParameterParseException failure = next
+                ? assertThrows(SlingParameterParseException.class, iterator::next)
+                : assertThrows(SlingParameterParseException.class, iterator::hasNext);
+        assertSame(cause, failure.getCause());
+        assertSame(failure, assertThrows(SlingParameterParseException.class, iterator::hasNext));
+        assertSame(failure, assertThrows(SlingParameterParseException.class, iterator::next));
+        Mockito.verify(mockRequest, Mockito.times(1)).getParts();
     }
 
     @Test
     public void testHasNextWithTooManyFiles() throws IOException, ServletException {
-        List<Part> parts = new ArrayList<>();
+        mockFiles(6);
+        final SlingParameterParseException failure =
+                assertThrows(SlingParameterParseException.class, iterator::hasNext);
+        assertTrue(failure.getCause() instanceof FileCountLimitExceededException);
+    }
+
+    @Test
+    public void testFileCountMaxEnforcedWithoutHasNext() throws IOException, ServletException {
+        mockFiles(6);
+        assertThrows(SlingParameterParseException.class, iterator::next);
+    }
+
+    @Test
+    public void testFileCountExactlyAtBoundary() throws IOException, ServletException {
+        mockFiles(5);
+        for (int i = 0; i < 5; i++) {
+            assertEquals("file" + i + ".txt", iterator.next().getSubmittedFileName());
+        }
+        assertFalse(iterator.hasNext());
+        assertThrows(NoSuchElementException.class, iterator::next);
+    }
+
+    @Test
+    public void testZeroFileCountMaxRejectsNext() throws IOException, ServletException {
+        mockFiles(1);
+        iterator = new RequestPartsIterator(mockRequest, 0);
+        assertThrows(SlingParameterParseException.class, iterator::next);
+    }
+
+    @Test
+    public void testUnlimitedFileCountAllowsNextWithoutHasNext() throws IOException, ServletException {
+        mockFiles(6);
+        iterator = new RequestPartsIterator(mockRequest, -1);
         for (int i = 0; i < 6; i++) {
+            assertEquals("file" + i + ".txt", iterator.next().getSubmittedFileName());
+        }
+        assertThrows(NoSuchElementException.class, iterator::next);
+        assertFalse(iterator.hasNext());
+    }
+
+    private void mockFiles(int count) throws IOException, ServletException {
+        List<Part> parts = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
             Part mockPart = Mockito.mock(Part.class);
             Mockito.doReturn(String.format("file%d.txt", i)).when(mockPart).getSubmittedFileName();
             parts.add(mockPart);
         }
-
         Mockito.doReturn(parts).when(mockRequest).getParts();
-        assertFalse(iterator.hasNext());
     }
 
-    /**
-     * Test method for {@link org.apache.sling.engine.impl.parameters.RequestPartsIterator#next()}.
-     */
     @Test
     public void testNextWithNoElements() {
         assertThrows(NoSuchElementException.class, iterator::next);
@@ -101,16 +165,11 @@ public class RequestPartsIteratorTest {
     @Test
     public void testNextWithElements() throws IOException, ServletException {
         mockParts();
-
         final Part next1 = iterator.next();
-        // the part implements both interfaces for backward compatibility
         assertTrue(next1 instanceof javax.servlet.http.Part);
         assertTrue(next1 instanceof jakarta.servlet.http.Part);
     }
 
-    /**
-     * Test method for {@link org.apache.sling.engine.impl.parameters.RequestPartsIterator#remove()}.
-     */
     @Test
     public void testRemove() {
         assertThrows(UnsupportedOperationException.class, iterator::remove);
@@ -135,14 +194,14 @@ public class RequestPartsIteratorTest {
         assertEquals(part1.getInputStream(), next1.getInputStream());
         assertEquals(part1.getContentType(), next1.getContentType());
         assertEquals(part1.getName(), next1.getName());
-        assertEquals(part1.getSize(), next1.getSize());
-        assertEquals(part1.getHeader("header"), next1.getHeader("header"));
-        assertEquals(part1.getHeaders("header"), next1.getHeaders("header"));
+        assertEquals(11L, next1.getSize());
+        assertEquals(part1.getHeader("header1"), next1.getHeader("header1"));
+        assertEquals(part1.getHeaders("header1"), next1.getHeaders("header1"));
         assertEquals(part1.getHeaderNames(), next1.getHeaderNames());
         assertEquals(part1.getSubmittedFileName(), next1.getSubmittedFileName());
 
         assertThrows(UnsupportedOperationException.class, () -> next1.write("output1"));
-        // should do nothing
         next1.delete();
+        Mockito.verify(part1).delete();
     }
 }

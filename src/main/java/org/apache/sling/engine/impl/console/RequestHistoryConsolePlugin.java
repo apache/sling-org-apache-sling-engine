@@ -19,7 +19,6 @@
 package org.apache.sling.engine.impl.console;
 
 import javax.servlet.Servlet;
-import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -119,65 +118,74 @@ public class RequestHistoryConsolePlugin extends HttpServlet {
     }
 
     @Override
-    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp)
-            throws ServletException, IOException {
-        // get all requests and select request to display
-        final String key = req.getParameter(INDEX);
-        final RequestInfo info = key == null ? null : this.infoProvider.getRequestInfo(key);
-        final List<RequestInfo> values = new ArrayList<>();
-        for (final RequestInfo i : this.infoProvider.getRequestInfos()) {
-            values.add(i);
-        }
+    protected void doGet(final HttpServletRequest req, final HttpServletResponse resp) {
+        try {
+            // get all requests and select request to display
+            final String key = req.getParameter(INDEX);
+            final RequestInfo info = key == null ? null : this.infoProvider.getRequestInfo(key);
+            final List<RequestInfo> values = new ArrayList<>();
+            for (final RequestInfo i : this.infoProvider.getRequestInfos()) {
+                values.add(i);
+            }
 
-        final PrintWriter pw = resp.getWriter();
+            final PrintWriter pw = resp.getWriter();
 
-        if (this.infoProvider.isEnabled()) {
-            pw.println("<p class='statline ui-state-highlight'>Recorded " + values.size() + " requests (max: "
-                    + this.infoProvider.getMaxNumberOfInfos() + ")</p>");
-        } else {
-            pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
-        }
+            if (this.infoProvider.isEnabled()) {
+                pw.println("<p class='statline ui-state-highlight'>Recorded " + values.size() + " requests (max: "
+                        + this.infoProvider.getMaxNumberOfInfos() + ")</p>");
+            } else {
+                pw.println("<p class='statline ui-state-highlight'>Request Recording disabled</p>");
+            }
 
-        pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>");
-        pw.println("<span style='float: left; margin-left: 1em'>Recent Requests</span>");
-        pw.println(
-                "<form method='POST'><input type='hidden' name='clear' value='clear'><input type='submit' value='Clear' class='ui-state-default ui-corner-all'></form>");
-        pw.println("</div>");
+            pw.println("<div class='ui-widget-header ui-corner-top buttonGroup'>");
+            pw.println("<span style='float: left; margin-left: 1em'>Recent Requests</span>");
+            pw.println(
+                    "<form method='POST'><input type='hidden' name='clear' value='clear'><input type='submit' value='Clear' class='ui-state-default ui-corner-all'></form>");
+            pw.println("</div>");
 
-        printLinksTable(pw, values, key);
-        pw.println("<br/>");
+            printLinksTable(pw, values, key);
+            pw.println("<br/>");
 
-        if (info != null) {
+            if (info != null) {
 
-            pw.println("<table class='nicetable ui-widget'>");
+                pw.println("<table class='nicetable ui-widget'>");
 
-            // Links to other requests
-            pw.println("<thead>");
-            pw.println("<tr>");
-            pw.printf(
-                    "<th class='ui-widget-header'>Request %s (%s %s) by %s - RequestProgressTracker Info</th>%n",
-                    key,
-                    ResponseUtil.escapeXml(info.getMethod()),
-                    ResponseUtil.escapeXml(info.getPath()),
-                    ResponseUtil.escapeXml(info.getUserId()));
-            pw.println("</tr>");
-            pw.println("</thead>");
+                // Links to other requests
+                pw.println("<thead>");
+                pw.println("<tr>");
+                pw.printf(
+                        "<th class='ui-widget-header'>Request %s (%s %s) by %s - RequestProgressTracker Info</th>%n",
+                        ResponseUtil.escapeXml(key),
+                        ResponseUtil.escapeXml(info.getMethod()),
+                        ResponseUtil.escapeXml(info.getPath()),
+                        ResponseUtil.escapeXml(info.getUserId()));
+                pw.println("</tr>");
+                pw.println("</thead>");
 
-            pw.println("<tbody>");
+                pw.println("<tbody>");
 
-            // Request Progress Tracker Info
-            pw.println("<tr><td><pre>");
-            pw.print(ResponseUtil.escapeXml(info.getLog()));
-            pw.println("</pre></td></tr>");
-            pw.println("</tbody></table>");
+                // Request Progress Tracker Info
+                pw.println("<tr><td><pre>");
+                pw.print(ResponseUtil.escapeXml(info.getLog()));
+                pw.println("</pre></td></tr>");
+                pw.println("</tbody></table>");
+            }
+        } catch (final IOException ioe) {
+            getServletContext().log("Unable to render request history console output.", ioe);
+            resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
         }
     }
 
     @Override
-    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) throws IOException {
+    protected void doPost(final HttpServletRequest req, final HttpServletResponse resp) {
         if (req.getParameter(CLEAR) != null) {
             this.infoProvider.clear();
-            resp.sendRedirect(req.getRequestURI());
+            try {
+                resp.sendRedirect(req.getRequestURI());
+            } catch (final IOException ioe) {
+                getServletContext().log("Unable to redirect after clearing request history.", ioe);
+                resp.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            }
         }
     }
 

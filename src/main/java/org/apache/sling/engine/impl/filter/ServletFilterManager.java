@@ -18,6 +18,8 @@
  */
 package org.apache.sling.engine.impl.filter;
 
+import javax.management.ObjectName;
+
 import java.util.Dictionary;
 import java.util.Hashtable;
 import java.util.Map;
@@ -47,7 +49,7 @@ import org.slf4j.LoggerFactory;
 @Component(service = ServletFilterManager.class)
 public class ServletFilterManager {
 
-    private static final String JMX_OBJECTNAME = "jmx.objectname";
+    static final String JMX_OBJECTNAME = "jmx.objectname";
 
     public static enum FilterChainType {
         /**
@@ -137,14 +139,7 @@ public class ServletFilterManager {
 
     public void updatedFilter(final ServiceReference<Filter> reference, final Filter service) {
         // only if the filter name has changed, we need to do a service re-registration
-        final String newFilterName = SlingFilterConfig.getName(reference);
-        if (newFilterName.equals(getUsedFilterName(reference))) {
-            removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
-            addFilterToChains(service, null, reference);
-        } else {
-            destroyFilter(reference, service);
-            initFilter(reference, service, null);
-        }
+        reregisterOrUpdateMBean(reference, reference.getProperty(Constants.SERVICE_ID), service, null);
     }
 
     public void unbindFilter(final ServiceReference<Filter> reference, final Filter service) {
@@ -171,15 +166,7 @@ public class ServletFilterManager {
         @SuppressWarnings({"rawtypes", "unchecked"})
         final ServiceReference<Filter> ref = (ServiceReference<Filter>) (ServiceReference) reference;
         final Filter s = JavaxToJakartaFilterWrapper.toJakartaFilter(service);
-        // only if the filter name has changed, we need to do a service re-registration
-        final String newFilterName = SlingFilterConfig.getName(ref);
-        if (newFilterName.equals(getUsedFilterName(ref))) {
-            removeFilterFromChains((Long) reference.getProperty(Constants.SERVICE_ID));
-            addFilterToChains(s, service, ref);
-        } else {
-            destroyFilter(ref, s);
-            initFilter(ref, s, service);
-        }
+        reregisterOrUpdateMBean(ref, reference.getProperty(Constants.SERVICE_ID), s, service);
     }
 
     public void unbindJavaxFilter(
@@ -202,7 +189,7 @@ public class ServletFilterManager {
             MBeanReg reg;
             try {
                 final Dictionary<String, String> mbeanProps = new Hashtable<>();
-                mbeanProps.put(JMX_OBJECTNAME, "org.apache.sling:type=engine-filter,service=" + filterName);
+                mbeanProps.put(JMX_OBJECTNAME, createJmxObjectName(filterName));
                 reg = new MBeanReg();
                 reg.mbean = new FilterProcessorMBeanImpl();
 
@@ -230,16 +217,28 @@ public class ServletFilterManager {
         }
     }
 
-    private String getUsedFilterName(final ServiceReference<Filter> reference) {
+    private void reregisterOrUpdateMBean(
+            ServiceReference<Filter> ref, Object reference, Filter s, javax.servlet.Filter service) {
+        // only if the filter name has changed, we need to do a service re-registration
+        final String newFilterName = SlingFilterConfig.getName(ref);
+        String newJmxObjectName = createJmxObjectName(newFilterName);
+        if (newJmxObjectName.equals(getUsedJmxObjectName(ref))) {
+            removeFilterFromChains((Long) reference);
+            addFilterToChains(s, service, ref);
+        } else {
+            destroyFilter(ref, s);
+            initFilter(ref, s, service);
+        }
+    }
+
+    private static String createJmxObjectName(String filterName) {
+        return "org.apache.sling:type=engine-filter,service=" + ObjectName.quote(filterName);
+    }
+
+    private String getUsedJmxObjectName(final ServiceReference<Filter> reference) {
         final MBeanReg reg = mbeanMap.get(reference.getProperty(Constants.SERVICE_ID));
         if (reg != null) {
-            final String objectName = (String) reg.registration.getReference().getProperty(JMX_OBJECTNAME);
-            if (objectName != null) {
-                final int pos = objectName.indexOf(",service=");
-                if (pos != -1) {
-                    return objectName.substring(pos + 9);
-                }
-            }
+            return (String) reg.registration.getReference().getProperty(JMX_OBJECTNAME);
         }
         return null;
     }

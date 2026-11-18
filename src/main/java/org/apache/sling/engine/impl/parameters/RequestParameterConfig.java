@@ -98,6 +98,14 @@ public class RequestParameterConfig {
                 description =
                         "The maximum number of files allowed for multipart/form-data requests in a single request. The default is 50.")
         long request_max_file_count() default 50;
+
+        @AttributeDefinition(
+                name = "Fail on Parameter Limit",
+                description = "Whether to throw an exception when the maximum number of parameters is exceeded. "
+                        + "If true (default), an exception is thrown and the request is rejected with a 400 Bad "
+                        + "Request response. If false, a warning is logged and processing continues with the "
+                        + "parameter map silently truncated after the configured limit.")
+        boolean sling_default_parameter_fail_on_limit() default true;
     }
 
     /** default log */
@@ -130,6 +138,7 @@ public class RequestParameterConfig {
             log.info("Tempory File Creation Threshold: {}", fileSizeThreshold);
             log.info("Check for additional container parameters: {}", checkAddParameters);
             log.info("Maximum File Count: {}", maxFileCount);
+            log.info("Fail on Parameter Limit: {}", config.sling_default_parameter_fail_on_limit());
         }
     }
 

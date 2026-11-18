@@ -21,8 +21,8 @@ package org.apache.sling.engine.impl.parameters;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
 
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -44,6 +44,8 @@ public class RequestPartsIterator implements Iterator<Part> {
 
     private final long maxFileCount;
 
+    private SlingParameterParseException parseFailure;
+
     /**
      * Create and initialize the iterator using the request.
      *
@@ -56,15 +58,19 @@ public class RequestPartsIterator implements Iterator<Part> {
 
     @Override
     public boolean hasNext() {
+        if (parseFailure != null) {
+            throw parseFailure;
+        }
         // Use a lazy data iterator creation the first time it is needed to ensure
         // the container doesn't parse the uploaded files until necessary
         if (itemIterator == null) {
             Collection<Part> parts;
             try {
                 parts = getPartsAndCheckFileCount();
-            } catch (ServletException | IOException e) {
+            } catch (ServletException | IOException | IllegalStateException e) {
                 log.error("Error parsing multipart streamed request", e);
-                parts = Collections.emptyList();
+                parseFailure = new SlingParameterParseException("Error parsing multipart streamed request", e);
+                throw parseFailure;
             }
 
             itemIterator = parts.iterator();
@@ -82,7 +88,7 @@ public class RequestPartsIterator implements Iterator<Part> {
 
         long filePartCount =
                 parts.stream().filter(p -> p.getSubmittedFileName() != null).count();
-        if (filePartCount > maxFileCount) {
+        if (maxFileCount >= 0 && filePartCount > maxFileCount) {
             throw new FileCountLimitExceededException("Request exceeds maximum file count", maxFileCount);
         }
         return parts;
@@ -91,7 +97,7 @@ public class RequestPartsIterator implements Iterator<Part> {
     @Override
     public Part next() {
         if (!hasNext()) {
-            throw new java.util.NoSuchElementException();
+            throw new NoSuchElementException();
         }
         return new StreamedRequestPart(itemIterator.next());
     }

@@ -126,4 +126,10 @@ public @interface Config {
                     "When enabled, the getUserPrincipal method of the request object might even return a principal "
                             + "in the non authenticated case. This is not spec compliant but might be required for some legacy code.")
     boolean disable_spec_compliant_getuserprincipal() default true;
+
+    @AttributeDefinition(
+            name = "Enable Accept Header Check for Error Handling",
+            description =
+                    "When enabled, the engine will check the Accept header to determine which error handler to use.")
+    boolean enable_accept_header_check() default true;
 }

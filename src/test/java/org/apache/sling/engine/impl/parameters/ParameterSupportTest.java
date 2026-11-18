@@ -25,6 +25,7 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -40,20 +41,28 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
 import org.apache.sling.api.request.RequestParameter;
 import org.apache.sling.api.request.RequestParameterMap;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.Test.None;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  *
@@ -65,8 +74,14 @@ public class ParameterSupportTest {
 
     @Before
     public void before() {
+        ParameterSupport.configure(false, 50);
         mockRequest = Mockito.mock(HttpServletRequest.class);
         support = ParameterSupport.getInstance(mockRequest);
+    }
+
+    @After
+    public void after() {
+        ParameterSupport.configure(false, 50);
     }
 
     /**
@@ -234,9 +249,10 @@ public class ParameterSupportTest {
         }
         Mockito.doReturn(parts).when(mockRequest).getParts();
 
-        // expected FileCountLimitExceededException to be caught and logged but continue
-        final List<RequestParameter> list1 = support.getRequestParameterList();
-        assertEquals(4, list1.size());
+        final SlingParameterParseException failure =
+                assertThrows(SlingParameterParseException.class, support::getRequestParameterList);
+        assertTrue(failure.getCause() instanceof FileCountLimitExceededException);
+        assertSame(failure, assertThrows(SlingParameterParseException.class, support::getParameterMap));
     }
 
     @Test
@@ -352,6 +368,208 @@ public class ParameterSupportTest {
             }
         };
         Mockito.doReturn(inStream).when(mockRequest).getInputStream();
+    }
+
+    @Test
+    public void testQueryStringDecodingIgnoresClientControlledCharacterEncoding() {
+        // the client claims (via Content-Type) that the request uses UTF-16BE.
+        // Per HTTP this only applies to the request body, not the query
+        // string. If the engine honored it for the query string anyway, the
+        // two raw bytes 0x00 0x41 would be read as a single UTF-16BE
+        // character ('A'), rather than as two ISO-8859-1 bytes/characters -
+        // exactly the kind of divergence a container or WAF (which decodes
+        // the query string as its own configured/default charset) would not
+        // see.
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getCharacterEncoding()).thenReturn("UTF-16BE");
+        when(request.getQueryString()).thenReturn("a=%00A");
+        when(request.getAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING))
+                .thenReturn(null);
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+
+        final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
+
+        assertEquals(
+                "query string must always be decoded byte-for-byte as ISO-8859-1, "
+                        + "never with the client supplied (body) character encoding",
+                "\u0000A",
+                parameterSupport.getParameter("a"));
+    }
+
+    @Test
+    public void testWwwFormEncodedContentTypeExactMatchIsParsedAsFormParameters() throws Exception {
+        final HttpServletRequest request = postRequest("application/x-www-form-urlencoded", "a=b");
+
+        final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
+
+        assertEquals("b", parameterSupport.getParameter("a"));
+    }
+
+    @Test
+    public void testWwwFormEncodedContentTypeWithCharsetParameterIsParsedAsFormParameters() throws IOException {
+        final HttpServletRequest request = postRequest("application/x-www-form-urlencoded; charset=UTF-8", "a=b");
+
+        final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
+
+        assertEquals("b", parameterSupport.getParameter("a"));
+    }
+
+    @Test
+    public void testContentTypeThatOnlyStartsWithFormEncodedMediaTypeIsNotParsedAsFormParameters() throws IOException {
+        // a container/perimeter doing an exact media type match considers
+        // this request to carry no parameters at all; if the engine parsed
+        // the body anyway (prefix match) it would act on data invisible to
+        // that inspection.
+        final HttpServletRequest request = postRequest("application/x-www-form-urlencoded-bla", "a=b");
+
+        final ParameterSupport parameterSupport = ParameterSupport.getInstance(request);
+
+        assertNull(parameterSupport.getParameter("a"));
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedQueryStringIsRejected() {
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        // a malformed escape aborts the parse after 'a' was already added;
+        // 'c' must not be silently dropped while processing continues
+        when(request.getQueryString()).thenReturn("a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("c");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedQueryStringFailureIsCachedAcrossAccessors() {
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("GET");
+        when(request.getQueryString()).thenReturn("a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        try {
+            support.getParameter("c");
+            fail("Expected the first access to throw SlingParameterParseException");
+        } catch (SlingParameterParseException expected) {
+            // expected on first access; the point of this test is that the
+            // failure must be cached and rethrown on the *next* access too -
+            // even via a different accessor method - instead of silently
+            // continuing with a partial map
+        }
+        support.getRequestParameterMap();
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedFormEncodedBodyIsRejected() throws IOException {
+        final HttpServletRequest request = postRequest("application/x-www-form-urlencoded", "a=1&b=%zz&c=3");
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("c");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedMultipartBodyIsRejected() throws IOException, ServletException {
+        final HttpServletRequest request = postRequest("multipart/form-data", "irrelevant body content");
+        when(request.getParts()).thenThrow(new ServletException("Missing multipart boundary"));
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getParameter("anything");
+    }
+
+    @Test(expected = SlingParameterParseException.class)
+    public void testMalformedStreamedMultipartBodyIsRejected() throws IOException, ServletException {
+        final HttpServletRequest request = postRequest("multipart/form-data", "irrelevant body content");
+        when(request.getParts()).thenThrow(new ServletException("Missing multipart boundary"));
+        when(request.getHeader(ParameterSupport.SLING_UPLOADMODE_HEADER)).thenReturn(ParameterSupport.STREAM_UPLOAD);
+
+        final ParameterSupport support = ParameterSupport.getInstance(request);
+        support.getRequestParameterMap();
+        final ArgumentCaptor<RequestPartsIterator> captor = ArgumentCaptor.forClass(RequestPartsIterator.class);
+        verify(request).setAttribute(eq(ParameterSupport.REQUEST_PARTS_ITERATOR_ATTRIBUTE), captor.capture());
+        captor.getValue().hasNext();
+    }
+
+    @Test
+    public void testStreamedUploadModeEnforcesConfiguredFileCountLimit() throws Exception {
+        ParameterSupport.configure(false, 1);
+        try {
+            final HttpServletRequest request = postRequest("multipart/form-data; boundary=AaB03x", "");
+            final Part first = mock(Part.class);
+            final Part second = mock(Part.class);
+            when(first.getSubmittedFileName()).thenReturn("a.txt");
+            when(second.getSubmittedFileName()).thenReturn("b.txt");
+            when(request.getParts()).thenReturn(List.of(first, second));
+            when(request.getHeader(ParameterSupport.SLING_UPLOADMODE_HEADER))
+                    .thenReturn(ParameterSupport.STREAM_UPLOAD);
+
+            final ParameterSupport support = ParameterSupport.getInstance(request);
+            support.getRequestParameterMap();
+
+            @SuppressWarnings("unchecked")
+            final ArgumentCaptor<Iterator<Part>> captor = ArgumentCaptor.forClass(Iterator.class);
+            verify(request).setAttribute(eq(ParameterSupport.REQUEST_PARTS_ITERATOR_ATTRIBUTE), captor.capture());
+            final Iterator<Part> parts = captor.getValue();
+
+            final SlingParameterParseException failure =
+                    assertThrows(SlingParameterParseException.class, parts::hasNext);
+            assertTrue(failure.getCause() instanceof FileCountLimitExceededException);
+        } finally {
+            // restore defaults so this test does not leak static state into
+            // the other tests in this class
+            ParameterSupport.configure(false, 50);
+        }
+    }
+
+    private static HttpServletRequest postRequest(final String contentType, final String body) throws IOException {
+        final HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getMethod()).thenReturn("POST");
+        when(request.getCharacterEncoding()).thenReturn("UTF-8");
+        when(request.getContentType()).thenReturn(contentType);
+        when(request.getContentLength()).thenReturn(body.length());
+        when(request.getQueryString()).thenReturn(null);
+        when(request.getAttribute(ParameterSupport.MARKER_IS_SERVICE_PROCESSING))
+                .thenReturn(null);
+        when(request.getParameterMap()).thenReturn(Collections.emptyMap());
+        when(request.getInputStream()).thenReturn(toServletInputStream(body));
+        return request;
+    }
+
+    private static ServletInputStream toServletInputStream(final String content) throws UnsupportedEncodingException {
+        final ByteArrayInputStream in = new ByteArrayInputStream(content.getBytes(Util.ENCODING_DIRECT));
+        return new ServletInputStream() {
+            @Override
+            public boolean isFinished() {
+                return in.available() == 0;
+            }
+
+            @Override
+            public boolean isReady() {
+                return true;
+            }
+
+            @Override
+            public void setReadListener(ReadListener readListener) {
+                throw new UnsupportedOperationException();
+            }
+
+            @Override
+            public int read() {
+                return in.read();
+            }
+        };
+    }
+
+    @Test
+    public void testContainerMultipartSizeLimitIsRejectedAndCached() throws IOException, ServletException {
+        mockMultipartPost();
+        Mockito.doThrow(new IllegalStateException("Request exceeds configured multipart size"))
+                .when(mockRequest)
+                .getParts();
+
+        final SlingParameterParseException failure =
+                assertThrows(SlingParameterParseException.class, support::getRequestParameterMap);
+        assertTrue(failure.getCause() instanceof IllegalStateException);
+        assertSame(failure, assertThrows(SlingParameterParseException.class, support::getRequestParameterList));
     }
 
     private void mockMultipartPost() throws IOException, ServletException {

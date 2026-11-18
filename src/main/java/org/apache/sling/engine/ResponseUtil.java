@@ -28,6 +28,15 @@ import java.io.Writer;
 public class ResponseUtil {
 
     /**
+     * @deprecated Instantiation not intended. Use {@link org.apache.sling.api.request.ResponseUtil} instead.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1118")
+    public ResponseUtil() {
+        // Explicit constructor for backward binary compatibility
+    }
+
+    /**
      * Escape xml text
      * @param input The text to escape
      * @return The escaped text.

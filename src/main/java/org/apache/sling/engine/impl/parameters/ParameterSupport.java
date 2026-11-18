@@ -98,6 +98,12 @@ public class ParameterSupport {
     private boolean requestDataUsed;
 
     /**
+     * Set when parsing the request parameters failed. The failure is cached
+     * and rethrown on every subsequent parameter access.
+     */
+    private SlingParameterParseException parseFailure;
+
+    /**
      * Returns the {@code ParameterSupport} instance supporting request
      * parameter for the give {@code request}. For a single request only a
      * single instance is actually used. This single instance is cached as a
@@ -204,6 +210,9 @@ public class ParameterSupport {
     }
 
     private ParameterMap getRequestParameterMapInternal() {
+        if (this.parseFailure != null) {
+            throw this.parseFailure;
+        }
         if (this.postParameterMap == null) {
 
             // SLING-508 Try to force servlet container to decode parameters
@@ -229,12 +238,18 @@ public class ParameterSupport {
             if (query != null) {
                 try {
                     InputStream input = Util.toInputStream(query);
-                    Util.parseQueryString(input, encoding, parameters, false);
+                    // the query string is always decoded with the byte-preserving
+                    // ISO-8859-1 encoding and later fixed up via the '_charset_'
+                    // parameter or the configured default encoding (see
+                    // Util.fixEncoding).
+                    Util.parseQueryString(input, Util.ENCODING_DIRECT, parameters, false);
                     addContainerParameters = checkForAdditionalParameters;
+                } catch (IllegalArgumentException e) {
+                    throw failParse("Error parsing query string", e);
                 } catch (UnsupportedEncodingException e) {
                     throw new SlingUnsupportedEncodingException(e);
-                } catch (IllegalArgumentException | IOException e) {
-                    this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                } catch (IOException e) {
+                    throw failParse("Error parsing query string", e);
                 }
                 useFallback = false;
             } else {
@@ -251,10 +266,12 @@ public class ParameterSupport {
                         InputStream input = this.getServletRequest().getInputStream();
                         Util.parseQueryString(input, encoding, parameters, false);
                         addContainerParameters = checkForAdditionalParameters;
+                    } catch (IllegalArgumentException e) {
+                        throw failParse("Error parsing request body", e);
                     } catch (UnsupportedEncodingException e) {
                         throw new SlingUnsupportedEncodingException(e);
-                    } catch (IllegalArgumentException | IOException e) {
-                        this.log.error("getRequestParameterMapInternal: Error parsing request", e);
+                    } catch (IOException e) {
+                        throw failParse("Error parsing request body", e);
                     }
                     this.requestDataUsed = true;
                     useFallback = false;
@@ -283,8 +300,8 @@ public class ParameterSupport {
                     } else {
                         try {
                             this.parseMultiPartPost(parameters, encoding);
-                        } catch (final ServletException | IOException e) {
-                            this.log.error("getRequestParameterMapInternal: Error parsing multipart request", e);
+                        } catch (final ServletException | IOException | IllegalStateException e) {
+                            throw failParse("Error parsing multipart request", e);
                         }
                         this.requestDataUsed = true;
                         addContainerParameters = checkForAdditionalParameters;
@@ -303,6 +320,16 @@ public class ParameterSupport {
             this.postParameterMap = parameters;
         }
         return this.postParameterMap;
+    }
+
+    /**
+     * Records a request-parameter parse failure and returns the exception to
+     * throw. Parse errors must be request-fatal.
+     */
+    private SlingParameterParseException failParse(final String message, final Exception cause) {
+        this.log.error("getRequestParameterMapInternal: {}", message, cause);
+        this.parseFailure = new SlingParameterParseException(message, cause);
+        return this.parseFailure;
     }
 
     /**
@@ -341,15 +368,17 @@ public class ParameterSupport {
             return false;
         }
 
-        // This check assumes the content type ends after the WWW_FORM_URL_ENC
-        // or continues with blank or semicolon. It will probably break if
-        // the content type is some string extension of WWW_FORM_URL_ENC
-        // such as "application/x-www-form-urlencoded-bla"
-        if (contentType.toLowerCase(Locale.ENGLISH).startsWith(WWW_FORM_URL_ENC)) {
-            return true;
+        // only the media type is relevant, optional parameters (such as
+        // charset) may follow separated by a semicolon. An exact match is
+        // required: a prefix match would treat unrelated media types such as
+        // "application/x-www-form-urlencoded-bla" as form encoded content and
+        // parse a request body which container level inspection does not
+        // consider to carry parameters
+        final int semi = contentType.indexOf(';');
+        if (semi >= 0) {
+            contentType = contentType.substring(0, semi);
         }
-
-        return false;
+        return WWW_FORM_URL_ENC.equals(contentType.trim().toLowerCase(Locale.ENGLISH));
     }
 
     /**

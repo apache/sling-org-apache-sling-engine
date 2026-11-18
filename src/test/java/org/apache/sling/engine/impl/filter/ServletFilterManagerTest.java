@@ -20,6 +20,7 @@ package org.apache.sling.engine.impl.filter;
 
 import java.io.IOException;
 import java.util.Hashtable;
+import java.util.Map;
 
 import jakarta.servlet.Filter;
 import jakarta.servlet.FilterChain;
@@ -34,15 +35,26 @@ import org.apache.sling.engine.EngineConstants;
 import org.apache.sling.engine.impl.ProductInfoProvider;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.helper.SlingServletContext;
+import org.apache.sling.engine.jmx.FilterProcessorMBean;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 import org.osgi.framework.BundleContext;
+import org.osgi.framework.ServiceReference;
+import org.osgi.framework.ServiceRegistration;
 
+import static org.apache.sling.engine.impl.testutil.MockServiceReference.serviceReference;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNotSame;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertTrue;
+import static org.osgi.framework.Constants.SERVICE_ID;
+import static org.osgi.framework.Constants.SERVICE_PID;
 
 public class ServletFilterManagerTest {
 
@@ -123,7 +135,75 @@ public class ServletFilterManagerTest {
         assertFilterInScopes(servletFilterManager, testFilter, FilterChainType.ERROR);
     }
 
+    @Test
+    public void majorFilterRegistrationUpdateCausesJmxMBeanReregistration() throws Exception {
+        TestFilter filter = new TestFilter();
+        BundleContext bundleContext = osgiContext.bundleContext();
+
+        // initially no MBean is registered
+        assertNull(bundleContext.getServiceReference(FilterProcessorMBean.class));
+
+        // MBean is registered
+        servletFilterManager.bindFilter(
+                serviceReference(bundleContext, Map.of(SERVICE_PID, "name", SERVICE_ID, 42L)), filter);
+        ServiceReference<FilterProcessorMBean> originalMBeanRef =
+                bundleContext.getServiceReference(FilterProcessorMBean.class);
+        assertNotNull(originalMBeanRef);
+        assertEquals("org.apache.sling:type=engine-filter,service=\"name\"", getJmxBeanObjectName(bundleContext));
+
+        // MBean is reregistered
+        servletFilterManager.updatedFilter(
+                serviceReference(bundleContext, Map.of(SERVICE_PID, "updated-name", SERVICE_ID, 42L)), filter);
+        assertNotSame(originalMBeanRef, bundleContext.getServiceReference(FilterProcessorMBean.class));
+        assertEquals(
+                "org.apache.sling:type=engine-filter,service=\"updated-name\"", getJmxBeanObjectName(bundleContext));
+
+        // MBean is unregistered
+        servletFilterManager.unbindFilter(serviceReference(bundleContext, Map.of(SERVICE_ID, 42L)), filter);
+
+        assertNull(bundleContext.getServiceReference(FilterProcessorMBean.class));
+    }
+
+    @Test
+    public void minorFilterRegistrationUpdateCausesNoJmxMBeanReregistration() throws Exception {
+        TestFilter filter = new TestFilter();
+        BundleContext bundleContext = osgiContext.bundleContext();
+
+        // initially no MBean is registered
+        assertNull(bundleContext.getServiceReference(FilterProcessorMBean.class));
+
+        // MBean is registered
+        servletFilterManager.bindFilter(
+                serviceReference(bundleContext, Map.of(SERVICE_PID, "name", SERVICE_ID, 42L)), filter);
+        ServiceReference<FilterProcessorMBean> originalMBeanRef =
+                bundleContext.getServiceReference(FilterProcessorMBean.class);
+        assertNotNull(originalMBeanRef);
+        assertEquals("org.apache.sling:type=engine-filter,service=\"name\"", getJmxBeanObjectName(bundleContext));
+
+        // MBean is not reregistered
+        servletFilterManager.updatedFilter(
+                serviceReference(bundleContext, Map.of(SERVICE_PID, "name", SERVICE_ID, 42L, "dummy", "change")),
+                filter);
+        assertSame(originalMBeanRef, bundleContext.getServiceReference(FilterProcessorMBean.class));
+
+        // MBean is unregistered
+        servletFilterManager.unbindFilter(
+                serviceReference(bundleContext, Map.of(SERVICE_PID, "updated-name", SERVICE_ID, 42L)), filter);
+        assertNull(bundleContext.getServiceReference(FilterProcessorMBean.class));
+    }
+
+    private static String getJmxBeanObjectName(BundleContext bundleContext) {
+        ServiceReference<FilterProcessorMBean> mbeanRef = bundleContext.getServiceReference(FilterProcessorMBean.class);
+        return (String) mbeanRef.getProperty(ServletFilterManager.JMX_OBJECTNAME);
+    }
+
     private static TestFilter registerFilterForScopes(BundleContext bundleContext, FilterChainType... scopes) {
+        ServiceRegistration<Filter> filterServiceRegistration = registrationOfFilterForScopes(bundleContext, scopes);
+        return (TestFilter) bundleContext.getService(filterServiceRegistration.getReference());
+    }
+
+    private static ServiceRegistration<Filter> registrationOfFilterForScopes(
+            BundleContext bundleContext, FilterChainType... scopes) {
         Hashtable<String, Object> properties = new Hashtable<>();
         if (scopes != null) {
             String[] scopeNames = new String[scopes.length];
@@ -134,8 +214,7 @@ public class ServletFilterManagerTest {
         }
 
         TestFilter testFilter = new TestFilter();
-        bundleContext.registerService(Filter.class, testFilter, properties);
-        return testFilter;
+        return bundleContext.registerService(Filter.class, testFilter, properties);
     }
 
     private static TestFilter registerFilterForValues(BundleContext bundleContext, String... scopes) {

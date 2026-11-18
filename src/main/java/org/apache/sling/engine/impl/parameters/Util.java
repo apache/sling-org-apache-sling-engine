@@ -281,12 +281,7 @@ public class Util {
                 case ESC_NAME:
                     chCode[subState++] = ch;
                     if (subState == chCode.length) {
-                        String code = new String(chCode);
-                        try {
-                            keyBuffer.write(Integer.parseInt(code, 16));
-                        } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException("Bad escape sequence: %" + code);
-                        }
+                        keyBuffer.write(decodePercentEscape(chCode));
                         state = INSIDE_NAME;
                     }
                     break;
@@ -328,12 +323,7 @@ public class Util {
                 case ESC_VALUE:
                     chCode[subState++] = ch;
                     if (subState == chCode.length) {
-                        String code = new String(chCode);
-                        try {
-                            valueBuffer.write(Integer.parseInt(code, 16));
-                        } catch (NumberFormatException e) {
-                            throw new IllegalArgumentException("Bad escape sequence: %" + code);
-                        }
+                        valueBuffer.write(decodePercentEscape(chCode));
                         state = INSIDE_VALUE;
                     }
                     break;
@@ -345,9 +335,68 @@ public class Util {
             }
         }
 
+        // a truncated escape sequence at the end of the input is malformed;
+        // reject it instead of silently dropping it, so that the resulting
+        // parameter values never differ from a standards compliant decoder
+        if (state == ESC_NAME || state == ESC_VALUE) {
+            throw new IllegalArgumentException("Bad escape sequence: unexpected end of input after '%'");
+        }
+
         if (keyBuffer.size() > 0) {
             addNVPair(map, keyBuffer, valueBuffer, encoding, prependNew);
         }
+    }
+
+    /**
+     * Decodes a two character percent escape sequence, accepting only ASCII
+     * hexadecimal digits as mandated by RFC 3986.
+     *
+     * @param chCode the two escape characters following '%'. Callers must
+     *            guarantee that this array has a length of exactly 2
+     * @return the decoded byte value (0..255)
+     * @throws IllegalArgumentException if a character is not a hex digit
+     */
+    private static int decodePercentEscape(final char[] chCode) {
+        final int hi = hexDigit(chCode[0]);
+        final int lo = hexDigit(chCode[1]);
+        if (hi < 0 || lo < 0) {
+            throw new IllegalArgumentException("Bad escape sequence: %" + toSafeString(chCode));
+        }
+        return (hi << 4) + lo;
+    }
+
+    /**
+     * Returns a representation of the given raw request input that is safe to
+     * embed in exception and, transitively, log messages: every character
+     * outside the printable US-ASCII range - in particular CR and LF -
+     * is replaced by its unicode escape.
+     *
+     * @param raw the raw input characters
+     * @return a printable representation of {@code raw}
+     */
+    private static String toSafeString(final char[] raw) {
+        final StringBuilder sb = new StringBuilder(raw.length);
+        for (final char c : raw) {
+            if (c >= 0x20 && c < 0x7f) {
+                sb.append(c);
+            } else {
+                sb.append(String.format("\\u%04x", (int) c));
+            }
+        }
+        return sb.toString();
+    }
+
+    private static int hexDigit(final char c) {
+        if (c >= '0' && c <= '9') {
+            return c - '0';
+        }
+        if (c >= 'a' && c <= 'f') {
+            return c - 'a' + 10;
+        }
+        if (c >= 'A' && c <= 'F') {
+            return c - 'A' + 10;
+        }
+        return -1;
     }
 
     private static void addNVPair(

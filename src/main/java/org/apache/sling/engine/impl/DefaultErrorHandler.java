@@ -20,6 +20,10 @@ package org.apache.sling.engine.impl;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.Comparator;
+import java.util.Map;
+import java.util.Optional;
+import java.util.TreeMap;
 
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -28,13 +32,14 @@ import org.apache.sling.api.SlingHttpServletRequest;
 import org.apache.sling.api.SlingHttpServletResponse;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
-import org.apache.sling.api.request.RequestProgressTracker;
 import org.apache.sling.api.request.ResponseUtil;
+import org.apache.sling.api.request.header.JakartaMediaRangeList;
 import org.apache.sling.api.servlets.ErrorHandler;
 import org.apache.sling.api.servlets.JakartaErrorHandler;
 import org.apache.sling.api.wrappers.JakartaToJavaxRequestWrapper;
 import org.apache.sling.api.wrappers.JakartaToJavaxResponseWrapper;
 import org.osgi.framework.ServiceReference;
+import org.osgi.util.converter.Converters;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -49,19 +54,24 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
     /** default log */
     private final Logger log = LoggerFactory.getLogger(getClass());
 
-    private volatile String serverInfo = ProductInfoProvider.PRODUCT_NAME;
+    private static final String ALL_CONTENT_TYPES = "*/*";
 
     /** Use this if not null, and if that fails output a report about that failure */
     private volatile JakartaErrorHandler delegate;
+
+    /** Use this if not null for non html responses */
+    private volatile JakartaErrorHandler nonHtmlDelegate;
 
     private volatile JakartaErrorHandler errorHandler;
     private volatile JakartaErrorHandler jakartaErrorHandler;
     private volatile ServiceReference<?> errorHandlerRef;
     private volatile ServiceReference<?> jakartaErrorHandlerRef;
 
-    void setServerInfo(final String serverInfo) {
-        this.serverInfo = (serverInfo != null) ? serverInfo : ProductInfoProvider.PRODUCT_NAME;
-    }
+    private final Map<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler> jakartaErrorHandlers =
+            new TreeMap<>(Comparator.reverseOrder());
+
+    /** Flag for html accept header check for error handling */
+    private volatile boolean enableAcceptHeaderCheck = true;
 
     @SuppressWarnings("deprecation")
     public synchronized void setDelegate(final ServiceReference<?> ref, final ErrorHandler eh) {
@@ -140,15 +150,38 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         sendError(originalStatus, originalMessage, null, request, response);
     }
 
+    protected JakartaErrorHandler getErrorHandler(final SlingJakartaHttpServletRequest request) {
+        final JakartaErrorHandler nonHtml = this.nonHtmlDelegate;
+        if (this.enableAcceptHeaderCheck && nonHtml != null && !serveHtmlErrorResponse(request)) {
+            return nonHtml;
+        }
+        return this.delegate;
+    }
+
+    /**
+     * Determines whether the request is classified as HTML for error-handler selection,
+     * rather than merely whether it accepts HTML.
+     * The Accept header must match {@code text/html}, including through {@code text/*},
+     * and must not contain {@code *}{@code /*}. HTML need not be the highest-quality match.
+     * A missing or blank Accept header, or any header containing {@code *}{@code /*},
+     * is treated as non-HTML, even if it also explicitly accepts {@code text/html}.
+     *
+     * @param request the request to classify
+     * @return {@code true} if the request is classified as HTML, {@code false} otherwise
+     */
+    private static boolean serveHtmlErrorResponse(final SlingJakartaHttpServletRequest request) {
+        final JakartaMediaRangeList acceptList = JakartaMediaRangeList.fromRequest(request);
+        return !acceptList.matchesAll() && acceptList.prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML) != null;
+    }
+
     // ---------- ErrorHandler interface (default implementation) --------------
 
     /**
      * Backend implementation of the HttpServletResponse.sendError methods.
      * <p>
      * This implementation resets the response before sending back a
-     * standardized response which just conveys the status, the message (either
-     * provided or a message derived from the status code), and server
-     * information.
+     * standardized response which just conveys the status and the message
+     * (either provided or a message derived from the status code).
      * <p>
      * This method logs error and does not write back and response data if the
      * response has already been committed.
@@ -161,7 +194,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final SlingJakartaHttpServletResponse response)
             throws IOException {
         // If we have a delegate let it handle the error
-        final JakartaErrorHandler local = this.delegate;
+        final JakartaErrorHandler local = this.getErrorHandler(request);
         if (local != null) {
             try {
                 local.handleError(status, message, request, response);
@@ -170,6 +203,11 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             }
             return;
         }
+
+        log.warn(
+                "handleError: No ErrorHandler service registered; every Sling instance should have one. "
+                        + "Falling back to the minimal built-in error response for status {}",
+                status);
 
         if (message == null) {
             message = "HTTP ERROR:" + String.valueOf(status);
@@ -185,8 +223,10 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
      * <p>
      * This implementation resets the response before sending back a
      * standardized response which just conveys the status as 500/INTERNAL
-     * SERVER ERROR, the message from the throwable, the stacktrace, and server
-     * information.
+     * SERVER ERROR and the message from the throwable. The exception's
+     * stacktrace and the {@code RequestProgressTracker} dump are not sent to
+     * the client; they are only available in the server-side log (see the
+     * caller of this method).
      * <p>
      * This method logs error and does not write back and response data if the
      * response has already been committed.
@@ -199,7 +239,7 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             throws IOException {
         final int status = HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
         // If we have a delegate let it handle the error
-        final JakartaErrorHandler local = this.delegate;
+        final JakartaErrorHandler local = this.getErrorHandler(request);
         if (local != null) {
             try {
                 local.handleError(throwable, request, response);
@@ -208,6 +248,9 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             }
             return;
         }
+
+        log.warn("handleError: No ErrorHandler service registered; every Sling instance should have one. "
+                + "Falling back to the minimal built-in error response.");
 
         sendError(status, throwable.getMessage(), throwable, request, response);
     }
@@ -219,6 +262,17 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
             final HttpServletRequest request,
             final HttpServletResponse response)
             throws IOException {
+        // Is html requested?
+        final String contentType =
+                JakartaMediaRangeList.fromRequest(request).prefer(JakartaMediaRangeList.CONTENT_TYPE_HTML);
+        if (contentType == null) {
+            response.setStatus(status);
+            response.setContentLength(0);
+            // commit the response
+            response.flushBuffer();
+            return;
+        }
+
         // error situation
         final String servletName = (String) request.getAttribute(RequestDispatcher.ERROR_SERVLET_NAME);
         String requestURI = (String) request.getAttribute(RequestDispatcher.ERROR_REQUEST_URI);
@@ -254,32 +308,63 @@ public class DefaultErrorHandler implements JakartaErrorHandler {
         }
         pw.println("</p>");
 
-        if (throwable != null) {
-            final PrintWriter escapingWriter = new PrintWriter(ResponseUtil.getXmlEscapingWriter(pw));
-            pw.println("<h3>Exception stacktrace:</h3>");
-            pw.println("<pre>");
-            pw.flush();
-            throwable.printStackTrace(escapingWriter);
-            escapingWriter.flush();
-            pw.println("</pre>");
-
-            final RequestProgressTracker tracker =
-                    ((SlingJakartaHttpServletRequest) request).getRequestProgressTracker();
-            pw.println("<h3>Request Progress:</h3>");
-            pw.println("<pre>");
-            pw.flush();
-            tracker.dump(new PrintWriter(escapingWriter));
-            escapingWriter.flush();
-            pw.println("</pre>");
-        }
-
-        pw.println("<hr /><address>");
-        pw.println(ResponseUtil.escapeXml(serverInfo));
-        pw.println("</address></body></html>");
+        pw.println("</body></html>");
 
         // commit the response
         response.flushBuffer();
         // close the response (SLING-2724)
         pw.close();
+    }
+
+    private boolean matchesName(final ServiceReference<JakartaErrorHandler> ref, final String name) {
+        final String[] names = Converters.standardConverter()
+                .convert(ref.getProperty(JakartaErrorHandler.PROPERTY_NAME))
+                .to(String[].class);
+
+        for (final String n : names) {
+            if (name.equals(n)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Set the non html error handler
+     */
+    private void setNonHtmlErrorHandler() {
+        final Optional<Map.Entry<ServiceReference<JakartaErrorHandler>, JakartaErrorHandler>> first =
+                jakartaErrorHandlers.entrySet().stream()
+                        .filter(entry -> matchesName(entry.getKey(), JakartaErrorHandler.NAME_NONHTML))
+                        .findFirst();
+        if (first.isPresent()) {
+            this.nonHtmlDelegate = first.get().getValue();
+        } else {
+            this.nonHtmlDelegate = null;
+        }
+    }
+
+    /**
+     * Add a named delegate for handling non-HTML errors.
+     * @param ref the service reference for the delegate
+     * @param handler the error handler instance for the delegate
+     */
+    public synchronized void addNamedDelegate(
+            final ServiceReference<JakartaErrorHandler> ref, final JakartaErrorHandler handler) {
+        this.jakartaErrorHandlers.put(ref, handler);
+        this.setNonHtmlErrorHandler();
+    }
+
+    /**
+     * Remove a named delegate for handling non-HTML errors.
+     * @param ref the service reference for the delegate
+     */
+    public synchronized void removeNamedDelegate(final ServiceReference<JakartaErrorHandler> ref) {
+        this.jakartaErrorHandlers.remove(ref);
+        this.setNonHtmlErrorHandler();
+    }
+
+    public void setEnableAcceptHeaderCheck(final boolean enable) {
+        this.enableAcceptHeaderCheck = enable;
     }
 }

@@ -19,6 +19,7 @@
 package org.apache.sling.engine.impl.parameters;
 
 import java.io.IOException;
+import java.util.Map;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -29,11 +30,14 @@ import jakarta.servlet.http.HttpServletRequestWrapper;
 import org.apache.sling.api.SlingJakartaHttpServletRequest;
 import org.apache.sling.settings.SlingSettingsService;
 import org.apache.sling.testing.mock.osgi.junit.OsgiContext;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mockito;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 
@@ -51,11 +55,17 @@ public class RequestParameterSupportConfigurerTest {
     public void before() {
         // Satisfy mandatory reference to SlingSettingsService
         osgiContext.registerService(SlingSettingsService.class, Mockito.mock(SlingSettingsService.class));
+    }
 
-        // Satisfy mandatory reference to RequestParameterConfig
-        osgiContext.registerInjectActivateService(RequestParameterConfig.class);
-
+    private void configureFilter(Map<String, Object> properties) {
+        osgiContext.registerInjectActivateService(RequestParameterConfig.class, properties);
         filter = osgiContext.registerInjectActivateService(RequestParameterSupportConfigurer.class);
+    }
+
+    @After
+    public void after() {
+        ParameterMap.setMaxParameters(ParameterMap.DEFAULT_MAX_PARAMS);
+        ParameterMap.setFailOnParameterLimit(false);
     }
 
     /**
@@ -81,6 +91,7 @@ public class RequestParameterSupportConfigurerTest {
     }
 
     private void doFilterForServletRequest(ServletRequest mockRequest1) throws IOException, ServletException {
+        configureFilter(Map.of());
         ServletResponse mockResponse1 = Mockito.mock(ServletResponse.class);
         FilterChain chain1 = Mockito.mock(FilterChain.class);
         filter.doFilter(mockRequest1, mockResponse1, chain1);
@@ -89,10 +100,32 @@ public class RequestParameterSupportConfigurerTest {
 
     @Test
     public void testDoFilterForHttpServletRequest() throws IOException, ServletException {
+        configureFilter(Map.of());
         HttpServletRequest mockRequest1 = Mockito.mock(HttpServletRequest.class);
         ServletResponse mockResponse1 = Mockito.mock(ServletResponse.class);
         FilterChain chain1 = Mockito.mock(FilterChain.class);
         filter.doFilter(mockRequest1, mockResponse1, chain1);
         Mockito.verify(chain1, times(1)).doFilter(any(HttpServletRequestWrapper.class), any(ServletResponse.class));
+    }
+
+    @Test
+    public void testParameterLimitFailsByDefault() {
+        configureFilter(Map.of("sling.default.max.parameters", 1));
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getQueryString()).thenReturn("a=1&b=2");
+
+        assertThrows(SlingParameterParseException.class, () -> ParameterSupport.getInstance(request)
+                .getRequestParameterMap());
+    }
+
+    @Test
+    public void testParameterLimitCanBeConfiguredToTruncate() {
+        configureFilter(Map.of("sling.default.max.parameters", 1, "sling.default.parameter.fail.on.limit", false));
+        HttpServletRequest request = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(request.getQueryString()).thenReturn("a=1&b=2");
+
+        assertEquals(
+                1,
+                ParameterSupport.getInstance(request).getRequestParameterMap().size());
     }
 }

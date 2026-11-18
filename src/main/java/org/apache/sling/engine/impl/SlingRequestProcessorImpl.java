@@ -33,7 +33,6 @@ import jakarta.servlet.DispatcherType;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.Servlet;
-import jakarta.servlet.ServletContext;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.ServletRequest;
 import jakarta.servlet.ServletResponse;
@@ -65,8 +64,8 @@ import org.apache.sling.engine.impl.filter.RequestSlingFilterChain;
 import org.apache.sling.engine.impl.filter.ServletFilterManager;
 import org.apache.sling.engine.impl.filter.ServletFilterManager.FilterChainType;
 import org.apache.sling.engine.impl.filter.SlingComponentFilterChain;
-import org.apache.sling.engine.impl.helper.SlingServletContext;
 import org.apache.sling.engine.impl.parameters.ParameterSupport;
+import org.apache.sling.engine.impl.parameters.SlingParameterParseException;
 import org.apache.sling.engine.impl.request.ContentData;
 import org.apache.sling.engine.impl.request.DispatchingInfo;
 import org.apache.sling.engine.impl.request.RequestData;
@@ -153,19 +152,12 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         this.protectHeadersOnInclude = config.sling_includes_protectheaders();
         this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
         this.disableCheckCompliantGetUserPrincipal = config.disable_spec_compliant_getuserprincipal();
-    }
-
-    @Reference(target = SlingServletContext.TARGET, policy = ReferencePolicy.DYNAMIC, updated = "bindServletContext")
-    void bindServletContext(final ServletContext servletContext) {
-        this.errorHandler.setServerInfo(servletContext.getServerInfo());
-    }
-
-    void unbindServletContext(final ServletContext servletContext) {
-        // nothing to do here, but DS requires this method
+        this.errorHandler.setEnableAcceptHeaderCheck(config.enable_accept_header_check());
     }
 
     @Reference(
             name = "JakartaErrorHandler",
+            target = "(!(" + JakartaErrorHandler.PROPERTY_NAME + "=*))",
             cardinality = ReferenceCardinality.OPTIONAL,
             policy = ReferencePolicy.DYNAMIC,
             policyOption = ReferencePolicyOption.GREEDY)
@@ -175,6 +167,28 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
 
     void unsetJakartaErrorHandler(final JakartaErrorHandler handler, final ServiceReference<?> ref) {
         this.errorHandler.setDelegate(ref, (JakartaErrorHandler) null);
+    }
+
+    /**
+     * Add named error handlers
+     * @param handler The JakartaErrorHandler instance to add as a named delegate.
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance.
+     */
+    @Reference(
+            target = "(" + JakartaErrorHandler.PROPERTY_NAME + "=*)",
+            cardinality = ReferenceCardinality.MULTIPLE,
+            policy = ReferencePolicy.DYNAMIC)
+    void setNamedJakartaErrorHandler(
+            final JakartaErrorHandler handler, final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.addNamedDelegate(ref, handler);
+    }
+
+    /**
+     * Remove named error handlers
+     * @param ref The ServiceReference associated with the JakartaErrorHandler instance to remove.
+     */
+    void unsetNamedJakartaErrorHandler(final ServiceReference<JakartaErrorHandler> ref) {
+        this.errorHandler.removeNamedDelegate(ref);
     }
 
     @SuppressWarnings("deprecation")
@@ -281,12 +295,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
         final SlingJakartaHttpServletRequest request = requestData.getSlingRequest();
         final SlingJakartaHttpServletResponse response = requestData.getSlingResponse();
 
+        // remember the state of the outer request (if any) - nested processRequest
+        // calls must restore it when done instead of resetting it to UNSET,
+        // otherwise a nested call would clear a violation already detected for
+        // the outer request
+        final ContentTypeHeaderState outerContentTypeHeaderState = getContentTypeHeaderState();
+
         try {
-            if (getContentTypeHeaderState() != ContentTypeHeaderState.UNSET) {
-                log.debug(
-                        "Content Type Header state has not been cleared properly, is set to {}",
-                        getContentTypeHeaderState());
-            }
             setContentTypeHeaderState(ContentTypeHeaderState.NOT_VIOLATED);
 
             // initialize the request data - resolve resource and servlet
@@ -309,6 +324,13 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
             // send this exception as a 404 status
             log.debug("service: Resource {} not found", rnfe.getResource());
             handleError(HttpServletResponse.SC_NOT_FOUND, rnfe.getMessage(), request, response);
+
+        } catch (final SlingParameterParseException sppe) {
+            // the request parameters could not be parsed completely/within
+            // configured limits; the request itself is malformed, not the
+            // server, so send this exception as a 400 status
+            log.debug("service: Failed parsing request parameters", sppe);
+            handleError(HttpServletResponse.SC_BAD_REQUEST, sppe.getMessage(), request, response);
 
         } catch (final SlingException se) {
             // send this exception as is (albeit unwrapping and wrapped
@@ -361,7 +383,7 @@ public class SlingRequestProcessorImpl implements SlingRequestProcessor {
                 localBean.addRequestData(requestData);
             }
 
-            setContentTypeHeaderState(ContentTypeHeaderState.UNSET);
+            setContentTypeHeaderState(outerContentTypeHeaderState);
         }
     }
 

@@ -35,43 +35,28 @@ import org.apache.sling.engine.impl.SlingJakartaHttpServletResponseImpl;
 import org.apache.sling.engine.impl.SlingRequestProcessorImpl;
 import org.apache.sling.engine.impl.helper.ExternalServletContextWrapper.RequestDispatcherWrapper;
 import org.apache.sling.engine.impl.request.RequestData;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
-import org.jmock.imposters.ByteBuddyClassImposteriser;
-import org.jmock.integration.junit4.JUnit4Mockery;
-import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.*;
 
 public class ExternalServletContextWrapperTest {
-
-    Mockery context = new JUnit4Mockery();
-
-    @Before
-    public void setup() {
-        context.setImposteriser(ByteBuddyClassImposteriser.INSTANCE);
-    }
 
     /**
      * Tests that the RequestDispatcher is wrapped.
      */
     @Test
     public void testGetRequestDispatcher() {
-        final RequestDispatcher rd = context.mock(RequestDispatcher.class);
-        final ServletContext ctx = context.mock(ServletContext.class);
-        context.checking(new Expectations() {
-            {
-                oneOf(ctx).getRequestDispatcher("foo.jsp");
-                will(returnValue(rd));
-            }
-        });
+        final RequestDispatcher rd = Mockito.mock(RequestDispatcher.class);
+        final ServletContext ctx = Mockito.mock(ServletContext.class);
+        Mockito.when(ctx.getRequestDispatcher("foo.jsp")).thenReturn(rd);
 
         ExternalServletContextWrapper wrapper = new ExternalServletContextWrapper(ctx);
         RequestDispatcher dispatcher = wrapper.getRequestDispatcher("foo.jsp");
 
         assertTrue(dispatcher instanceof RequestDispatcherWrapper);
         assertEquals(rd, ((RequestDispatcherWrapper) dispatcher).getDelegate());
+        Mockito.verify(ctx).getRequestDispatcher("foo.jsp");
     }
 
     /**
@@ -79,7 +64,7 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingRegularRequest() {
-        final ServletRequest req = context.mock(ServletRequest.class);
+        final ServletRequest req = Mockito.mock(ServletRequest.class);
 
         ServletRequest unwrapped = ExternalServletContextWrapper.RequestDispatcherWrapper.unwrapServletRequest(req);
 
@@ -91,7 +76,7 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingWrappedRequest() {
-        final ServletRequest req = context.mock(ServletRequest.class);
+        final ServletRequest req = Mockito.mock(ServletRequest.class);
         final ServletRequestWrapper wrapper = new ServletRequestWrapper(req);
 
         ServletRequest unwrapped = ExternalServletContextWrapper.RequestDispatcherWrapper.unwrapServletRequest(wrapper);
@@ -101,7 +86,7 @@ public class ExternalServletContextWrapperTest {
 
     @Test
     public void testUnwrappingDoubleWrappedRequest() {
-        final ServletRequest req = context.mock(ServletRequest.class);
+        final ServletRequest req = Mockito.mock(ServletRequest.class);
         final ServletRequestWrapper wrapper = new ServletRequestWrapper(req);
         final ServletRequestWrapper wrapper2 = new ServletRequestWrapper(wrapper);
 
@@ -117,16 +102,9 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingSlingRequest() {
-        final HttpServletRequest req = context.mock(HttpServletRequest.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(req).getServletPath();
-                will(returnValue("/"));
-                allowing(req).getPathInfo();
-                will(returnValue("/test"));
-            }
-        });
+        final HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(req.getServletPath()).thenReturn("/");
+        Mockito.when(req.getPathInfo()).thenReturn("/test");
 
         final HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(req);
         final HttpServletRequestWrapper wrapper2 = new HttpServletRequestWrapper(wrapper);
@@ -144,16 +122,9 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingWrappedSlingRequest() {
-        final HttpServletRequest req = context.mock(HttpServletRequest.class);
-
-        context.checking(new Expectations() {
-            {
-                allowing(req).getServletPath();
-                will(returnValue("/"));
-                allowing(req).getPathInfo();
-                will(returnValue("/test"));
-            }
-        });
+        final HttpServletRequest req = Mockito.mock(HttpServletRequest.class);
+        Mockito.when(req.getServletPath()).thenReturn("/");
+        Mockito.when(req.getPathInfo()).thenReturn("/test");
 
         final HttpServletRequestWrapper wrapper = new HttpServletRequestWrapper(req);
         final HttpServletRequestWrapper wrapper2 = new HttpServletRequestWrapper(wrapper);
@@ -171,7 +142,7 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingRegularResponse() {
-        final ServletResponse req = context.mock(ServletResponse.class);
+        final ServletResponse req = Mockito.mock(ServletResponse.class);
 
         ServletResponse unwrapped = ExternalServletContextWrapper.RequestDispatcherWrapper.unwrapServletResponse(req);
 
@@ -183,7 +154,7 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingWrappedResponse() {
-        final ServletResponse resp = context.mock(ServletResponse.class);
+        final ServletResponse resp = Mockito.mock(ServletResponse.class);
         final ServletResponseWrapper wrapper = new ServletResponseWrapper(resp);
 
         ServletResponse unwrapped =
@@ -194,7 +165,7 @@ public class ExternalServletContextWrapperTest {
 
     @Test
     public void testUnwrappingDoubleWrappedResponse() {
-        final ServletResponse resp = context.mock(ServletResponse.class);
+        final ServletResponse resp = Mockito.mock(ServletResponse.class);
         final ServletResponseWrapper wrapper = new ServletResponseWrapper(resp);
         final ServletResponseWrapper wrapper2 = new ServletResponseWrapper(wrapper);
 
@@ -210,19 +181,13 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingSlingResponse() {
-        final HttpServletResponse resp = context.mock(HttpServletResponse.class);
+        final HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
         final HttpServletResponseWrapper wrapper = new HttpServletResponseWrapper(resp);
         final HttpServletResponseWrapper wrapper2 = new HttpServletResponseWrapper(wrapper);
-        final RequestData rd = this.context.mock(RequestData.class);
-        final SlingRequestProcessorImpl processor = this.context.mock(SlingRequestProcessorImpl.class);
-        context.checking(new Expectations() {
-            {
-                allowing(rd).getSlingRequestProcessor();
-                will(returnValue(processor));
-                allowing(processor).getAdditionalResponseHeaders();
-                will(returnValue(Collections.emptyList()));
-            }
-        });
+        final RequestData rd = Mockito.mock(RequestData.class);
+        final SlingRequestProcessorImpl processor = Mockito.mock(SlingRequestProcessorImpl.class);
+        Mockito.when(rd.getSlingRequestProcessor()).thenReturn(processor);
+        Mockito.when(processor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
 
         final SlingJakartaHttpServletResponseImpl slingResponse = new SlingJakartaHttpServletResponseImpl(rd, wrapper2);
 
@@ -238,19 +203,13 @@ public class ExternalServletContextWrapperTest {
      */
     @Test
     public void testUnwrappingWrappedSlingResponse() {
-        final HttpServletResponse resp = context.mock(HttpServletResponse.class);
+        final HttpServletResponse resp = Mockito.mock(HttpServletResponse.class);
         final HttpServletResponseWrapper wrapper = new HttpServletResponseWrapper(resp);
         final HttpServletResponseWrapper wrapper2 = new HttpServletResponseWrapper(wrapper);
-        final RequestData rd = this.context.mock(RequestData.class);
-        final SlingRequestProcessorImpl processor = this.context.mock(SlingRequestProcessorImpl.class);
-        context.checking(new Expectations() {
-            {
-                allowing(rd).getSlingRequestProcessor();
-                will(returnValue(processor));
-                allowing(processor).getAdditionalResponseHeaders();
-                will(returnValue(Collections.emptyList()));
-            }
-        });
+        final RequestData rd = Mockito.mock(RequestData.class);
+        final SlingRequestProcessorImpl processor = Mockito.mock(SlingRequestProcessorImpl.class);
+        Mockito.when(rd.getSlingRequestProcessor()).thenReturn(processor);
+        Mockito.when(processor.getAdditionalResponseHeaders()).thenReturn(Collections.emptyList());
 
         final SlingJakartaHttpServletResponseImpl slingResponse = new SlingJakartaHttpServletResponseImpl(rd, wrapper2);
         final HttpServletResponseWrapper slingWrapper = new HttpServletResponseWrapper(slingResponse);

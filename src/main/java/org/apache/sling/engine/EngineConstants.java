@@ -27,6 +27,16 @@ package org.apache.sling.engine;
 public class EngineConstants {
 
     /**
+     * Explicit public constructor for backward binary compatibility.
+     * @deprecated Instantiation not intended.
+     */
+    @Deprecated
+    @SuppressWarnings("java:S1118")
+    public EngineConstants() {
+        // Explicit constructor for backward binary compatibility
+    }
+
+    /**
      * The name of the framework property defining the Sling home directory
      * (value is "sling.home"). This is a Platform file system directory below
      * which all runtime data, such as the Felix bundle archives, logfiles, the

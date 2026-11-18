@@ -24,21 +24,17 @@ import jakarta.servlet.ServletOutputStream;
 import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletResponse;
 import org.apache.sling.engine.impl.helper.ClientAbortException;
-import org.jmock.Expectations;
-import org.jmock.Mockery;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 /** Verify that RequestLoggerResponse wraps IOException in ClientAbortException */
 public class ClientAbortExceptionTest {
 
-    private Mockery context;
     private RequestLoggerResponse r;
 
     @Before
     public void setup() throws IOException {
-        context = new Mockery();
-
         final ServletOutputStream sos = new ServletOutputStream() {
             @Override
             public void write(int b) throws IOException {
@@ -63,13 +59,8 @@ public class ClientAbortExceptionTest {
             @Override
             public void setWriteListener(WriteListener writeListener) {}
         };
-        final HttpServletResponse raw = context.mock(HttpServletResponse.class);
-        context.checking(new Expectations() {
-            {
-                allowing(raw).getOutputStream();
-                will(returnValue(sos));
-            }
-        });
+        final HttpServletResponse raw = Mockito.mock(HttpServletResponse.class);
+        Mockito.when(raw.getOutputStream()).thenReturn(sos);
 
         r = new RequestLoggerResponse(null, raw);
     }

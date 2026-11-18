@@ -124,16 +124,14 @@ public class SlingServletContext implements ServletContext, ServletContextListen
 
     private volatile ServiceRegistration<ServletContext> registration;
 
-    private final boolean protectHeadersOnInclude;
-    private final boolean checkContentTypeOnInclude;
+    private volatile boolean protectHeadersOnInclude;
+    private volatile boolean checkContentTypeOnInclude;
 
     @Activate
     public SlingServletContext(
             final Config config, final BundleContext bundleContext, @Reference final ProductInfoProvider infoProvider) {
         this.bundleContext = bundleContext;
         this.productInfoProvider = infoProvider;
-        this.protectHeadersOnInclude = config.sling_includes_protectheaders();
-        this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
         this.setup(config);
     }
 
@@ -148,6 +146,8 @@ public class SlingServletContext implements ServletContext, ServletContextListen
         } else {
             this.configuredServerInfo = null;
         }
+        this.protectHeadersOnInclude = config.sling_includes_protectheaders();
+        this.checkContentTypeOnInclude = config.sling_includes_checkcontenttype();
 
         this.setServerInfo();
     }

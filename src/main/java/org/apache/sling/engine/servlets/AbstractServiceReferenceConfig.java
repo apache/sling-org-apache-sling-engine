@@ -89,16 +89,36 @@ public abstract class AbstractServiceReferenceConfig {
         this.name = name;
     }
 
+    /**
+     * Returns the value of the named initialization parameter, or {@code null}
+     * if the parameter does not exist.
+     *
+     * @param name The name of the initialization parameter.
+     * @return The value of the parameter or {@code null}.
+     */
     public String getInitParameter(String name) {
         Object prop = reference.getProperty(name);
         return (prop == null) ? null : String.valueOf(prop);
     }
 
+    /**
+     * Returns the property keys of the underlying OSGi {@link ServiceReference} as an
+     * {@code Enumeration} of String objects, or an empty {@code Enumeration}
+     * if there are no properties.
+     *
+     * @return An {@code Enumeration} of parameter names.
+     */
     public Enumeration<?> getInitParameterNames() {
         List<?> keys = Arrays.asList(reference.getPropertyKeys());
         return Collections.enumeration(keys);
     }
 
+    /**
+     * Returns a reference to the {@link ServletContext} in which the caller
+     * is executing.
+     *
+     * @return The {@link ServletContext} object.
+     */
     public ServletContext getServletContext() {
         return servletContext;
     }
