@@ -18,214 +18,190 @@
  */
 package org.apache.sling.engine.impl.parameters;
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.lang.reflect.Field;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.NoSuchElementException;
 
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.Part;
-import org.apache.commons.fileupload.FileItemIterator;
-import org.apache.commons.fileupload.FileUploadException;
-import org.apache.commons.fileupload.RequestContext;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertSame;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.verifyNoInteractions;
-import static org.mockito.Mockito.when;
 
-/**
- * Regression tests for SLING-13364: a stream turning malformed
- * mid-body must surface as an error from {@link RequestPartsIterator}
- * instead of silently truncating the part sequence.
- * <p>
- * Also covers the fix for the streamed upload mode bypassing the configured
- * multipart limits: the configured {@code sizeMax}/{@code fileSizeMax}/
- * {@code fileCountMax} must be enforced on the streamed path exactly as they
- * are on the buffered path, and {@link Part#getSize()} must report the size
- * as unknown ({@code -1}) rather than falsely claiming an empty part.
- */
 public class RequestPartsIteratorTest {
 
-    private static final String BOUNDARY = "AaB03x";
+    private RequestPartsIterator iterator;
+    private HttpServletRequest mockRequest;
 
-    private static final String MULTI_PART_BODY = "--" + BOUNDARY + "\r\n"
-            + "Content-Disposition: form-data; name=\"file1\"; filename=\"a.txt\"\r\n"
-            + "Content-Type: text/plain\r\n"
-            + "\r\n"
-            + "hello\r\n"
-            + "--" + BOUNDARY + "\r\n"
-            + "Content-Disposition: form-data; name=\"file2\"; filename=\"b.txt\"\r\n"
-            + "Content-Type: text/plain\r\n"
-            + "\r\n"
-            + "world\r\n"
-            + "--" + BOUNDARY + "--\r\n";
-
-    @Test(expected = SlingParameterParseException.class)
-    public void testHasNextIsRejectedOnFileUploadException() throws Exception {
-        final RequestPartsIterator iterator = newIterator();
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        when(delegate.hasNext()).thenThrow(new FileUploadException("boom"));
-        injectDelegate(iterator, delegate);
-
-        iterator.hasNext();
+    @Before
+    public void before() {
+        mockRequest = Mockito.mock(HttpServletRequest.class);
+        iterator = new RequestPartsIterator(mockRequest, 5);
     }
 
-    @Test(expected = SlingParameterParseException.class)
-    public void testHasNextIsRejectedOnIOException() throws Exception {
-        final RequestPartsIterator iterator = newIterator();
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        when(delegate.hasNext()).thenThrow(new IOException("connection reset"));
-        injectDelegate(iterator, delegate);
-
-        iterator.hasNext();
-    }
-
-    @Test(expected = SlingParameterParseException.class)
-    public void testNextIsRejectedOnFileUploadException() throws Exception {
-        final RequestPartsIterator iterator = newIterator();
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        when(delegate.next()).thenThrow(new FileUploadException("boom"));
-        injectDelegate(iterator, delegate);
-
-        iterator.next();
-    }
-
-    @Test(expected = SlingParameterParseException.class)
-    public void testNextIsRejectedOnIOException() throws Exception {
-        final RequestPartsIterator iterator = newIterator();
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        when(delegate.next()).thenThrow(new IOException("connection reset"));
-        injectDelegate(iterator, delegate);
-
-        iterator.next();
+    private Part mockParts() throws IOException, ServletException {
+        Part part1 = Mockito.mock(Part.class);
+        Mockito.doReturn(List.of(part1)).when(mockRequest).getParts();
+        return part1;
     }
 
     @Test
-    public void testHasNextPassesThroughCleanEndOfStream() throws Exception {
-        // sanity check: a well-formed, empty multipart body must not trigger
-        // the reject-on-error path at all
-        final RequestPartsIterator iterator = newIterator();
-
+    public void testHasNextWithNoElements() {
         assertFalse(iterator.hasNext());
     }
 
-    /**
-     * Builds a real {@link RequestPartsIterator} over a trivial, well-formed,
-     * empty multipart body so that construction itself succeeds; the
-     * commons-fileupload delegate is then swapped out via reflection to
-     * simulate a stream failing mid-read, which is otherwise very hard to
-     * trigger deterministically with a hand-crafted byte stream.
-     */
-    private static RequestPartsIterator newIterator() throws FileUploadException, IOException {
-        final String boundary = "X";
-        final String body = "--" + boundary + "--\r\n";
-        final RequestContext context = mock(RequestContext.class);
-        when(context.getContentType()).thenReturn("multipart/form-data; boundary=" + boundary);
-        when(context.getCharacterEncoding()).thenReturn("UTF-8");
-        when(context.getContentLength()).thenReturn(body.length());
-        when(context.getInputStream()).thenReturn(new ByteArrayInputStream(body.getBytes(Util.ENCODING_DIRECT)));
-        return new RequestPartsIterator(context, -1, -1, 50);
-    }
+    @Test
+    public void testHasNextWithElements() throws IOException, ServletException {
+        mockParts();
 
-    private static void injectDelegate(final RequestPartsIterator iterator, final FileItemIterator delegate)
-            throws Exception {
-        final Field field = RequestPartsIterator.class.getDeclaredField("itemIterator");
-        field.setAccessible(true);
-        field.set(iterator, delegate);
-    }
-
-    private static RequestContext multiPartContext() throws IOException {
-        final byte[] body = MULTI_PART_BODY.getBytes(Util.ENCODING_DIRECT);
-        final RequestContext context = mock(RequestContext.class);
-        when(context.getContentType()).thenReturn("multipart/form-data; boundary=" + BOUNDARY);
-        when(context.getCharacterEncoding()).thenReturn("UTF-8");
-        when(context.getContentLength()).thenReturn(body.length);
-        when(context.getInputStream()).thenReturn(new ByteArrayInputStream(body));
-        return context;
+        assertTrue(iterator.hasNext());
+        iterator.next();
+        assertFalse(iterator.hasNext());
+        Mockito.verify(mockRequest, Mockito.times(1)).getParts();
     }
 
     @Test
-    public void testAllPartsIteratedWithoutLimits() throws Exception {
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 50);
-        assertTrue(it.hasNext());
-        final Part first = it.next();
-        assertNotNull(first);
-        assertEquals("file1", first.getName());
-        assertTrue(it.hasNext());
-        final Part second = it.next();
-        assertNotNull(second);
-        assertEquals("file2", second.getName());
-        assertFalse(it.hasNext());
+    public void testHasNextIsRejectedOnServletException() throws IOException, ServletException {
+        assertParseFailure(new ServletException("Missing multipart boundary"), false);
     }
 
     @Test
-    public void testFileCountMaxEnforced() throws Exception {
-        // the configured count must be enforced even though commons-fileupload's
-        // streaming API does not check fileCountMax itself
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 1);
-        assertTrue(it.hasNext());
-        assertNotNull(it.next());
-        // the second part exceeds the configured count limit
-        assertFalse(it.hasNext());
-        assertThrows(NoSuchElementException.class, it::next);
+    public void testHasNextIsRejectedOnIOException() throws IOException, ServletException {
+        assertParseFailure(new IOException("Connection reset"), false);
     }
 
     @Test
-    public void testFileCountMaxEnforcedWithoutHasNext() throws Exception {
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 1);
-        assertEquals("file1", it.next().getName());
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        injectDelegate(it, delegate);
-
-        assertThrows(NoSuchElementException.class, it::next);
-        assertThrows(NoSuchElementException.class, it::next);
-        verifyNoInteractions(delegate);
+    public void testNextIsRejectedOnServletException() throws IOException, ServletException {
+        assertParseFailure(new ServletException("Missing multipart boundary"), true);
     }
 
     @Test
-    public void testZeroFileCountMaxRejectsNext() throws Exception {
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 0);
-        final FileItemIterator delegate = mock(FileItemIterator.class);
-        injectDelegate(it, delegate);
-
-        assertThrows(NoSuchElementException.class, it::next);
-        verifyNoInteractions(delegate);
+    public void testNextIsRejectedOnIOException() throws IOException, ServletException {
+        assertParseFailure(new IOException("Connection reset"), true);
     }
 
     @Test
-    public void testUnlimitedFileCountAllowsNextWithoutHasNext() throws Exception {
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, -1);
+    public void testContainerSizeLimitIsRejected() throws IOException, ServletException {
+        assertParseFailure(new IllegalStateException("Request exceeds configured multipart size"), false);
+    }
 
-        assertEquals("file1", it.next().getName());
-        assertEquals("file2", it.next().getName());
-        assertThrows(NoSuchElementException.class, it::next);
-        assertFalse(it.hasNext());
+    private void assertParseFailure(Exception cause, boolean next) throws IOException, ServletException {
+        Mockito.doThrow(cause).when(mockRequest).getParts();
+        final SlingParameterParseException failure = next
+                ? assertThrows(SlingParameterParseException.class, iterator::next)
+                : assertThrows(SlingParameterParseException.class, iterator::hasNext);
+        assertSame(cause, failure.getCause());
+        assertSame(failure, assertThrows(SlingParameterParseException.class, iterator::hasNext));
+        assertSame(failure, assertThrows(SlingParameterParseException.class, iterator::next));
+        Mockito.verify(mockRequest, Mockito.times(1)).getParts();
     }
 
     @Test
-    public void testSizeMaxEnforced() throws Exception {
-        try {
-            new RequestPartsIterator(multiPartContext(), 10, -1, 50);
-            fail("Expected the configured request size limit to be enforced");
-        } catch (FileUploadException expected) {
-            // the request exceeds the configured maximum request size
+    public void testHasNextWithTooManyFiles() throws IOException, ServletException {
+        mockFiles(6);
+        final SlingParameterParseException failure =
+                assertThrows(SlingParameterParseException.class, iterator::hasNext);
+        assertTrue(failure.getCause() instanceof FileCountLimitExceededException);
+    }
+
+    @Test
+    public void testFileCountMaxEnforcedWithoutHasNext() throws IOException, ServletException {
+        mockFiles(6);
+        assertThrows(SlingParameterParseException.class, iterator::next);
+    }
+
+    @Test
+    public void testFileCountExactlyAtBoundary() throws IOException, ServletException {
+        mockFiles(5);
+        for (int i = 0; i < 5; i++) {
+            assertEquals("file" + i + ".txt", iterator.next().getSubmittedFileName());
         }
+        assertFalse(iterator.hasNext());
+        assertThrows(NoSuchElementException.class, iterator::next);
     }
 
     @Test
-    public void testGetSizeIsUnknownNotZero() throws Exception {
-        final RequestPartsIterator it = new RequestPartsIterator(multiPartContext(), -1, -1, 50);
-        assertTrue(it.hasNext());
-        final Part part = it.next();
-        assertNotNull(part);
-        // the size of a streamed part is unknown: it must not read as an empty
-        // part to size-limit checks of downstream consumers
-        assertEquals(-1, part.getSize());
+    public void testZeroFileCountMaxRejectsNext() throws IOException, ServletException {
+        mockFiles(1);
+        iterator = new RequestPartsIterator(mockRequest, 0);
+        assertThrows(SlingParameterParseException.class, iterator::next);
+    }
+
+    @Test
+    public void testUnlimitedFileCountAllowsNextWithoutHasNext() throws IOException, ServletException {
+        mockFiles(6);
+        iterator = new RequestPartsIterator(mockRequest, -1);
+        for (int i = 0; i < 6; i++) {
+            assertEquals("file" + i + ".txt", iterator.next().getSubmittedFileName());
+        }
+        assertThrows(NoSuchElementException.class, iterator::next);
+        assertFalse(iterator.hasNext());
+    }
+
+    private void mockFiles(int count) throws IOException, ServletException {
+        List<Part> parts = new ArrayList<>();
+        for (int i = 0; i < count; i++) {
+            Part mockPart = Mockito.mock(Part.class);
+            Mockito.doReturn(String.format("file%d.txt", i)).when(mockPart).getSubmittedFileName();
+            parts.add(mockPart);
+        }
+        Mockito.doReturn(parts).when(mockRequest).getParts();
+    }
+
+    @Test
+    public void testNextWithNoElements() {
+        assertThrows(NoSuchElementException.class, iterator::next);
+    }
+
+    @Test
+    public void testNextWithElements() throws IOException, ServletException {
+        mockParts();
+        final Part next1 = iterator.next();
+        assertTrue(next1 instanceof javax.servlet.http.Part);
+        assertTrue(next1 instanceof jakarta.servlet.http.Part);
+    }
+
+    @Test
+    public void testRemove() {
+        assertThrows(UnsupportedOperationException.class, iterator::remove);
+    }
+
+    @Test
+    public void testStreamedRequestPartWrapper() throws IOException, ServletException {
+        final Part part1 = mockParts();
+
+        InputStream mockInputStream1 = Mockito.mock(InputStream.class);
+        Mockito.doReturn(mockInputStream1).when(part1).getInputStream();
+        Mockito.doReturn("text/test1").when(part1).getContentType();
+        Mockito.doReturn("name1").when(part1).getName();
+        Mockito.doReturn(11L).when(part1).getSize();
+        Mockito.doReturn("value1").when(part1).getHeader("header1");
+        Mockito.doReturn(List.of("value1")).when(part1).getHeaders("header1");
+        Mockito.doReturn(List.of("header1")).when(part1).getHeaderNames();
+        Mockito.doReturn("file1.txt").when(part1).getSubmittedFileName();
+
+        final Part next1 = iterator.next();
+
+        assertEquals(part1.getInputStream(), next1.getInputStream());
+        assertEquals(part1.getContentType(), next1.getContentType());
+        assertEquals(part1.getName(), next1.getName());
+        assertEquals(11L, next1.getSize());
+        assertEquals(part1.getHeader("header1"), next1.getHeader("header1"));
+        assertEquals(part1.getHeaders("header1"), next1.getHeaders("header1"));
+        assertEquals(part1.getHeaderNames(), next1.getHeaderNames());
+        assertEquals(part1.getSubmittedFileName(), next1.getSubmittedFileName());
+
+        assertThrows(UnsupportedOperationException.class, () -> next1.write("output1"));
+        next1.delete();
+        Mockito.verify(part1).delete();
     }
 }

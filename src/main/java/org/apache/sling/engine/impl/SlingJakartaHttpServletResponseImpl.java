@@ -45,6 +45,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpServletResponseWrapper;
 import org.apache.sling.api.SlingException;
 import org.apache.sling.api.SlingJakartaHttpServletResponse;
+import org.apache.sling.engine.impl.helper.ContentTypeUtil;
 import org.apache.sling.engine.impl.request.RequestData;
 import org.jetbrains.annotations.Nullable;
 import org.slf4j.Logger;
@@ -540,9 +541,9 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
                             ? getMessage(currentContentType, contentType)
                             : getShortMessage(currentContentType, contentType));
         }
-        final String setCharset = getCharsetPart(contentType);
+        final String setCharset = ContentTypeUtil.getCharset(contentType);
         if (setCharset != null) {
-            String currentCharset = currentContentType == null ? null : getCharsetPart(currentContentType);
+            String currentCharset = ContentTypeUtil.getCharset(currentContentType);
             if (currentCharset == null) {
                 currentCharset = getCharacterEncoding();
             }
@@ -565,27 +566,6 @@ public class SlingJakartaHttpServletResponseImpl extends HttpServletResponseWrap
         final int semi = contentType.indexOf(';');
         final String mime = semi >= 0 ? contentType.substring(0, semi) : contentType;
         return mime.trim();
-    }
-
-    /**
-     * Returns the value of the charset parameter of a 'Content-Type' header
-     * value, or {@code null} if no charset parameter is present.
-     */
-    @Nullable
-    private static String getCharsetPart(final String contentType) {
-        final String[] parts = contentType.split(";");
-        for (int i = 1; i < parts.length; i++) {
-            final String param = parts[i].trim();
-            final int eq = param.indexOf('=');
-            if (eq > 0 && "charset".equalsIgnoreCase(param.substring(0, eq).trim())) {
-                String value = param.substring(eq + 1).trim();
-                if (value.length() > 1 && value.charAt(0) == '"' && value.charAt(value.length() - 1) == '"') {
-                    value = value.substring(1, value.length() - 1).trim();
-                }
-                return value.isEmpty() ? null : value;
-            }
-        }
-        return null;
     }
 
     /**

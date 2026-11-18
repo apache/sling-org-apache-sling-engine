@@ -71,6 +71,7 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
         }
 
         super.put(newName, params);
+        this.stringParameterMap = null;
     }
 
     void addParameter(RequestParameter parameter, boolean prependNew) {
@@ -100,10 +101,12 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
 
         // list of parameters
         this.requestParameters.add(parameter);
+        this.stringParameterMap = null;
     }
 
     void setParameters(String name, RequestParameter[] parameters) {
         super.put(name, parameters);
+        stringParameterMap = null;
     }
 
     // ---------- String parameter support
@@ -132,8 +135,8 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
 
     public Object getPart(final String name) {
         final RequestParameter p = this.getValue(name);
-        if (p instanceof MultipartRequestParameter) {
-            return new SlingPart((MultipartRequestParameter) p);
+        if (p instanceof MultipartRequestParameter mrp) {
+            return new SlingPart(mrp);
         }
 
         // no such part
@@ -141,10 +144,10 @@ public class ParameterMap extends LinkedHashMap<String, RequestParameter[]> impl
     }
 
     public Collection<?> getParts() {
-        final ArrayList<Part> parts = new ArrayList<Part>(this.size());
+        final ArrayList<Part> parts = new ArrayList<>(this.size());
         for (RequestParameter[] param : this.values()) {
-            if (param.length >= 1 && param[0] instanceof MultipartRequestParameter) {
-                parts.add(new SlingPart((MultipartRequestParameter) param[0]));
+            if (param.length >= 1 && param[0] instanceof MultipartRequestParameter mrp) {
+                parts.add(new SlingPart(mrp));
             }
         }
         return parts;
