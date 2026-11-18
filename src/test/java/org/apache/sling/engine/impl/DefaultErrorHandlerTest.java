@@ -346,8 +346,10 @@ public class DefaultErrorHandlerTest {
         handler.handleError(404, "not found", request, response);
 
         verify(response).setStatus(404);
-        responseBody.flush();
-        assertTrue(responseBody.toString().contains("not found"));
+        verify(response).setContentLength(0);
+        verify(response).flushBuffer();
+        verify(response, never()).getWriter();
+        assertEquals("", responseBody.toString());
     }
 
     @Test
@@ -483,8 +485,10 @@ public class DefaultErrorHandlerTest {
         verify(response).reset();
         verify(response).setStatus(404);
         verifyNoInteractions(main);
-        responseBody.flush();
-        assertTrue(responseBody.toString().contains("not found"));
+        verify(response).setContentLength(0);
+        verify(response).flushBuffer();
+        verify(response, never()).getWriter();
+        assertEquals("", responseBody.toString());
     }
 
     @Test
@@ -517,8 +521,10 @@ public class DefaultErrorHandlerTest {
 
         verifyNoInteractions(nonHtml);
         verify(response).setStatus(404);
-        responseBody.flush();
-        assertTrue(responseBody.toString().contains("not found"));
+        verify(response).setContentLength(0);
+        verify(response).flushBuffer();
+        verify(response, never()).getWriter();
+        assertEquals("", responseBody.toString());
     }
 
     @Test
